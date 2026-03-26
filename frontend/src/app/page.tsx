@@ -84,7 +84,7 @@ export default function HomePage() {
           {/* CTA Buttons */}
           <div className="animate-fade-in stagger-3 mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link
-              href="/stocks"
+              href="/screening"
               className="group relative inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all duration-300 hover:shadow-emerald-500/40 hover:scale-[1.02] active:scale-[0.98]"
             >
               배당주 스크리닝 시작
@@ -93,7 +93,7 @@ export default function HomePage() {
               </svg>
             </Link>
             <Link
-              href="/etfs"
+              href="/etf-screening"
               className="inline-flex items-center gap-2 rounded-xl border border-gray-700 bg-gray-900/50 px-8 py-3.5 text-base font-semibold text-gray-300 transition-all duration-300 hover:border-gray-600 hover:bg-gray-800/50 hover:text-white"
             >
               ETF 스크리닝
@@ -178,7 +178,7 @@ export default function HomePage() {
               포트폴리오를 구성하세요.
             </p>
             <Link
-              href="/stocks"
+              href="/screening"
               className="mt-8 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all duration-300 hover:shadow-emerald-500/40 hover:scale-[1.02] active:scale-[0.98]"
             >
               지금 시작하기
