@@ -6,8 +6,8 @@ import { usePathname } from 'next/navigation';
 
 const navLinks = [
   { href: '/', label: '홈' },
-  { href: '/stocks', label: '배당주 스크리닝' },
-  { href: '/etfs', label: 'ETF 스크리닝' },
+  { href: '/screening', label: '배당주 스크리닝' },
+  { href: '/etf-screening', label: 'ETF 스크리닝' },
   { href: '/dashboard', label: '대시보드' },
 ];
 
