@@ -122,6 +122,10 @@ export interface ScreeningProgress {
   currentSymbol?: string;
   startedAt?: string;
   completedAt?: string;
+  estimatedTimeRemaining?: number;  // seconds
+  averageTimePerStock?: number;     // seconds
+  skippedStocks?: number;
+  screeningOrder?: string;          // 종목 검색 순서 설명
   error?: string;
   results?: ScreenedStock[];
 }
@@ -225,10 +229,16 @@ export interface FMPFinancialRatios {
   dividendYielPercentageTTM?: number;
   payoutRatioTTM?: number;
   returnOnEquityTTM?: number;
+  returnOnEquity?: number;
   debtEquityRatioTTM?: number;
+  debtEquityRatio?: number;
   priceEarningsRatioTTM?: number;
+  priceEarningsRatio?: number;
   priceToBookRatioTTM?: number;
+  priceToBookRatio?: number;
   priceToSalesRatioTTM?: number;
+  priceToSalesRatio?: number;
+  [key: string]: unknown;  // FMP returns many extra fields
 }
 
 export interface FMPHistoricalPrice {

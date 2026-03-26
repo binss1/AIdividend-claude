@@ -27,6 +27,14 @@ interface CachedETFScreening {
   timestamp: string;
 }
 
+interface MarketIndex {
+  symbol: string;
+  label: string;
+  price: number | null;
+  change: number | null;
+  changesPercentage: number | null;
+}
+
 // -------------------------------------------------------------------
 // Helpers
 // -------------------------------------------------------------------
@@ -64,8 +72,9 @@ export default function DashboardPage() {
   const [rateLoading, setRateLoading] = useState(true);
   const [stockCache, setStockCache] = useState<CachedScreening | null>(null);
   const [etfCache, setETFCache] = useState<CachedETFScreening | null>(null);
+  const [marketIndices, setMarketIndices] = useState<MarketIndex[]>([]);
 
-  // Fetch exchange rate
+  // Fetch exchange rate + market overview
   useEffect(() => {
     const base = getApiBaseUrl();
     fetch(`${base}/exchange-rate`)
@@ -75,6 +84,14 @@ export default function DashboardPage() {
       })
       .catch(() => {})
       .finally(() => setRateLoading(false));
+
+    // Fetch market indices
+    fetch(`${base}/screening/market-overview`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data && Array.isArray(data)) setMarketIndices(data);
+      })
+      .catch(() => {});
   }, []);
 
   // Load cached screening results from localStorage
@@ -212,7 +229,7 @@ export default function DashboardPage() {
           <div className="bg-gray-900/60 border border-gray-800/60 rounded-xl p-5 text-center">
             <p className="text-xs text-gray-400 mb-1">평균 배당수익률</p>
             <p className="text-2xl font-bold text-emerald-400">
-              {avgYield > 0 ? `${(avgYield * 100).toFixed(2)}%` : '-'}
+              {avgYield > 0 ? `${avgYield.toFixed(2)}%` : '-'}
             </p>
           </div>
           <div className="bg-gray-900/60 border border-gray-800/60 rounded-xl p-5 text-center">
@@ -277,7 +294,7 @@ export default function DashboardPage() {
                       <p className="text-xs text-gray-400 truncate">{stock.name}</p>
                       <div className="flex items-center gap-3 mt-1.5">
                         <span className="text-xs text-emerald-400 font-medium">
-                          수익률 {(stock.dividendYield * 100).toFixed(2)}%
+                          수익률 {stock.dividendYield.toFixed(2)}%
                         </span>
                         <div className="flex-1 max-w-[100px]">
                           <ScoreBar score={stock.overallScore} height={4} showLabel={false} />
@@ -363,22 +380,46 @@ export default function DashboardPage() {
             시장 개요
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: 'S&P 500', value: '-', sub: '데이터 대기', icon: '📊' },
-              { label: 'NASDAQ', value: '-', sub: '데이터 대기', icon: '📈' },
-              { label: '미국 10년물 금리', value: '-', sub: '데이터 대기', icon: '💰' },
-              { label: 'VIX', value: '-', sub: '공포 지수', icon: '⚡' },
-            ].map((item, i) => (
-              <div
-                key={i}
-                className="bg-gray-800/40 border border-gray-700/40 rounded-xl p-4 text-center"
-              >
-                <p className="text-lg mb-1">{item.icon}</p>
-                <p className="text-xs text-gray-400 mb-1">{item.label}</p>
-                <p className="text-lg font-bold text-gray-500">{item.value}</p>
-                <p className="text-xs text-gray-600">{item.sub}</p>
-              </div>
-            ))}
+            {(() => {
+              const icons = ['📊', '📈', '💰', '⚡'];
+              const defaults = [
+                { label: 'S&P 500', sub: '' },
+                { label: 'NASDAQ', sub: '' },
+                { label: '미국 10년물 금리', sub: '' },
+                { label: 'VIX', sub: '공포 지수' },
+              ];
+              return defaults.map((d, i) => {
+                const m = marketIndices[i];
+                const price = m?.price;
+                const change = m?.changesPercentage;
+                const isUp = change != null && change >= 0;
+                return (
+                  <div
+                    key={i}
+                    className="bg-gray-800/40 border border-gray-700/40 rounded-xl p-4 text-center"
+                  >
+                    <p className="text-lg mb-1">{icons[i]}</p>
+                    <p className="text-xs text-gray-400 mb-1">{d.label}</p>
+                    <p className={`text-lg font-bold font-mono ${price != null ? 'text-white' : 'text-gray-500'}`}>
+                      {price != null
+                        ? i === 2
+                          ? `${price.toFixed(2)}%`
+                          : price.toLocaleString('en-US', { maximumFractionDigits: 2 })
+                        : '-'}
+                    </p>
+                    <p className={`text-xs font-mono ${
+                      change != null
+                        ? isUp ? 'text-emerald-400' : 'text-red-400'
+                        : 'text-gray-600'
+                    }`}>
+                      {change != null
+                        ? `${isUp ? '+' : ''}${change.toFixed(2)}%`
+                        : d.sub || '데이터 대기'}
+                    </p>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </section>
       </div>

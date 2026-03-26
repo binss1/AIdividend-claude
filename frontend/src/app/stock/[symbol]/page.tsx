@@ -317,7 +317,7 @@ export default function StockDetailPage() {
                 },
                 {
                   label: '배당수익률',
-                  value: `${(stock.dividendYield * 100).toFixed(2)}%`,
+                  value: `${stock.dividendYield.toFixed(2)}%`,
                   sub: null,
                   highlight: true,
                 },
@@ -328,9 +328,9 @@ export default function StockDetailPage() {
                 },
                 {
                   label: '배당성향',
-                  value: `${(stock.payoutRatio * 100).toFixed(1)}%`,
-                  sub: stock.payoutRatio > 0.8 ? '높음 - 주의' : stock.payoutRatio > 0.6 ? '적정' : '양호',
-                  color: stock.payoutRatio > 0.8 ? 'text-red-400' : stock.payoutRatio > 0.6 ? 'text-yellow-400' : 'text-emerald-400',
+                  value: `${stock.payoutRatio.toFixed(1)}%`,
+                  sub: stock.payoutRatio > 80 ? '높음 - 주의' : stock.payoutRatio > 60 ? '적정' : '양호',
+                  color: stock.payoutRatio > 80 ? 'text-red-400' : stock.payoutRatio > 60 ? 'text-yellow-400' : 'text-emerald-400',
                 },
                 {
                   label: '연속 배당 증가',
@@ -385,13 +385,13 @@ export default function StockDetailPage() {
               },
               {
                 label: 'ROE',
-                value: stock.roe != null ? `${(stock.roe * 100).toFixed(1)}%` : '-',
-                color: metricColorInverse(stock.roe != null ? stock.roe * 100 : null, 15, 8),
+                value: stock.roe != null && stock.roe !== 0 ? `${stock.roe.toFixed(1)}%` : '-',
+                color: metricColorInverse(stock.roe, 15, 8),
               },
               {
                 label: '부채비율',
-                value: stock.debtToEquity != null ? `${stock.debtToEquity.toFixed(0)}%` : '-',
-                color: metricColor(stock.debtToEquity, 100, 200),
+                value: stock.debtToEquity != null ? stock.debtToEquity.toFixed(2) : '-',
+                color: metricColor(stock.debtToEquity, 1, 2),
               },
               {
                 label: '시가총액',

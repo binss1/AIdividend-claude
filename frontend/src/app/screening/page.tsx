@@ -359,18 +359,22 @@ export default function StockScreeningPage() {
 
                 {/* Max Stocks */}
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-3">
+                  <label className="block text-sm font-medium text-zinc-300 mb-2">
                     최대 분석 종목수
                   </label>
                   <input
                     type="number"
                     min={10}
-                    max={2000}
+                    max={5000}
                     step={10}
                     value={maxStocks}
                     onChange={(e) => setMaxStocks(parseInt(e.target.value) || 500)}
                     className="w-full rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono transition-colors"
                   />
+                  <p className="mt-1.5 text-[11px] text-zinc-500 leading-relaxed">
+                    S&amp;P500 + NASDAQ ≈ 3,500개 종목에서 앞에서부터 선택.<br/>
+                    조건 필터링 전 분석 대상 수이며, 500종목 ≈ 약 15~25분 소요.
+                  </p>
                 </div>
               </div>
 
@@ -420,6 +424,10 @@ export default function StockScreeningPage() {
               processed={progress.processedStocks}
               total={progress.totalStocks}
               found={progress.foundStocks}
+              estimatedTimeRemaining={progress.estimatedTimeRemaining ?? null}
+              skipped={progress.skippedStocks ?? 0}
+              averageTimePerStock={progress.averageTimePerStock ?? null}
+              screeningOrder={progress.screeningOrder ?? null}
             />
           </div>
         )}

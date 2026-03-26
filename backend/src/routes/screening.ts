@@ -5,6 +5,7 @@ import {
   getStockDetail,
   getDividendHistory,
   getHistoricalPrices,
+  getQuote,
 } from '../services/fmpService';
 import { screenDividendETFs } from '../services/etfScreeningService';
 import { saveScreeningResults, saveETFResults } from '../services/googleSheetsService';
@@ -79,6 +80,8 @@ router.get('/stock-screening', optionalAuth, async (req: Request, res: Response)
       startedAt: new Date().toISOString(),
     };
 
+    logger.info(`[API] 배당주 스크리닝 요청 - 조건: 수익률≥${criteria.minDividendYield}%, 시총≥$${(criteria.minMarketCapUSD / 1e9).toFixed(1)}B, 성향≤${criteria.maxPayoutRatio}%, 최대${criteria.maxStocksToCheck}종목`);
+
     // Start screening in background
     (async () => {
       try {
@@ -105,9 +108,12 @@ router.get('/stock-screening', optionalAuth, async (req: Request, res: Response)
           logger.error('Background sheets save failed', (err as Error).message);
         });
 
-        logger.info(`Stock screening completed: ${results.length} stocks found`);
+        const elapsed = stockScreeningProgress.startedAt
+          ? ((Date.now() - new Date(stockScreeningProgress.startedAt).getTime()) / 1000).toFixed(0)
+          : '?';
+        logger.info(`[API] 스크리닝 완료: ${results.length}개 종목 발견, 총 ${elapsed}초 소요`);
       } catch (err) {
-        logger.error('Stock screening failed', (err as Error).message);
+        logger.error('[API] 스크리닝 실패:', (err as Error).message);
         stockScreeningProgress = {
           ...stockScreeningProgress,
           status: 'error',
@@ -225,6 +231,96 @@ router.post('/etf-screening', optionalAuth, async (req: Request, res: Response) 
  */
 router.get('/etf-screening-progress', optionalAuth, (_req: Request, res: Response) => {
   res.json(etfScreeningProgress);
+});
+
+// ==========================================
+// ETF Detail Endpoints
+// ==========================================
+
+import { getETFDetail, getETFHoldingsData } from '../services/etfScreeningService';
+
+/**
+ * GET /etf/:symbol
+ * Get ETF detail with Q-LEAD scoring
+ */
+router.get('/etf/:symbol', optionalAuth, async (req: Request, res: Response) => {
+  try {
+    const symbol = (req.params.symbol as string).toUpperCase();
+    if (!symbol) {
+      res.status(400).json({ error: 'Symbol is required' });
+      return;
+    }
+
+    const detail = await getETFDetail(symbol);
+    if (!detail) {
+      res.status(404).json({ error: `ETF ${symbol} not found` });
+      return;
+    }
+
+    res.json(detail);
+  } catch (err) {
+    logger.error(`Failed to get ETF detail for ${req.params.symbol}`, (err as Error).message);
+    res.status(500).json({ error: 'Failed to get ETF detail' });
+  }
+});
+
+/**
+ * GET /etf/:symbol/holdings
+ * Get ETF top holdings
+ */
+router.get('/etf/:symbol/holdings', optionalAuth, async (req: Request, res: Response) => {
+  try {
+    const symbol = (req.params.symbol as string).toUpperCase();
+    const holdings = await getETFHoldingsData(symbol);
+    res.json({ symbol, count: holdings.length, holdings });
+  } catch (err) {
+    logger.error(`Failed to get ETF holdings for ${req.params.symbol}`, (err as Error).message);
+    res.status(500).json({ error: 'Failed to get ETF holdings' });
+  }
+});
+
+// ==========================================
+// Market Overview Endpoint (must be before /stock/:symbol)
+// ==========================================
+
+/**
+ * GET /market-overview
+ * Get real-time market indices (S&P 500, NASDAQ, 10Y Treasury, VIX)
+ */
+router.get('/market-overview', async (_req: Request, res: Response) => {
+  try {
+    const symbols = ['^GSPC', '^IXIC', '^TNX', '^VIX'];
+    const labels = ['S&P 500', 'NASDAQ', '미국 10년물 금리', 'VIX'];
+
+    const results = await Promise.allSettled(
+      symbols.map(s => getQuote(s))
+    );
+
+    const overview = results.map((result, i) => {
+      if (result.status === 'fulfilled' && result.value) {
+        const q = result.value;
+        return {
+          symbol: symbols[i],
+          label: labels[i],
+          price: q.price,
+          change: q.change,
+          changesPercentage: q.changesPercentage,
+        };
+      }
+      return {
+        symbol: symbols[i],
+        label: labels[i],
+        price: null,
+        change: null,
+        changesPercentage: null,
+      };
+    });
+
+    res.json(overview);
+  } catch (err) {
+    logger.error('Failed to get market overview', (err as Error).message);
+    res.status(500).json({ error: 'Failed to get market overview' });
+  }
 });
 
 // ==========================================

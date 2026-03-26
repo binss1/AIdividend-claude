@@ -618,14 +618,25 @@ export async function screenDividendStocks(
 ): Promise<ScreenedStock[]> {
   const results: ScreenedStock[] = [];
 
-  logger.info('Starting stock screening with criteria:', criteria);
+  logger.info('═══════════════════════════════════════════════════════');
+  logger.info('  📊 배당주 스크리닝 시작');
+  logger.info('═══════════════════════════════════════════════════════');
+  logger.info(`  📋 필터 조건:`);
+  logger.info(`     • 최소 배당수익률: ${criteria.minDividendYield}%`);
+  logger.info(`     • 최소 시가총액: $${(criteria.minMarketCapUSD / 1e9).toFixed(1)}B`);
+  logger.info(`     • 최대 배당성향: ${criteria.maxPayoutRatio}%`);
+  logger.info(`     • 최대 분석 종목수: ${criteria.maxStocksToCheck}`);
+  logger.info(`     • 배치 크기: ${criteria.batchSize || 10}`);
+  logger.info('───────────────────────────────────────────────────────');
 
   // Step 1: Get universe (S&P500 + NASDAQ merged, deduplicated)
+  logger.info('  🔍 종목 유니버스 수집 중 (S&P500 + NASDAQ)...');
   const [sp500, nasdaq] = await Promise.all([
     getSP500Constituents(),
     getNasdaqConstituents(),
   ]);
 
+  // S&P500 먼저, 그 후 NASDAQ 추가 (알파벳 순 아님 - API 반환 순서)
   const symbolMap = new Map<string, string>();
   for (const s of sp500) symbolMap.set(s.symbol, s.name);
   for (const s of nasdaq) symbolMap.set(s.symbol, s.name);
@@ -634,35 +645,67 @@ export async function screenDividendStocks(
   const totalToCheck = Math.min(allSymbols.length, criteria.maxStocksToCheck);
   const universe = allSymbols.slice(0, totalToCheck);
 
-  logger.info(`Universe: ${universe.length} stocks (S&P500: ${sp500.length}, NASDAQ: ${nasdaq.length}, deduplicated)`);
+  const screeningOrder = `S&P500(${sp500.length}개) + NASDAQ(${nasdaq.length}개) 합산 후 중복 제거 → 총 ${allSymbols.length}개 중 앞에서 ${universe.length}개 선택 (API 반환 순서 기준, 알파벳 순이 아님)`;
+
+  logger.info(`  📈 유니버스 구성:`);
+  logger.info(`     • S&P500: ${sp500.length}개`);
+  logger.info(`     • NASDAQ: ${nasdaq.length}개`);
+  logger.info(`     • 중복 제거 후: ${allSymbols.length}개`);
+  logger.info(`     • 분석 대상: ${universe.length}개 (앞에서부터 선택)`);
+  logger.info(`  ℹ️  순서: ${screeningOrder}`);
+  logger.info('───────────────────────────────────────────────────────');
 
   // Get exchange rate
   const exchangeRateData = await getExchangeRate();
   const krwRate = exchangeRateData.rate;
+  logger.info(`  💱 환율: 1 USD = ${krwRate.toLocaleString()} KRW`);
+  logger.info('───────────────────────────────────────────────────────');
 
-  // Step 2: Batch process
+  // Step 2: Batch process with ETA tracking
   const batchSize = criteria.batchSize || 10;
   let processedCount = 0;
+  let skippedCount = 0;
+  const startTime = Date.now();
+  const stockTimings: number[] = []; // 최근 N개 종목의 처리 시간 추적
+
+  logger.info(`  🚀 스크리닝 시작 (배치 크기: ${batchSize}, 총 ${Math.ceil(universe.length / batchSize)} 배치)`);
 
   for (let batchStart = 0; batchStart < universe.length; batchStart += batchSize) {
+    const batchNum = Math.floor(batchStart / batchSize) + 1;
+    const totalBatches = Math.ceil(universe.length / batchSize);
     const batch = universe.slice(batchStart, batchStart + batchSize);
+
+    logger.info(`  ── 배치 ${batchNum}/${totalBatches} ──────────────────────`);
 
     for (const symbol of batch) {
       processedCount++;
+      const stockStart = Date.now();
 
       try {
         const stock = await analyzeStock(symbol, criteria, krwRate);
         if (stock) {
           results.push(stock);
-          logger.info(`[${processedCount}/${universe.length}] PASS: ${symbol} | Yield: ${stock.dividendYield.toFixed(2)}% | Score: ${stock.overallScore} (${stock.grade})`);
+          logger.info(`  ✅ [${processedCount}/${universe.length}] ${symbol.padEnd(6)} | 수익률: ${stock.dividendYield.toFixed(2)}% | 성향: ${stock.payoutRatio.toFixed(1)}% | 점수: ${stock.overallScore} (${stock.grade}) | ${stock.sector}`);
         } else {
-          logger.debug(`[${processedCount}/${universe.length}] SKIP: ${symbol}`);
+          skippedCount++;
+          logger.info(`  ⏭️  [${processedCount}/${universe.length}] ${symbol.padEnd(6)} | 조건 미달 (SKIP)`);
         }
       } catch (err) {
-        logger.error(`[${processedCount}/${universe.length}] ERROR: ${symbol}`, (err as Error).message);
+        skippedCount++;
+        logger.error(`  ❌ [${processedCount}/${universe.length}] ${symbol.padEnd(6)} | ERROR: ${(err as Error).message}`);
       }
 
-      // Progress callback
+      // 처리 시간 추적 (최근 20개 이동평균)
+      const stockElapsed = (Date.now() - stockStart) / 1000;
+      stockTimings.push(stockElapsed);
+      if (stockTimings.length > 20) stockTimings.shift();
+
+      // ETA 계산
+      const avgTimePerStock = stockTimings.reduce((a, b) => a + b, 0) / stockTimings.length;
+      const remainingStocks = universe.length - processedCount;
+      const estimatedRemaining = avgTimePerStock * remainingStocks;
+
+      // Progress callback with ETA
       if (progressCallback) {
         progressCallback({
           status: 'running',
@@ -671,9 +714,20 @@ export async function screenDividendStocks(
           foundStocks: results.length,
           progress: Math.round((processedCount / universe.length) * 100),
           currentSymbol: symbol,
+          estimatedTimeRemaining: Math.round(estimatedRemaining),
+          averageTimePerStock: Math.round(avgTimePerStock * 100) / 100,
+          skippedStocks: skippedCount,
+          screeningOrder,
         });
       }
     }
+
+    // 배치 요약 로그
+    const elapsed = (Date.now() - startTime) / 1000;
+    const avgTime = stockTimings.reduce((a, b) => a + b, 0) / stockTimings.length;
+    const remaining = universe.length - processedCount;
+    const eta = avgTime * remaining;
+    logger.info(`  📊 진행: ${processedCount}/${universe.length} (${Math.round((processedCount / universe.length) * 100)}%) | 발견: ${results.length}개 | 스킵: ${skippedCount}개 | 경과: ${formatElapsed(elapsed)} | 예상잔여: ${formatElapsed(eta)}`);
 
     // Delay between batches
     if (batchStart + batchSize < universe.length) {
@@ -681,12 +735,34 @@ export async function screenDividendStocks(
     }
   }
 
-  // Sort by score descending
-  results.sort((a, b) => b.overallScore - a.overallScore);
+  // Sort by score descending, then by dividend yield descending
+  results.sort((a, b) => {
+    if (b.overallScore !== a.overallScore) return b.overallScore - a.overallScore;
+    return b.dividendYield - a.dividendYield;
+  });
 
-  logger.info(`Screening complete: ${results.length} stocks passed out of ${processedCount} checked`);
+  const totalElapsed = (Date.now() - startTime) / 1000;
+  logger.info('═══════════════════════════════════════════════════════');
+  logger.info('  🏁 배당주 스크리닝 완료');
+  logger.info(`     • 총 분석: ${processedCount}개`);
+  logger.info(`     • 통과: ${results.length}개`);
+  logger.info(`     • 스킵/필터링: ${skippedCount}개`);
+  logger.info(`     • 총 소요시간: ${formatElapsed(totalElapsed)}`);
+  logger.info(`     • 종목당 평균: ${(totalElapsed / processedCount).toFixed(1)}초`);
+  if (results.length > 0) {
+    logger.info(`     • 최고점수: ${results[0].symbol} (${results[0].overallScore}점, ${results[0].grade})`);
+    logger.info(`     • 최고수익률: ${results.reduce((max, s) => s.dividendYield > max.dividendYield ? s : max).symbol} (${results.reduce((max, s) => s.dividendYield > max.dividendYield ? s : max).dividendYield.toFixed(2)}%)`);
+  }
+  logger.info('═══════════════════════════════════════════════════════');
 
   return results;
+}
+
+function formatElapsed(seconds: number): string {
+  if (seconds < 60) return `${Math.round(seconds)}초`;
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.round(seconds % 60);
+  return `${mins}분 ${secs}초`;
 }
 
 // ==========================================
@@ -780,9 +856,22 @@ async function analyzeStock(
 
   // Financial ratios
   const latestRatios = ratios.length > 0 ? ratios[0] : null;
-  const roe = latestRatios?.returnOnEquityTTM
-    ? latestRatios.returnOnEquityTTM * 100
-    : 0;
+
+  // ROE: try TTM ratio first, then calculate from financial statements
+  let roe = 0;
+  if (latestRatios?.returnOnEquityTTM) {
+    roe = latestRatios.returnOnEquityTTM * 100;
+  } else if (latestRatios?.returnOnEquity) {
+    roe = latestRatios.returnOnEquity * 100;
+  } else if (incomeStatements.length > 0 && balanceSheets.length > 0) {
+    // Fallback: calculate ROE = NetIncome / Shareholders' Equity × 100
+    const ni = incomeStatements[0].netIncome;
+    const equity = balanceSheets[0].totalStockholdersEquity;
+    if (equity > 0 && ni !== 0) {
+      roe = (ni / equity) * 100;
+    }
+  }
+
   const debtToEquity = latestRatios?.debtEquityRatioTTM ?? (
     balanceSheets.length > 0 && balanceSheets[0].totalStockholdersEquity > 0
       ? balanceSheets[0].totalDebt / balanceSheets[0].totalStockholdersEquity
@@ -979,15 +1068,35 @@ export async function getStockDetail(symbol: string): Promise<ScreenedStock | nu
   const consistencyScore = calculateConsistencyScore(dividends);
 
   const latestRatios = ratios.length > 0 ? ratios[0] : null;
-  const roe = latestRatios?.returnOnEquityTTM ? latestRatios.returnOnEquityTTM * 100 : 0;
-  const debtToEquity = latestRatios?.debtEquityRatioTTM ?? (
+
+  // ROE: try TTM ratio, then annual ratio, then calculate from statements
+  let roe = 0;
+  if (latestRatios?.returnOnEquityTTM) {
+    roe = latestRatios.returnOnEquityTTM * 100;
+    logger.debug(`${symbol} ROE from TTM ratio: ${roe.toFixed(1)}%`);
+  } else if (latestRatios?.returnOnEquity) {
+    roe = latestRatios.returnOnEquity * 100;
+    logger.debug(`${symbol} ROE from annual ratio: ${roe.toFixed(1)}%`);
+  } else if (incomeStatements.length > 0 && balanceSheets.length > 0) {
+    const ni = incomeStatements[0].netIncome;
+    const equity = balanceSheets[0].totalStockholdersEquity;
+    if (equity > 0 && ni !== 0) {
+      roe = (ni / equity) * 100;
+      logger.debug(`${symbol} ROE calculated from statements: NI=${ni}, Equity=${equity}, ROE=${roe.toFixed(1)}%`);
+    }
+  }
+  if (roe === 0) {
+    logger.warn(`${symbol} ROE is 0 - ratios TTM: ${latestRatios?.returnOnEquityTTM}, annual: ${latestRatios?.returnOnEquity}`);
+  }
+
+  const debtToEquity = latestRatios?.debtEquityRatioTTM ?? latestRatios?.debtEquityRatio ?? (
     balanceSheets.length > 0 && balanceSheets[0].totalStockholdersEquity > 0
       ? balanceSheets[0].totalDebt / balanceSheets[0].totalStockholdersEquity
       : 0
   );
-  const pe = latestRatios?.priceEarningsRatioTTM ?? quote.pe ?? 0;
-  const pb = latestRatios?.priceToBookRatioTTM ?? undefined;
-  const ps = latestRatios?.priceToSalesRatioTTM ?? undefined;
+  const pe = latestRatios?.priceEarningsRatioTTM ?? latestRatios?.priceEarningsRatio ?? quote.pe ?? 0;
+  const pb = latestRatios?.priceToBookRatioTTM ?? latestRatios?.priceToBookRatio ?? undefined;
+  const ps = latestRatios?.priceToSalesRatioTTM ?? latestRatios?.priceToSalesRatio ?? undefined;
 
   const ocf = cashFlows.length > 0 ? cashFlows[0].operatingCashFlow : undefined;
   const fcf = cashFlows.length > 0 ? cashFlows[0].freeCashFlow : undefined;

@@ -248,7 +248,15 @@ export async function screenDividendETFs(
 ): Promise<ScreenedETF[]> {
   const results: ScreenedETF[] = [];
 
-  logger.info('Starting ETF screening with criteria:', criteria);
+  logger.info('═══════════════════════════════════════════════════════');
+  logger.info('  📊 ETF 스크리닝 시작');
+  logger.info('═══════════════════════════════════════════════════════');
+  logger.info(`  📋 필터 조건 (원본):`);
+  logger.info(`     • minDividendYield: ${criteria.minDividendYield} (decimal)`);
+  logger.info(`     • minAUM: $${(criteria.minAUM / 1e6).toFixed(0)}M`);
+  logger.info(`     • maxExpenseRatio: ${criteria.maxExpenseRatio} (decimal)`);
+  logger.info(`     • maxETFsToCheck: ${criteria.maxETFsToCheck}`);
+  logger.info('───────────────────────────────────────────────────────');
 
   // Build candidate list: popular ETFs first, then broader list
   const popularSymbols = new Set(POPULAR_DIVIDEND_ETFS);
@@ -290,12 +298,9 @@ export async function screenDividendETFs(
         const etf = await analyzeETF(symbol, criteria);
         if (etf) {
           results.push(etf);
-          logger.info(`[${processedCount}/${allETFs.length}] ETF PASS: ${symbol} | Yield: ${(etf.dividendYield * 100).toFixed(2)}% | Q-LEAD: ${etf.totalScore}`);
-        } else {
-          logger.debug(`[${processedCount}/${allETFs.length}] ETF SKIP: ${symbol}`);
         }
       } catch (err) {
-        logger.error(`[${processedCount}/${allETFs.length}] ETF ERROR: ${symbol}`, (err as Error).message);
+        logger.error(`  ❌ [${processedCount}/${allETFs.length}] ${symbol} ERROR: ${(err as Error).message}`);
       }
 
       if (progressCallback) {
@@ -328,7 +333,15 @@ export async function screenDividendETFs(
   const limit = criteria.limit || 50;
   const finalResults = results.slice(0, limit);
 
-  logger.info(`ETF screening complete: ${finalResults.length} ETFs passed out of ${processedCount} checked`);
+  logger.info('═══════════════════════════════════════════════════════');
+  logger.info(`  🏁 ETF 스크리닝 완료`);
+  logger.info(`     • 총 분석: ${processedCount}개`);
+  logger.info(`     • 통과: ${results.length}개`);
+  logger.info(`     • 최종 반환: ${finalResults.length}개 (limit: ${limit})`);
+  if (finalResults.length > 0) {
+    logger.info(`     • 최고점수: ${finalResults[0].symbol} (Q-LEAD: ${finalResults[0].totalScore})`);
+  }
+  logger.info('═══════════════════════════════════════════════════════');
 
   return finalResults;
 }
@@ -338,27 +351,51 @@ async function analyzeETF(
   criteria: ETFScreeningCriteria
 ): Promise<ScreenedETF | null> {
   const profile = await getETFProfile(symbol);
-  if (!profile) return null;
+  if (!profile) {
+    logger.info(`  ⏭️  ${symbol.padEnd(6)} | 프로필 없음`);
+    return null;
+  }
 
-  if (!profile.isActivelyTrading) return null;
+  if (!profile.isActivelyTrading) {
+    logger.info(`  ⏭️  ${symbol.padEnd(6)} | 비활성 종목`);
+    return null;
+  }
 
   const price = profile.price;
-  if (!price || price <= 0) return null;
+  if (!price || price <= 0) {
+    logger.info(`  ⏭️  ${symbol.padEnd(6)} | 가격 없음`);
+    return null;
+  }
 
   // Try to get ETF-specific info (expense ratio, AUM)
   const etfInfo = await getETFInfo(symbol);
 
-  const expenseRatio = etfInfo?.expenseRatio ?? 0;
+  // FMP API returns expenseRatio as percentage value (0.06 means 0.06%)
+  // We store it as-is (percentage) and convert criteria to match
+  const expenseRatioRaw = etfInfo?.expenseRatio ?? 0;
+  // Convert to decimal for internal use: 0.06% → 0.0006
+  const expenseRatioDecimal = expenseRatioRaw / 100;
   const aum = etfInfo?.aum ?? profile.mktCap ?? 0;
 
-  // Dividend yield
+  // Dividend yield (decimal: 0.04 = 4%)
   const annualDiv = profile.lastDiv || 0;
   const dividendYield = price > 0 ? annualDiv / price : 0;
 
-  // Apply filters
-  if (dividendYield < criteria.minDividendYield) return null;
-  if (aum < criteria.minAUM) return null;
-  if (criteria.maxExpenseRatio > 0 && expenseRatio > criteria.maxExpenseRatio) return null;
+  // Apply filters - criteria values are in decimal form
+  // minDividendYield: 0.005 = 0.5%
+  // maxExpenseRatio: 0.0095 = 0.95%
+  if (dividendYield < criteria.minDividendYield) {
+    logger.info(`  ⏭️  ${symbol.padEnd(6)} | 배당수익률 미달 (${(dividendYield * 100).toFixed(2)}% < ${(criteria.minDividendYield * 100).toFixed(2)}%)`);
+    return null;
+  }
+  if (aum < criteria.minAUM) {
+    logger.info(`  ⏭️  ${symbol.padEnd(6)} | AUM 미달 ($${(aum / 1e9).toFixed(2)}B < $${(criteria.minAUM / 1e9).toFixed(2)}B)`);
+    return null;
+  }
+  if (criteria.maxExpenseRatio > 0 && expenseRatioDecimal > criteria.maxExpenseRatio) {
+    logger.info(`  ⏭️  ${symbol.padEnd(6)} | 운용보수 초과 (${(expenseRatioDecimal * 100).toFixed(2)}% > ${(criteria.maxExpenseRatio * 100).toFixed(2)}%)`);
+    return null;
+  }
 
   // Get holdings for exposure analysis
   const holdings = await getETFHoldings(symbol);
@@ -367,15 +404,67 @@ async function analyzeETF(
   const sortedHoldings = [...holdings].sort((a, b) => (b.weightPercentage || 0) - (a.weightPercentage || 0));
   const top10Concentration = sortedHoldings.slice(0, 10).reduce((sum, h) => sum + (h.weightPercentage || 0), 0);
 
-  // Calculate Q-LEAD scores
-  const qlead = calculateQLEAD(expenseRatio, aum, holdings, dividendYield);
+  // Calculate Q-LEAD scores (expects decimal format)
+  const qlead = calculateQLEAD(expenseRatioDecimal, aum, holdings, dividendYield);
+
+  logger.info(`  ✅ ${symbol.padEnd(6)} | 수익률: ${(dividendYield * 100).toFixed(2)}% | 보수: ${(expenseRatioDecimal * 100).toFixed(3)}% | AUM: $${(aum / 1e9).toFixed(1)}B | Q-LEAD: ${qlead.totalScore}`);
 
   return {
     symbol,
     name: profile.companyName || symbol,
     price,
     aum,
-    expenseRatio,
+    expenseRatio: expenseRatioDecimal,  // Store as decimal for frontend consistency
+    dividendYield,                       // decimal (0.04 = 4%)
+    qualityScore: qlead.qualityScore,
+    liquidityScore: qlead.liquidityScore,
+    exposureScore: qlead.exposureScore,
+    dividendScore: qlead.dividendScore,
+    totalScore: qlead.totalScore,
+    qualityGrade: qlead.qualityGrade,
+    liquidityGrade: qlead.liquidityGrade,
+    exposureGrade: qlead.exposureGrade,
+    dividendGrade: qlead.dividendGrade,
+    holdingsCount: holdings.length || etfInfo?.holdingsCount,
+    top10Concentration: Math.round(top10Concentration * 100) / 100,
+    beta: profile.beta,
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+// ==========================================
+// ETF Detail (single ETF, no filtering)
+// ==========================================
+
+export async function getETFDetail(symbol: string): Promise<ScreenedETF | null> {
+  const profile = await getETFProfile(symbol);
+  if (!profile) return null;
+
+  const price = profile.price;
+  if (!price || price <= 0) return null;
+
+  const etfInfo = await getETFInfo(symbol);
+
+  const expenseRatioRaw = etfInfo?.expenseRatio ?? 0;
+  const expenseRatioDecimal = expenseRatioRaw / 100;
+  const aum = etfInfo?.aum ?? profile.mktCap ?? 0;
+
+  const annualDiv = profile.lastDiv || 0;
+  const dividendYield = price > 0 ? annualDiv / price : 0;
+
+  const holdings = await getETFHoldings(symbol);
+
+  const sortedHoldings = [...holdings].sort((a, b) => (b.weightPercentage || 0) - (a.weightPercentage || 0));
+  const top10Concentration = sortedHoldings.slice(0, 10).reduce((sum, h) => sum + (h.weightPercentage || 0), 0);
+
+  const qlead = calculateQLEAD(expenseRatioDecimal, aum, holdings, dividendYield);
+
+  return {
+    symbol,
+    name: profile.companyName || symbol,
+    price,
+    aum,
+    expenseRatio: expenseRatioDecimal,
     dividendYield,
     qualityScore: qlead.qualityScore,
     liquidityScore: qlead.liquidityScore,
@@ -391,4 +480,8 @@ async function analyzeETF(
     beta: profile.beta,
     lastUpdated: new Date().toISOString(),
   };
+}
+
+export async function getETFHoldingsData(symbol: string): Promise<FMPETFHolding[]> {
+  return getETFHoldings(symbol);
 }

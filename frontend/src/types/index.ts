@@ -88,6 +88,10 @@ export interface ScreeningProgress {
   currentSymbol?: string;
   startedAt?: string;
   completedAt?: string;
+  estimatedTimeRemaining?: number;  // seconds
+  averageTimePerStock?: number;     // seconds
+  skippedStocks?: number;
+  screeningOrder?: string;          // 종목 검색 순서 설명
   error?: string;
   results?: ScreenedStock[];
 }
