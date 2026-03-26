@@ -1,0 +1,387 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { getApiBaseUrl } from '@/config/api';
+import { ScreenedStock, ScreenedETF, StockGrade } from '@/types';
+import GradeBadge from '@/components/GradeBadge';
+import ScoreBar from '@/components/ScoreBar';
+
+// -------------------------------------------------------------------
+// Types
+// -------------------------------------------------------------------
+
+interface ExchangeRate {
+  rate: number;
+  source: string;
+  lastUpdated: string;
+}
+
+interface CachedScreening {
+  results: ScreenedStock[];
+  timestamp: string;
+}
+
+interface CachedETFScreening {
+  results: ScreenedETF[];
+  timestamp: string;
+}
+
+// -------------------------------------------------------------------
+// Helpers
+// -------------------------------------------------------------------
+
+function formatKRW(usd: number, rate: number): string {
+  return `${(usd * rate).toLocaleString('ko-KR', { maximumFractionDigits: 0 })}`;
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return '방금 전';
+  if (mins < 60) return `${mins}분 전`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}시간 전`;
+  const days = Math.floor(hours / 24);
+  return `${days}일 전`;
+}
+
+function gradeColor(grade: StockGrade): string {
+  if (grade.startsWith('A')) return 'text-emerald-400';
+  if (grade.startsWith('B')) return 'text-blue-400';
+  if (grade.startsWith('C')) return 'text-yellow-400';
+  return 'text-red-400';
+}
+
+// -------------------------------------------------------------------
+// Component
+// -------------------------------------------------------------------
+
+export default function DashboardPage() {
+  const router = useRouter();
+
+  const [exchangeRate, setExchangeRate] = useState<ExchangeRate | null>(null);
+  const [rateLoading, setRateLoading] = useState(true);
+  const [stockCache, setStockCache] = useState<CachedScreening | null>(null);
+  const [etfCache, setETFCache] = useState<CachedETFScreening | null>(null);
+
+  // Fetch exchange rate
+  useEffect(() => {
+    const base = getApiBaseUrl();
+    fetch(`${base}/exchange-rate`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data) setExchangeRate(data);
+      })
+      .catch(() => {})
+      .finally(() => setRateLoading(false));
+  }, []);
+
+  // Load cached screening results from localStorage
+  useEffect(() => {
+    try {
+      const stockRaw = localStorage.getItem('stock_screening_results');
+      if (stockRaw) {
+        const parsed = JSON.parse(stockRaw);
+        const results = Array.isArray(parsed) ? parsed : parsed.results ?? parsed.data ?? [];
+        const timestamp = parsed.timestamp ?? parsed.lastUpdated ?? new Date().toISOString();
+        if (results.length > 0) setStockCache({ results, timestamp });
+      }
+
+      const etfRaw = localStorage.getItem('etf_screening_results');
+      if (etfRaw) {
+        const parsed = JSON.parse(etfRaw);
+        const results = Array.isArray(parsed) ? parsed : parsed.results ?? parsed.data ?? [];
+        const timestamp = parsed.timestamp ?? parsed.lastUpdated ?? new Date().toISOString();
+        if (results.length > 0) setETFCache({ results, timestamp });
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }, []);
+
+  // Derived stats
+  const topStocks = stockCache?.results
+    .sort((a, b) => b.overallScore - a.overallScore)
+    .slice(0, 5) ?? [];
+
+  const topETFs = etfCache?.results
+    .sort((a, b) => b.totalScore - a.totalScore)
+    .slice(0, 5) ?? [];
+
+  const avgYield = stockCache?.results.length
+    ? stockCache.results.reduce((sum, s) => sum + s.dividendYield, 0) / stockCache.results.length
+    : 0;
+
+  const bestGrade = topStocks.length > 0 ? topStocks[0] : null;
+
+  return (
+    <div className="min-h-screen bg-gray-950 pb-20">
+      {/* Hero */}
+      <div className="bg-gradient-to-b from-gray-900/80 to-gray-950 border-b border-gray-800/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <h1 className="text-3xl font-bold text-white mb-2">
+            AI Dividend <span className="text-emerald-400">대시보드</span>
+          </h1>
+          <p className="text-gray-400">미국 배당주 및 ETF 스크리닝 플랫폼에 오신 것을 환영합니다.</p>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-8">
+        {/* ============================================================ */}
+        {/* TOP CARDS ROW                                                */}
+        {/* ============================================================ */}
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* Exchange Rate */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-gray-900/80 to-gray-900/40 border border-gray-800/60 rounded-2xl p-6 backdrop-blur-sm">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-3">
+                <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <h3 className="text-sm font-semibold text-gray-300">USD/KRW 환율</h3>
+              </div>
+              {rateLoading ? (
+                <div className="h-10 bg-gray-800 rounded-lg animate-pulse" />
+              ) : exchangeRate ? (
+                <>
+                  <p className="text-3xl font-bold text-white mb-1">
+                    {exchangeRate.rate.toLocaleString('ko-KR', { maximumFractionDigits: 2 })}
+                    <span className="text-lg text-gray-400 ml-1">원</span>
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {exchangeRate.source} &middot; {timeAgo(exchangeRate.lastUpdated)}
+                  </p>
+                </>
+              ) : (
+                <p className="text-gray-500 text-sm">환율 정보를 불러올 수 없습니다.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Action: Stock Screening */}
+          <button
+            onClick={() => router.push('/screening')}
+            className="group relative overflow-hidden bg-gradient-to-br from-emerald-900/30 to-gray-900/40 border border-emerald-800/30 rounded-2xl p-6 text-left hover:border-emerald-600/50 transition-all duration-300"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-emerald-500/10 transition-colors" />
+            <div className="relative">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center mb-3">
+                <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+              </div>
+              <h3 className="text-lg font-bold text-white mb-1">배당주 스크리닝 시작</h3>
+              <p className="text-sm text-gray-400">AI 기반 미국 배당주 분석 및 스크리닝</p>
+              <div className="mt-3 inline-flex items-center gap-1 text-emerald-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
+                시작하기
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
+          </button>
+
+          {/* Quick Action: ETF Screening */}
+          <button
+            onClick={() => router.push('/etf-screening')}
+            className="group relative overflow-hidden bg-gradient-to-br from-blue-900/30 to-gray-900/40 border border-blue-800/30 rounded-2xl p-6 text-left hover:border-blue-600/50 transition-all duration-300"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-blue-500/10 transition-colors" />
+            <div className="relative">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center mb-3">
+                <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
+              </div>
+              <h3 className="text-lg font-bold text-white mb-1">ETF 스크리닝 시작</h3>
+              <p className="text-sm text-gray-400">배당 ETF 분석 및 비교</p>
+              <div className="mt-3 inline-flex items-center gap-1 text-blue-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
+                시작하기
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        {/* ============================================================ */}
+        {/* QUICK STATS                                                  */}
+        {/* ============================================================ */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-gray-900/60 border border-gray-800/60 rounded-xl p-5 text-center">
+            <p className="text-xs text-gray-400 mb-1">분석된 종목 수</p>
+            <p className="text-2xl font-bold text-white">{stockCache?.results.length ?? 0}</p>
+          </div>
+          <div className="bg-gray-900/60 border border-gray-800/60 rounded-xl p-5 text-center">
+            <p className="text-xs text-gray-400 mb-1">분석된 ETF 수</p>
+            <p className="text-2xl font-bold text-white">{etfCache?.results.length ?? 0}</p>
+          </div>
+          <div className="bg-gray-900/60 border border-gray-800/60 rounded-xl p-5 text-center">
+            <p className="text-xs text-gray-400 mb-1">평균 배당수익률</p>
+            <p className="text-2xl font-bold text-emerald-400">
+              {avgYield > 0 ? `${(avgYield * 100).toFixed(2)}%` : '-'}
+            </p>
+          </div>
+          <div className="bg-gray-900/60 border border-gray-800/60 rounded-xl p-5 text-center">
+            <p className="text-xs text-gray-400 mb-1">최고 등급 종목</p>
+            {bestGrade ? (
+              <div className="flex items-center justify-center gap-2">
+                <span className={`text-lg font-bold ${gradeColor(bestGrade.grade)}`}>{bestGrade.symbol}</span>
+                <GradeBadge grade={bestGrade.grade} size="sm" />
+              </div>
+            ) : (
+              <p className="text-2xl font-bold text-gray-500">-</p>
+            )}
+          </div>
+        </div>
+
+        {/* ============================================================ */}
+        {/* RECENT SCREENING RESULTS                                     */}
+        {/* ============================================================ */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Top 5 Stocks */}
+          <div className="bg-gray-900/60 border border-gray-800/60 rounded-2xl p-6 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                상위 배당주 TOP 5
+              </h2>
+              {stockCache && (
+                <span className="text-xs text-gray-500">{timeAgo(stockCache.timestamp)}</span>
+              )}
+            </div>
+
+            {topStocks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <svg className="w-12 h-12 text-gray-700 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
+                <p className="text-gray-500 text-sm">스크리닝 결과가 없습니다.</p>
+                <button
+                  onClick={() => router.push('/screening')}
+                  className="mt-3 text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
+                >
+                  스크리닝 시작하기 &rarr;
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {topStocks.map((stock, i) => (
+                  <button
+                    key={stock.symbol}
+                    onClick={() => router.push(`/stock/${stock.symbol}`)}
+                    className="w-full flex items-center gap-4 p-3 bg-gray-800/40 hover:bg-gray-800/70 rounded-xl transition-colors text-left group"
+                  >
+                    <span className="text-xs text-gray-500 font-mono w-5">{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-bold text-white">{stock.symbol}</span>
+                        <GradeBadge grade={stock.grade} size="sm" />
+                        {exchangeRate && (
+                          <span className="text-xs text-gray-500 ml-auto">
+                            {formatKRW(stock.currentPrice, exchangeRate.rate)}원
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400 truncate">{stock.name}</p>
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <span className="text-xs text-emerald-400 font-medium">
+                          수익률 {(stock.dividendYield * 100).toFixed(2)}%
+                        </span>
+                        <div className="flex-1 max-w-[100px]">
+                          <ScoreBar score={stock.overallScore} height={4} showLabel={false} />
+                        </div>
+                        <span className="text-xs text-gray-400 font-mono">{stock.overallScore.toFixed(1)}</span>
+                      </div>
+                    </div>
+                    <svg className="w-4 h-4 text-gray-600 group-hover:text-gray-400 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Top 5 ETFs */}
+          <div className="bg-gray-900/60 border border-gray-800/60 rounded-2xl p-6 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" /></svg>
+                상위 ETF TOP 5
+              </h2>
+              {etfCache && (
+                <span className="text-xs text-gray-500">{timeAgo(etfCache.timestamp)}</span>
+              )}
+            </div>
+
+            {topETFs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <svg className="w-12 h-12 text-gray-700 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
+                <p className="text-gray-500 text-sm">ETF 스크리닝 결과가 없습니다.</p>
+                <button
+                  onClick={() => router.push('/etf-screening')}
+                  className="mt-3 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  ETF 스크리닝 시작하기 &rarr;
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {topETFs.map((etf, i) => (
+                  <div
+                    key={etf.symbol}
+                    className="flex items-center gap-4 p-3 bg-gray-800/40 rounded-xl"
+                  >
+                    <span className="text-xs text-gray-500 font-mono w-5">{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-bold text-white">{etf.symbol}</span>
+                        <GradeBadge grade={etf.totalScore >= 80 ? 'A+' : etf.totalScore >= 70 ? 'A' : etf.totalScore >= 60 ? 'B+' : etf.totalScore >= 50 ? 'B' : etf.totalScore >= 40 ? 'C' : 'D'} size="sm" />
+                        {exchangeRate && (
+                          <span className="text-xs text-gray-500 ml-auto">
+                            {formatKRW(etf.price, exchangeRate.rate)}원
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400 truncate">{etf.name}</p>
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <span className="text-xs text-blue-400 font-medium">
+                          수익률 {(etf.dividendYield * 100).toFixed(2)}%
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          보수 {(etf.expenseRatio * 100).toFixed(2)}%
+                        </span>
+                        <div className="flex-1 max-w-[80px]">
+                          <ScoreBar score={etf.totalScore} height={4} showLabel={false} />
+                        </div>
+                        <span className="text-xs text-gray-400 font-mono">{etf.totalScore.toFixed(1)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ============================================================ */}
+        {/* MARKET OVERVIEW (Placeholder)                                */}
+        {/* ============================================================ */}
+        <section className="bg-gray-900/60 border border-gray-800/60 rounded-2xl p-6 backdrop-blur-sm">
+          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            시장 개요
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: 'S&P 500', value: '-', sub: '데이터 대기', icon: '📊' },
+              { label: 'NASDAQ', value: '-', sub: '데이터 대기', icon: '📈' },
+              { label: '미국 10년물 금리', value: '-', sub: '데이터 대기', icon: '💰' },
+              { label: 'VIX', value: '-', sub: '공포 지수', icon: '⚡' },
+            ].map((item, i) => (
+              <div
+                key={i}
+                className="bg-gray-800/40 border border-gray-700/40 rounded-xl p-4 text-center"
+              >
+                <p className="text-lg mb-1">{item.icon}</p>
+                <p className="text-xs text-gray-400 mb-1">{item.label}</p>
+                <p className="text-lg font-bold text-gray-500">{item.value}</p>
+                <p className="text-xs text-gray-600">{item.sub}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
