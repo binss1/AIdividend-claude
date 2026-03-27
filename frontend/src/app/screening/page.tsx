@@ -623,70 +623,70 @@ export default function StockScreeningPage() {
 
             {/* Table */}
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" style={{tableLayout:'fixed'}}>
                 <thead>
                   <tr className="border-b border-zinc-800/80 bg-zinc-900/90">
-                    <th style={{width:36}} className="px-2 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                    <th style={{width:'3%'}} className="px-2 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">
                       #
                     </th>
-                    <th style={{width:80}}
+                    <th style={{width:'6%'}}
                       className="group px-2 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('symbol')}
                     >
                       티커 <SortIcon field="symbol" />
                     </th>
-                    <th
+                    <th style={{width:'15%'}}
                       className="group px-2 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('name')}
                     >
                       종목명 <SortIcon field="name" />
                     </th>
-                    <th style={{width:80}}
+                    <th style={{width:'7%'}}
                       className="group px-2 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('currentPrice')}
                     >
                       현재가 <SortIcon field="currentPrice" />
                     </th>
-                    <th style={{width:90}}
+                    <th style={{width:'8%'}}
                       className="group px-2 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('dividendYield')}
                     >
                       배당수익률 <SortIcon field="dividendYield" />
                     </th>
-                    <th style={{width:80}}
+                    <th style={{width:'7%'}}
                       className="group px-2 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('payoutRatio')}
                     >
                       배당성향 <SortIcon field="payoutRatio" />
                     </th>
-                    <th style={{width:90}}
+                    <th style={{width:'8%'}}
                       className="group px-2 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('marketCap')}
                     >
                       시가총액 <SortIcon field="marketCap" />
                     </th>
-                    <th style={{width:55}}
+                    <th style={{width:'5%'}}
                       className="group px-2 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('pe')}
                     >
                       P/E <SortIcon field="pe" />
                     </th>
-                    <th style={{width:70}}
+                    <th style={{width:'6%'}}
                       className="group px-2 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('roe')}
                     >
                       ROE <SortIcon field="roe" />
                     </th>
-                    <th style={{width:70}} className="px-2 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                    <th style={{width:'6%'}} className="px-2 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">
                       배당주기
                     </th>
-                    <th style={{width:130}}
+                    <th style={{width:'14%'}}
                       className="group px-2 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('overallScore')}
                     >
                       점수 <SortIcon field="overallScore" />
                     </th>
-                    <th style={{width:50}} className="px-2 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                    <th style={{width:'4%'}} className="px-2 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">
                       등급
                     </th>
                   </tr>
