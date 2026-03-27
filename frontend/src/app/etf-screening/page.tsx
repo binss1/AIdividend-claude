@@ -418,6 +418,11 @@ export default function ETFScreeningPage() {
             <span className="text-xs text-zinc-500">
               <span className="text-emerald-400 font-medium">Q-LEAD</span> = Quality + Liquidity + Exposure + Dividend
             </span>
+            <span className="text-zinc-700">|</span>
+            <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+              <span className="rounded bg-orange-500/15 px-1 py-0.5 text-[9px] font-bold text-orange-400 border border-orange-500/20">CC</span>
+              = Covered Call (커버드콜)
+            </span>
           </div>
         </div>
 
