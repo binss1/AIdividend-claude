@@ -985,19 +985,29 @@ async function analyzeStock(
   // Financial ratios
   const latestRatios = ratios.length > 0 ? ratios[0] : null;
 
-  // ROE: try TTM ratio first, then calculate from financial statements
+  // ROE: try TTM ratio first, then annual, then calculate from statements
+  // Note: FMP returns ROE as decimal (0.19 = 19%), except for negative equity stocks
+  // where values can be extremely high/misleading. Cap at ±200% and null out negative equity cases.
   let roe = 0;
-  if (latestRatios?.returnOnEquityTTM) {
+  const hasNegativeEquity = balanceSheets.length > 0 && balanceSheets[0].totalStockholdersEquity < 0;
+
+  if (hasNegativeEquity) {
+    // Negative equity (e.g. HPQ from heavy buybacks) → ROE is meaningless
+    roe = 0; // Will display as N/A in frontend
+  } else if (latestRatios?.returnOnEquityTTM != null && latestRatios.returnOnEquityTTM !== 0) {
     roe = latestRatios.returnOnEquityTTM * 100;
-  } else if (latestRatios?.returnOnEquity) {
+  } else if (latestRatios?.returnOnEquity != null && latestRatios.returnOnEquity !== 0) {
     roe = latestRatios.returnOnEquity * 100;
   } else if (incomeStatements.length > 0 && balanceSheets.length > 0) {
-    // Fallback: calculate ROE = NetIncome / Shareholders' Equity × 100
     const ni = incomeStatements[0].netIncome;
     const equity = balanceSheets[0].totalStockholdersEquity;
     if (equity > 0 && ni !== 0) {
       roe = (ni / equity) * 100;
     }
+  }
+  // Sanity check: ROE beyond ±200% is likely from distorted equity, treat as unreliable
+  if (Math.abs(roe) > 200) {
+    roe = 0;
   }
 
   const debtToEquity = latestRatios?.debtEquityRatioTTM ?? (
@@ -1197,12 +1207,18 @@ export async function getStockDetail(symbol: string): Promise<ScreenedStock | nu
 
   const latestRatios = ratios.length > 0 ? ratios[0] : null;
 
-  // ROE: try TTM ratio, then annual ratio, then calculate from statements
+  // ROE: try TTM ratio, then annual, then calculate from statements
+  // Negative equity (heavy buybacks) → ROE is meaningless → treat as N/A
   let roe = 0;
-  if (latestRatios?.returnOnEquityTTM) {
+  const hasNegativeEquity = balanceSheets.length > 0 && balanceSheets[0].totalStockholdersEquity < 0;
+
+  if (hasNegativeEquity) {
+    roe = 0; // Will display as N/A in frontend
+    logger.debug(`${symbol} ROE: N/A (negative equity: ${(balanceSheets[0].totalStockholdersEquity/1e9).toFixed(2)}B from buybacks)`);
+  } else if (latestRatios?.returnOnEquityTTM != null && latestRatios.returnOnEquityTTM !== 0) {
     roe = latestRatios.returnOnEquityTTM * 100;
     logger.debug(`${symbol} ROE from TTM ratio: ${roe.toFixed(1)}%`);
-  } else if (latestRatios?.returnOnEquity) {
+  } else if (latestRatios?.returnOnEquity != null && latestRatios.returnOnEquity !== 0) {
     roe = latestRatios.returnOnEquity * 100;
     logger.debug(`${symbol} ROE from annual ratio: ${roe.toFixed(1)}%`);
   } else if (incomeStatements.length > 0 && balanceSheets.length > 0) {
@@ -1213,7 +1229,11 @@ export async function getStockDetail(symbol: string): Promise<ScreenedStock | nu
       logger.debug(`${symbol} ROE calculated from statements: NI=${ni}, Equity=${equity}, ROE=${roe.toFixed(1)}%`);
     }
   }
-  if (roe === 0) {
+  if (Math.abs(roe) > 200) {
+    logger.warn(`${symbol} ROE ${roe.toFixed(1)}% exceeds ±200%, treating as unreliable → N/A`);
+    roe = 0;
+  }
+  if (roe === 0 && !hasNegativeEquity) {
     logger.warn(`${symbol} ROE is 0 - ratios TTM: ${latestRatios?.returnOnEquityTTM}, annual: ${latestRatios?.returnOnEquity}`);
   }
 

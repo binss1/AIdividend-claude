@@ -255,7 +255,8 @@ export default function StockScreeningPage() {
       '연속배당(년)': s.consecutiveDividendYears,
       '시가총액': formatMarketCap(s.marketCap),
       'P/E': s.pe.toFixed(2),
-      'ROE(%)': s.roe.toFixed(2),
+      'ROE(%)': s.roe === 0 ? 'N/A' : s.roe.toFixed(2),
+      '배당주기': s.dividendCycle === 'monthly' ? '월배당' : s.dividendCycle === 'quarterly' ? '분기' : s.dividendCycle === 'semi-annual' ? '반기' : s.dividendCycle === 'annual' ? '연간' : '-',
       'EPS': s.eps.toFixed(2),
       'Beta': s.beta.toFixed(2),
       '부채비율': s.debtToEquity.toFixed(2),
@@ -676,6 +677,9 @@ export default function StockScreeningPage() {
                     >
                       ROE <SortIcon field="roe" />
                     </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                      배당주기
+                    </th>
                     <th
                       className="group px-4 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 min-w-[140px] transition-colors"
                       onClick={() => handleSort('overallScore')}
@@ -730,8 +734,24 @@ export default function StockScreeningPage() {
                         {stock.pe > 0 ? stock.pe.toFixed(1) : '-'}
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-xs">
-                        <span className={stock.roe >= 15 ? 'text-emerald-400' : stock.roe >= 10 ? 'text-zinc-300' : 'text-zinc-500'}>
-                          {stock.roe.toFixed(1)}%
+                        {stock.roe === 0 ? (
+                          <span className="text-zinc-600">N/A</span>
+                        ) : (
+                          <span className={stock.roe >= 15 ? 'text-emerald-400' : stock.roe >= 10 ? 'text-zinc-300' : stock.roe < 0 ? 'text-red-400' : 'text-zinc-500'}>
+                            {stock.roe.toFixed(1)}%
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center text-xs">
+                        <span className={
+                          stock.dividendCycle === 'monthly' ? 'text-emerald-400 font-medium' :
+                          stock.dividendCycle === 'quarterly' ? 'text-zinc-300' :
+                          'text-zinc-500'
+                        }>
+                          {stock.dividendCycle === 'monthly' ? '월배당' :
+                           stock.dividendCycle === 'quarterly' ? '분기' :
+                           stock.dividendCycle === 'semi-annual' ? '반기' :
+                           stock.dividendCycle === 'annual' ? '연간' : '-'}
                         </span>
                       </td>
                       <td className="px-4 py-3">
