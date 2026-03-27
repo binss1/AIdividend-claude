@@ -202,13 +202,29 @@ export async function getNasdaqConstituents(): Promise<{ symbol: string; name: s
  * Get ALL US dividend-paying stocks via stock-screener API.
  * Returns NYSE + NASDAQ + AMEX listed stocks with dividendMoreThan > 0.
  */
+// In-memory cache for full universe (valid 30 min)
+let _allDividendStocksCache: { data: { symbol: string; name: string }[]; fetchedAt: number } | null = null;
+
 export async function getAllUSDividendStocks(): Promise<{ symbol: string; name: string }[]> {
+  // Return cache if fresh (30 min)
+  if (_allDividendStocksCache && Date.now() - _allDividendStocksCache.fetchedAt < 1800_000) {
+    logger.info(`[FMP] 전체 배당주 유니버스 캐시 반환: ${_allDividendStocksCache.data.length}개 (${Math.round((Date.now() - _allDividendStocksCache.fetchedAt) / 1000)}초 전 조회)`);
+    return _allDividendStocksCache.data;
+  }
+
   try {
-    const results: { symbol: string; name: string }[] = [];
+    const startTime = Date.now();
     const exchanges = ['NYSE', 'NASDAQ', 'AMEX'];
 
-    for (const exchange of exchanges) {
-      const { data } = await fmpClient.get('/v3/stock-screener', {
+    logger.info('═══════════════════════════════════════════════════════');
+    logger.info('  🌐 전체 미국 배당주 유니버스 조회 시작');
+    logger.info('═══════════════════════════════════════════════════════');
+
+    // Parallel fetch all 3 exchanges (bypass rate limiter - these are bulk queries)
+    const fetches = exchanges.map(async (exchange) => {
+      const t0 = Date.now();
+      logger.info(`  📡 ${exchange} 배당주 조회 중...`);
+      const { data } = await axios.get(`${env.FMP_BASE_URL}/v3/stock-screener`, {
         params: {
           apikey: env.FMP_API_KEY,
           exchange,
@@ -216,25 +232,42 @@ export async function getAllUSDividendStocks(): Promise<{ symbol: string; name: 
           isActivelyTrading: true,
           limit: 5000,
         },
+        timeout: 30000,
       });
-      if (Array.isArray(data)) {
-        for (const s of data) {
-          results.push({ symbol: s.symbol, name: s.companyName || s.symbol });
+      const count = Array.isArray(data) ? data.length : 0;
+      logger.info(`  ✅ ${exchange}: ${count}개 (${((Date.now() - t0) / 1000).toFixed(1)}초)`);
+      return { exchange, data: Array.isArray(data) ? data : [] };
+    });
+
+    const results = await Promise.all(fetches);
+
+    // Deduplicate
+    const seen = new Map<string, string>();
+    for (const { data } of results) {
+      for (const s of data) {
+        if (!seen.has(s.symbol)) {
+          seen.set(s.symbol, s.companyName || s.symbol);
         }
       }
     }
 
-    // Deduplicate
-    const seen = new Map<string, string>();
-    for (const s of results) {
-      if (!seen.has(s.symbol)) seen.set(s.symbol, s.name);
-    }
-
     const deduped = Array.from(seen.entries()).map(([symbol, name]) => ({ symbol, name }));
-    logger.info(`[FMP] All US dividend stocks: ${deduped.length} (NYSE+NASDAQ+AMEX)`);
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+    logger.info('───────────────────────────────────────────────────────');
+    for (const r of results) {
+      logger.info(`     • ${r.exchange}: ${r.data.length}개`);
+    }
+    logger.info(`     • 중복 제거 후: ${deduped.length}개`);
+    logger.info(`  ⏱️  소요 시간: ${elapsed}초`);
+    logger.info('═══════════════════════════════════════════════════════');
+
+    // Cache result
+    _allDividendStocksCache = { data: deduped, fetchedAt: Date.now() };
+
     return deduped;
   } catch (err) {
-    logger.error('Failed to get all US dividend stocks', (err as Error).message);
+    logger.error(`[FMP] 전체 배당주 유니버스 조회 실패: ${(err as Error).message}`);
     return [];
   }
 }
