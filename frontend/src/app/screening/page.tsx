@@ -462,7 +462,7 @@ export default function StockScreeningPage() {
                       {indexOnly ? (
                         <>S&amp;P500 + NASDAQ100 (<span className="text-emerald-400/80">{universeInfo?.stockTotal?.toLocaleString() ?? '~517'}개</span>)</>
                       ) : (
-                        <>전체 미국 배당주 (<span className="text-amber-400/80">{universeInfoFull?.stockTotal?.toLocaleString() ?? loadingUniverse ? '조회 중...' : '~3,500'}개</span>) — 시간이 오래 걸릴 수 있습니다</>
+                        <>전체 미국 배당주 (<span className="text-amber-400/80">{universeInfoFull ? universeInfoFull.stockTotal.toLocaleString() : loadingUniverse ? '조회 중...' : '~3,500'}개</span>) — 시간이 오래 걸릴 수 있습니다</>
                       )}
                     </span>
                   </div>
