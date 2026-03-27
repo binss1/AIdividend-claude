@@ -501,19 +501,19 @@ export default function HomePage() {
               {
                 title: '배당주 스크리닝',
                 description: 'S&P500 + NASDAQ 전체 배당주를 5축 모델로 분석하고, A+~F 등급을 부여하여 최적의 종목을 선별합니다.',
-                href: '/screening',
+                href: '/demo/screening',
                 icon: '📊',
               },
               {
                 title: 'ETF 스크리닝',
                 description: 'Q-LEAD 모델로 배당 ETF를 품질·유동성·노출도·배당 4개 축으로 정밀 평가합니다.',
-                href: '/etf-screening',
+                href: '/demo/etf-screening',
                 icon: '🧩',
               },
               {
                 title: '포트폴리오 대시보드',
                 description: '환율, 시장 지수, 스크리닝 결과 요약을 한눈에 파악하고, Top 종목을 즉시 확인합니다.',
-                href: '/dashboard',
+                href: '/demo/dashboard',
                 icon: '📈',
               },
             ].map((feature, i) => (
@@ -530,7 +530,7 @@ export default function HomePage() {
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-gray-400">{feature.description}</p>
                 <div className="mt-4 flex items-center gap-1 text-sm font-medium text-emerald-400 opacity-0 transition-all duration-300 group-hover:opacity-100">
-                  자세히 보기
+                  결과 미리보기
                   <svg className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                   </svg>
