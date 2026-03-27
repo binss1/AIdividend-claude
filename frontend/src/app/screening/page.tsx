@@ -45,18 +45,40 @@ export default function StockScreeningPage() {
   const [minMarketCap, setMinMarketCap] = useState(1_000_000_000);
   const [maxPayoutRatio, setMaxPayoutRatio] = useState(85);
   const [maxStocks, setMaxStocks] = useState(500);
+  const [indexOnly, setIndexOnly] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(true);
 
-  // Universe info (fetched once)
+  // Universe info (fetched based on indexOnly toggle)
   const [universeInfo, setUniverseInfo] = useState<{ stockTotal: number; etfTotal: number; rate: number } | null>(null);
+  const [universeInfoFull, setUniverseInfoFull] = useState<{ stockTotal: number; etfTotal: number; rate: number } | null>(null);
+  const [loadingUniverse, setLoadingUniverse] = useState(false);
 
+  // Fetch index-only universe on mount
   useEffect(() => {
-    apiFetch<{ stockTotal: number; etfTotal: number; rate: number }>(API_ENDPOINTS.UNIVERSE_INFO)
+    apiFetch<{ stockTotal: number; etfTotal: number; rate: number }>(API_ENDPOINTS.UNIVERSE_INFO + '?indexOnly=true')
       .then(setUniverseInfo)
-      .catch(() => setUniverseInfo({ stockTotal: 3500, etfTotal: 500, rate: 1400 }));
+      .catch(() => setUniverseInfo({ stockTotal: 517, etfTotal: 500, rate: 1400 }));
   }, []);
 
-  const krwRate = universeInfo?.rate ?? 1400;
+  // Fetch full universe on demand when indexOnly is toggled off
+  useEffect(() => {
+    if (!indexOnly && !universeInfoFull) {
+      setLoadingUniverse(true);
+      apiFetch<{ stockTotal: number; etfTotal: number; rate: number }>(API_ENDPOINTS.UNIVERSE_INFO + '?indexOnly=false')
+        .then((data) => {
+          setUniverseInfoFull(data);
+          setLoadingUniverse(false);
+        })
+        .catch(() => {
+          setUniverseInfoFull({ stockTotal: 3500, etfTotal: 500, rate: 1400 });
+          setLoadingUniverse(false);
+        });
+    }
+  }, [indexOnly, universeInfoFull]);
+
+  const activeUniverse = indexOnly ? universeInfo : universeInfoFull;
+
+  const krwRate = activeUniverse?.rate ?? universeInfo?.rate ?? 1400;
 
   function formatKRW(usd: number): string {
     const krw = usd * krwRate;
@@ -153,6 +175,7 @@ export default function StockScreeningPage() {
         minMarketCapUSD: minMarketCap.toString(),
         maxPayoutRatio: maxPayoutRatio.toString(),
         maxStocksToCheck: maxStocks.toString(),
+        indexOnly: indexOnly.toString(),
         batchSize: '10',
       });
 
@@ -403,13 +426,50 @@ export default function StockScreeningPage() {
                     className="w-full rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono transition-colors"
                   />
                   <p className="mt-1.5 text-[11px] text-zinc-500 leading-relaxed">
-                    S&amp;P500 + NASDAQ 중복 제거 후 최대 <span className="text-emerald-400/80 font-semibold">{universeInfo ? universeInfo.stockTotal.toLocaleString() : '~3,500'}개</span> 종목.<br/>
-                    조건 필터링 전 분석 대상 수이며, 500종목 ≈ 약 15~25분 소요.
+                    {loadingUniverse ? (
+                      <span className="text-zinc-600">유니버스 크기 조회 중...</span>
+                    ) : (
+                      <>
+                        {indexOnly ? 'S&P500 + NASDAQ100 지수 편입 종목' : 'NYSE + NASDAQ + AMEX 전체 배당주'}{' '}
+                        최대 <span className="text-emerald-400/80 font-semibold">
+                          {activeUniverse ? activeUniverse.stockTotal.toLocaleString() : '---'}개
+                        </span> 종목.<br/>
+                        조건 필터링 전 분석 대상 수이며, 500종목 ≈ 약 15~25분 소요.
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-6 flex items-center justify-between">
+              {/* Index Only Toggle */}
+              <div className="mt-5 pt-4 border-t border-zinc-800/50">
+                <label className="inline-flex items-center gap-3 cursor-pointer group">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={indexOnly}
+                      onChange={(e) => setIndexOnly(e.target.checked)}
+                      className="peer sr-only"
+                    />
+                    <div className="h-5 w-9 rounded-full bg-zinc-700 peer-checked:bg-emerald-500 transition-colors duration-200" />
+                    <div className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 peer-checked:translate-x-4" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-zinc-300 group-hover:text-zinc-100 transition-colors">
+                      주요 지수 종목만 분석
+                    </span>
+                    <span className="ml-2 text-[11px] text-zinc-500">
+                      {indexOnly ? (
+                        <>S&amp;P500 + NASDAQ100 (<span className="text-emerald-400/80">{universeInfo?.stockTotal?.toLocaleString() ?? '~517'}개</span>)</>
+                      ) : (
+                        <>전체 미국 배당주 (<span className="text-amber-400/80">{universeInfoFull?.stockTotal?.toLocaleString() ?? loadingUniverse ? '조회 중...' : '~3,500'}개</span>) — 시간이 오래 걸릴 수 있습니다</>
+                      )}
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center gap-4 text-xs text-zinc-500">
                   <span>배당률 {minYield}%+</span>
                   <span className="text-zinc-700">|</span>
@@ -418,6 +478,10 @@ export default function StockScreeningPage() {
                   <span>배당성향 ~{maxPayoutRatio}%</span>
                   <span className="text-zinc-700">|</span>
                   <span>{maxStocks}종목</span>
+                  <span className="text-zinc-700">|</span>
+                  <span className={indexOnly ? 'text-emerald-400/70' : 'text-amber-400/70'}>
+                    {indexOnly ? '지수' : '전체'}
+                  </span>
                 </div>
                 <button
                   onClick={startScreening}

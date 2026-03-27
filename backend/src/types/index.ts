@@ -9,6 +9,7 @@ export interface StockScreeningCriteria {
   minConsecutiveDividendYears: number;
   maxStocksToCheck: number;
   batchSize: number;
+  indexOnly?: boolean;         // true = S&P500+NASDAQ100 only, false = all US dividend stocks
 }
 
 export interface ScreenedStock {

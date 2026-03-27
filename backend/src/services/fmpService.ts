@@ -198,6 +198,47 @@ export async function getNasdaqConstituents(): Promise<{ symbol: string; name: s
   }
 }
 
+/**
+ * Get ALL US dividend-paying stocks via stock-screener API.
+ * Returns NYSE + NASDAQ + AMEX listed stocks with dividendMoreThan > 0.
+ */
+export async function getAllUSDividendStocks(): Promise<{ symbol: string; name: string }[]> {
+  try {
+    const results: { symbol: string; name: string }[] = [];
+    const exchanges = ['NYSE', 'NASDAQ', 'AMEX'];
+
+    for (const exchange of exchanges) {
+      const { data } = await fmpClient.get('/v3/stock-screener', {
+        params: {
+          apikey: env.FMP_API_KEY,
+          exchange,
+          dividendMoreThan: 0,
+          isActivelyTrading: true,
+          limit: 5000,
+        },
+      });
+      if (Array.isArray(data)) {
+        for (const s of data) {
+          results.push({ symbol: s.symbol, name: s.companyName || s.symbol });
+        }
+      }
+    }
+
+    // Deduplicate
+    const seen = new Map<string, string>();
+    for (const s of results) {
+      if (!seen.has(s.symbol)) seen.set(s.symbol, s.name);
+    }
+
+    const deduped = Array.from(seen.entries()).map(([symbol, name]) => ({ symbol, name }));
+    logger.info(`[FMP] All US dividend stocks: ${deduped.length} (NYSE+NASDAQ+AMEX)`);
+    return deduped;
+  } catch (err) {
+    logger.error('Failed to get all US dividend stocks', (err as Error).message);
+    return [];
+  }
+}
+
 export async function getHistoricalPrices(
   symbol: string,
   from: string,
@@ -626,31 +667,47 @@ export async function screenDividendStocks(
   logger.info(`     • 최소 시가총액: $${(criteria.minMarketCapUSD / 1e9).toFixed(1)}B`);
   logger.info(`     • 최대 배당성향: ${criteria.maxPayoutRatio}%`);
   logger.info(`     • 최대 분석 종목수: ${criteria.maxStocksToCheck}`);
+  logger.info(`     • 유니버스 모드: ${criteria.indexOnly !== false ? '지수 편입 종목 (S&P500+NASDAQ100)' : '전체 미국 배당주'}`);
   logger.info(`     • 배치 크기: ${criteria.batchSize || 10}`);
   logger.info('───────────────────────────────────────────────────────');
 
-  // Step 1: Get universe (S&P500 + NASDAQ merged, deduplicated)
-  logger.info('  🔍 종목 유니버스 수집 중 (S&P500 + NASDAQ)...');
-  const [sp500, nasdaq] = await Promise.all([
-    getSP500Constituents(),
-    getNasdaqConstituents(),
-  ]);
+  // Step 1: Get universe
+  let allSymbols: string[];
+  let screeningOrder: string;
 
-  // S&P500 먼저, 그 후 NASDAQ 추가 (알파벳 순 아님 - API 반환 순서)
-  const symbolMap = new Map<string, string>();
-  for (const s of sp500) symbolMap.set(s.symbol, s.name);
-  for (const s of nasdaq) symbolMap.set(s.symbol, s.name);
+  if (criteria.indexOnly !== false) {
+    // Index-only mode: S&P500 + NASDAQ100
+    logger.info('  🔍 종목 유니버스 수집 중 (S&P500 + NASDAQ100 지수)...');
+    const [sp500, nasdaq] = await Promise.all([
+      getSP500Constituents(),
+      getNasdaqConstituents(),
+    ]);
 
-  const allSymbols = Array.from(symbolMap.keys());
+    const symbolMap = new Map<string, string>();
+    for (const s of sp500) symbolMap.set(s.symbol, s.name);
+    for (const s of nasdaq) symbolMap.set(s.symbol, s.name);
+
+    allSymbols = Array.from(symbolMap.keys());
+    screeningOrder = `S&P500(${sp500.length}개) + NASDAQ100(${nasdaq.length}개) 중복 제거 → ${allSymbols.length}개`;
+
+    logger.info(`  📈 유니버스 구성 (지수 모드):`);
+    logger.info(`     • S&P500: ${sp500.length}개`);
+    logger.info(`     • NASDAQ100: ${nasdaq.length}개`);
+    logger.info(`     • 중복 제거 후: ${allSymbols.length}개`);
+  } else {
+    // Full mode: all US dividend-paying stocks
+    logger.info('  🔍 종목 유니버스 수집 중 (전체 미국 배당주)...');
+    const allStocks = await getAllUSDividendStocks();
+    allSymbols = allStocks.map(s => s.symbol);
+    screeningOrder = `NYSE+NASDAQ+AMEX 배당 지급 종목 → ${allSymbols.length}개`;
+
+    logger.info(`  📈 유니버스 구성 (전체 모드):`);
+    logger.info(`     • 전체 미국 배당주: ${allSymbols.length}개`);
+  }
+
   const totalToCheck = Math.min(allSymbols.length, criteria.maxStocksToCheck);
   const universe = allSymbols.slice(0, totalToCheck);
 
-  const screeningOrder = `S&P500(${sp500.length}개) + NASDAQ(${nasdaq.length}개) 합산 후 중복 제거 → 총 ${allSymbols.length}개 중 앞에서 ${universe.length}개 선택 (API 반환 순서 기준, 알파벳 순이 아님)`;
-
-  logger.info(`  📈 유니버스 구성:`);
-  logger.info(`     • S&P500: ${sp500.length}개`);
-  logger.info(`     • NASDAQ: ${nasdaq.length}개`);
-  logger.info(`     • 중복 제거 후: ${allSymbols.length}개`);
   logger.info(`     • 분석 대상: ${universe.length}개 (앞에서부터 선택)`);
   logger.info(`  ℹ️  순서: ${screeningOrder}`);
   logger.info('───────────────────────────────────────────────────────');
