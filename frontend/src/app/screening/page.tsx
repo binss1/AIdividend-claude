@@ -623,71 +623,70 @@ export default function StockScreeningPage() {
 
             {/* Table */}
             <div className="overflow-x-auto">
-              <table className="w-full text-sm table-fixed">
-                <colgroup><col style={{width:'3%'}} /><col style={{width:'6%'}} /><col style={{width:'13%'}} /><col style={{width:'7%'}} /><col style={{width:'9%'}} /><col style={{width:'8%'}} /><col style={{width:'9%'}} /><col style={{width:'6%'}} /><col style={{width:'7%'}} /><col style={{width:'7%'}} /><col style={{width:'14%'}} /><col style={{width:'5%'}} /></colgroup>
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-800/80 bg-zinc-900/90">
-                    <th className="px-3 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                    <th style={{width:36}} className="px-2 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">
                       #
                     </th>
-                    <th
-                      className="group px-3 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
+                    <th style={{width:80}}
+                      className="group px-2 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('symbol')}
                     >
                       티커 <SortIcon field="symbol" />
                     </th>
                     <th
-                      className="group px-3 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
+                      className="group px-2 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('name')}
                     >
                       종목명 <SortIcon field="name" />
                     </th>
-                    <th
-                      className="group px-3 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
+                    <th style={{width:80}}
+                      className="group px-2 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('currentPrice')}
                     >
                       현재가 <SortIcon field="currentPrice" />
                     </th>
-                    <th
-                      className="group px-3 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
+                    <th style={{width:90}}
+                      className="group px-2 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('dividendYield')}
                     >
                       배당수익률 <SortIcon field="dividendYield" />
                     </th>
-                    <th
-                      className="group px-3 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
+                    <th style={{width:80}}
+                      className="group px-2 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('payoutRatio')}
                     >
                       배당성향 <SortIcon field="payoutRatio" />
                     </th>
-                    <th
-                      className="group px-3 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
+                    <th style={{width:90}}
+                      className="group px-2 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('marketCap')}
                     >
                       시가총액 <SortIcon field="marketCap" />
                     </th>
-                    <th
-                      className="group px-3 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
+                    <th style={{width:55}}
+                      className="group px-2 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('pe')}
                     >
                       P/E <SortIcon field="pe" />
                     </th>
-                    <th
-                      className="group px-3 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
+                    <th style={{width:70}}
+                      className="group px-2 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('roe')}
                     >
                       ROE <SortIcon field="roe" />
                     </th>
-                    <th className="px-3 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                    <th style={{width:70}} className="px-2 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">
                       배당주기
                     </th>
-                    <th
-                      className="group px-3 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
+                    <th style={{width:130}}
+                      className="group px-2 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer hover:text-zinc-300 transition-colors"
                       onClick={() => handleSort('overallScore')}
                     >
                       점수 <SortIcon field="overallScore" />
                     </th>
-                    <th className="px-3 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                    <th style={{width:50}} className="px-2 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">
                       등급
                     </th>
                   </tr>
@@ -699,10 +698,10 @@ export default function StockScreeningPage() {
                       onClick={() => router.push(`/stock/${stock.symbol}`)}
                       className="hover:bg-emerald-500/[0.03] cursor-pointer transition-colors duration-150"
                     >
-                      <td className="px-3 py-3 text-center text-zinc-600 font-mono text-xs">
+                      <td className="px-2 py-3 text-center text-zinc-600 font-mono text-xs">
                         {idx + 1}
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="px-2 py-3">
                         <div className="flex items-center gap-1.5">
                           <span className="font-semibold text-zinc-100 font-mono text-xs">
                             {stock.symbol}
@@ -714,27 +713,27 @@ export default function StockScreeningPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-zinc-300 truncate text-xs">
+                      <td className="px-2 py-3 text-zinc-300 truncate text-xs">
                         {stock.name}
                       </td>
-                      <td className="px-3 py-3 text-right font-mono text-zinc-300 text-xs">
+                      <td className="px-2 py-3 text-right font-mono text-zinc-300 text-xs">
                         {formatPrice(stock.currentPrice)}
                       </td>
-                      <td className="px-3 py-3 text-right">
+                      <td className="px-2 py-3 text-right">
                         <span className="font-semibold text-emerald-400 font-mono text-xs">
                           {formatPercent(stock.dividendYield)}
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-right font-mono text-zinc-400 text-xs">
+                      <td className="px-2 py-3 text-right font-mono text-zinc-400 text-xs">
                         {formatPercent(stock.payoutRatio)}
                       </td>
-                      <td className="px-3 py-3 text-right text-zinc-400 font-mono text-xs">
+                      <td className="px-2 py-3 text-right text-zinc-400 font-mono text-xs">
                         {formatMarketCap(stock.marketCap)}
                       </td>
-                      <td className="px-3 py-3 text-right font-mono text-zinc-400 text-xs">
+                      <td className="px-2 py-3 text-right font-mono text-zinc-400 text-xs">
                         {stock.pe > 0 ? stock.pe.toFixed(1) : '-'}
                       </td>
-                      <td className="px-3 py-3 text-right font-mono text-xs">
+                      <td className="px-2 py-3 text-right font-mono text-xs">
                         {stock.roe === 0 ? (
                           <span className="text-zinc-600">N/A</span>
                         ) : (
@@ -743,7 +742,7 @@ export default function StockScreeningPage() {
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-center text-xs">
+                      <td className="px-2 py-3 text-center text-xs">
                         <span className={
                           stock.dividendCycle === 'monthly' ? 'text-emerald-400 font-medium' :
                           stock.dividendCycle === 'quarterly' ? 'text-zinc-300' :
@@ -755,10 +754,10 @@ export default function StockScreeningPage() {
                            stock.dividendCycle === 'annual' ? '연간' : '-'}
                         </span>
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="px-2 py-3">
                         <ScoreBar score={stock.overallScore} />
                       </td>
-                      <td className="px-3 py-3 text-center">
+                      <td className="px-2 py-3 text-center">
                         <GradeBadge grade={stock.grade} size="sm" />
                       </td>
                     </tr>
