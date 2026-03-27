@@ -83,14 +83,18 @@ export default function ETFScreeningPage() {
   const [maxCount, setMaxCount] = useState(200);
   const [filtersOpen, setFiltersOpen] = useState(true);
 
-  // Universe info (fetched once)
+  // Universe info - re-fetch when AUM filter changes (pre-filtering)
   const [universeInfo, setUniverseInfo] = useState<{ stockTotal: number; etfTotal: number; rate: number } | null>(null);
+  const [loadingUniverse, setLoadingUniverse] = useState(false);
 
   useEffect(() => {
-    apiFetch<{ stockTotal: number; etfTotal: number; rate: number }>(API_ENDPOINTS.UNIVERSE_INFO)
-      .then(setUniverseInfo)
-      .catch(() => setUniverseInfo({ stockTotal: 3500, etfTotal: 500, rate: 1400 }));
-  }, []);
+    setLoadingUniverse(true);
+    const params = new URLSearchParams({ minAUM: String(minAum) });
+    apiFetch<{ stockTotal: number; etfTotal: number; rate: number }>(API_ENDPOINTS.UNIVERSE_INFO + '?' + params)
+      .then((data) => { setUniverseInfo(data); setLoadingUniverse(false); })
+      .catch(() => { setUniverseInfo({ stockTotal: 3500, etfTotal: 500, rate: 1400 }); setLoadingUniverse(false); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minAum]);
 
   const krwRate = universeInfo?.rate ?? 1400;
 
@@ -550,8 +554,17 @@ export default function ETFScreeningPage() {
                     className="w-full rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono transition-colors"
                   />
                   <p className="mt-1.5 text-[11px] text-zinc-500 leading-relaxed">
-                    미국 배당 ETF 최대 <span className="text-emerald-400/80 font-semibold">{universeInfo ? universeInfo.etfTotal.toLocaleString() : '~500'}개</span> 중 앞에서부터 선택.<br/>
-                    조건 필터링 전 분석 대상 수이며, 200종목 ≈ 약 5~10분 소요.
+                    {loadingUniverse ? (
+                      <span className="text-zinc-600">필터 조건으로 유니버스 조회 중...</span>
+                    ) : (
+                      <>
+                        AUM ≥ ${(minAum / 1e6).toFixed(0)}M + 배당지급 ETF: 최대{' '}
+                        <span className="text-emerald-400/80 font-semibold">
+                          {universeInfo ? universeInfo.etfTotal.toLocaleString() : '---'}개
+                        </span> 종목.<br/>
+                        FMP API 사전 필터 적용. 200종목 ≈ 약 5~10분 소요.
+                      </>
+                    )}
                   </p>
                 </div>
               </div>

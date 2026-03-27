@@ -49,15 +49,18 @@ let etfScreeningProgress: ETFScreeningProgress = {
 // Universe Info (cached for 10 min)
 // ==========================================
 
-// Cache separately for index-only vs full
-let cachedUniverseIndex: { stockTotal: number; etfTotal: number; rate: number; fetchedAt: number } | null = null;
-let cachedUniverseFull: { stockTotal: number; etfTotal: number; rate: number; fetchedAt: number } | null = null;
+// Cache keyed by filter params (valid 10 min)
+const _universeCache = new Map<string, { stockTotal: number; etfTotal: number; rate: number; fetchedAt: number }>();
 
 router.get('/universe-info', async (req: Request, res: Response) => {
   try {
     const indexOnly = req.query.indexOnly !== 'false';
+    const minMarketCapUSD = parseFloat(req.query.minMarketCapUSD as string) || 0;
+    const minAUM = parseFloat(req.query.minAUM as string) || 0;
     const now = Date.now();
-    const cached = indexOnly ? cachedUniverseIndex : cachedUniverseFull;
+
+    const cacheKey = `idx${indexOnly}_mc${minMarketCapUSD}_aum${minAUM}`;
+    const cached = _universeCache.get(cacheKey);
 
     if (cached && now - cached.fetchedAt < 600_000) {
       res.json(cached);
@@ -76,12 +79,15 @@ router.get('/universe-info', async (req: Request, res: Response) => {
       for (const s of nasdaq) symbolSet.add(s.symbol);
       stockTotal = symbolSet.size;
     } else {
-      const allStocks = await getAllUSDividendStocks();
+      // Pass minMarketCap to FMP API for pre-filtering
+      const allStocks = await getAllUSDividendStocks(
+        minMarketCapUSD > 0 ? { minMarketCapUSD } : undefined
+      );
       stockTotal = allStocks.length;
     }
 
     const [etfList, exchangeRateData] = await Promise.all([
-      getETFList().catch(() => [] as { symbol: string; name: string }[]),
+      getETFList(minAUM > 0 ? { minAUM } : undefined).catch(() => [] as { symbol: string; name: string }[]),
       getExchangeRate(),
     ]);
 
@@ -92,13 +98,9 @@ router.get('/universe-info', async (req: Request, res: Response) => {
       fetchedAt: now,
     };
 
-    if (indexOnly) {
-      cachedUniverseIndex = result;
-    } else {
-      cachedUniverseFull = result;
-    }
+    _universeCache.set(cacheKey, result);
 
-    logger.info(`[API] Universe info (indexOnly=${indexOnly}): stocks=${stockTotal}, ETFs=${etfList.length}, rate=${exchangeRateData.rate}`);
+    logger.info(`[API] Universe info (indexOnly=${indexOnly}, mcap≥$${(minMarketCapUSD / 1e9).toFixed(1)}B, aum≥$${(minAUM / 1e6).toFixed(0)}M): stocks=${stockTotal}, ETFs=${etfList.length}, rate=${exchangeRateData.rate}`);
     res.json(result);
   } catch (err) {
     logger.error(`[API] Universe info error: ${(err as Error).message}`);

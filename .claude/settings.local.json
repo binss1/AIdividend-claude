@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__github__create_repository",
+      "mcp__6b5b9a74-cda4-4f8f-8df1-8d5de35d78db__notion-create-pages",
+      "Bash(npx tsc:*)",
+      "Bash(npm install:*)",
+      "Bash(npx -y typescript --version)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(npx create-next-app@latest frontend --typescript --tailwind --eslint --app --src-dir --no-import-alias --use-npm)",
+      "Bash(npx create-next-app@latest frontend --typescript --tailwind --eslint --app --src-dir --no-import-alias --use-npm --turbopack 2)",
+      "Bash(1:*)",
+      "Bash(npx create-next-app@latest frontend --typescript --tailwind --eslint --app --src-dir --no-import-alias --use-npm --turbopack)",
+      "Bash(yes \"No\")",
+      "Bash(find D:/Claude/AIdividend/frontend/node_modules/next/dist/docs/01-app -name *param* -o -name *dynamic*)",
+      "Bash(npx next:*)",
+      "Bash(grep -n \"\\\\.ticker\\\\b\\\\|\\\\.companyName\\\\b\\\\|\\\\.totalScore\\\\b\\\\|\\\\.priceChange\\\\b\\\\|\\\\.changePercent\\\\b\" src/app/stock/\\\\[symbol\\\\]/page.tsx)",
+      "Bash(grep -n \"priceUp\\\\|priceChange\\\\|changePercent\" src/app/stock/\\\\[symbol\\\\]/page.tsx)",
+      "Bash(grep -n \"StockDetailData\\\\|interface.*Stock\" src/app/stock/[symbol]/page.tsx)",
+      "Bash(gh auth:*)",
+      "Bash(gh repo:*)",
+      "mcp__6b5b9a74-cda4-4f8f-8df1-8d5de35d78db__notion-update-page",
+      "Bash(curl -s http://localhost:3001/api/health)",
+      "Bash(curl -s http://localhost:3001/api/screening/stock/TROW)",
+      "Bash(find D:/Claude/AIdividend/frontend/src -type f -name page.tsx -o -name *page*)",
+      "Bash(xargs grep:*)",
+      "Bash(python -c \"import json,sys;d=json.load\\(sys.stdin\\);print\\(json.dumps\\({k:d[k] for k in [''''roe'''',''''debtToEquity'''',''''eps'''',''''pe'''']}, indent=2\\)\\)\")",
+      "Bash(curl -s http://localhost:3001/api/screening/market-overview)",
+      "Bash(curl -s http://localhost:3001/api/screening/market-overview -v)",
+      "Bash(taskkill //F //IM \"node.exe\")",
+      "Bash(netstat -ano)",
+      "Bash(node -e \":*)",
+      "Bash(curl -s http://localhost:3001/api/screening/universe-info)",
+      "WebSearch",
+      "Bash(git log:*)"
+    ]
+  }
+}

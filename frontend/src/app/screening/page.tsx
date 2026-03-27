@@ -60,11 +60,15 @@ export default function StockScreeningPage() {
       .catch(() => setUniverseInfo({ stockTotal: 517, etfTotal: 500, rate: 1400 }));
   }, []);
 
-  // Fetch full universe on demand when indexOnly is toggled off
+  // Fetch full universe with pre-filter params when indexOnly is off or marketCap changes
   useEffect(() => {
-    if (!indexOnly && !universeInfoFull) {
+    if (!indexOnly) {
       setLoadingUniverse(true);
-      apiFetch<{ stockTotal: number; etfTotal: number; rate: number }>(API_ENDPOINTS.UNIVERSE_INFO + '?indexOnly=false')
+      const params = new URLSearchParams({
+        indexOnly: 'false',
+        minMarketCapUSD: String(minMarketCap),
+      });
+      apiFetch<{ stockTotal: number; etfTotal: number; rate: number }>(API_ENDPOINTS.UNIVERSE_INFO + '?' + params)
         .then((data) => {
           setUniverseInfoFull(data);
           setLoadingUniverse(false);
@@ -74,7 +78,8 @@ export default function StockScreeningPage() {
           setLoadingUniverse(false);
         });
     }
-  }, [indexOnly, universeInfoFull]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [indexOnly, minMarketCap]);
 
   const activeUniverse = indexOnly ? universeInfo : universeInfoFull;
 
@@ -427,14 +432,18 @@ export default function StockScreeningPage() {
                   />
                   <p className="mt-1.5 text-[11px] text-zinc-500 leading-relaxed">
                     {loadingUniverse ? (
-                      <span className="text-zinc-600">유니버스 크기 조회 중...</span>
+                      <span className="text-zinc-600">필터 조건으로 유니버스 조회 중...</span>
                     ) : (
                       <>
-                        {indexOnly ? 'S&P500 + NASDAQ100 지수 편입 종목' : 'NYSE + NASDAQ + AMEX 전체 배당주'}{' '}
+                        {indexOnly
+                          ? 'S&P500 + NASDAQ100 지수 편입 종목'
+                          : `시총 ≥ ${minMarketCap >= 1e9 ? `$${(minMarketCap / 1e9).toFixed(0)}B` : `$${(minMarketCap / 1e6).toFixed(0)}M`} 배당주 (FMP 사전필터)`
+                        }{' '}
                         최대 <span className="text-emerald-400/80 font-semibold">
                           {activeUniverse ? activeUniverse.stockTotal.toLocaleString() : '---'}개
                         </span> 종목.<br/>
-                        조건 필터링 전 분석 대상 수이며, 500종목 ≈ 약 15~25분 소요.
+                        {!indexOnly && '시가총액 조건이 FMP API에 사전 적용되어 분석 대상이 축소됩니다. '}
+                        500종목 ≈ 약 15~25분 소요.
                       </>
                     )}
                   </p>

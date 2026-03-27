@@ -199,28 +199,58 @@ export async function getNasdaqConstituents(): Promise<{ symbol: string; name: s
 }
 
 /**
- * Get ALL US dividend-paying stocks via stock-screener API.
- * Returns NYSE + NASDAQ + AMEX listed stocks with dividendMoreThan > 0.
+ * Get US dividend-paying stocks via stock-screener API with pre-filtering.
+ * Passes user filter criteria (minYield, minMarketCap) directly to FMP API
+ * so the server returns only qualifying stocks → dramatically reduces analysis count.
  */
-// In-memory cache for full universe (valid 30 min)
-let _allDividendStocksCache: { data: { symbol: string; name: string }[]; fetchedAt: number } | null = null;
+// In-memory cache keyed by filter params (valid 30 min)
+const _dividendStocksCache = new Map<string, { data: { symbol: string; name: string }[]; fetchedAt: number }>();
 
-export async function getAllUSDividendStocks(): Promise<{ symbol: string; name: string }[]> {
+export interface StockUniverseFilter {
+  minDividendYield?: number;   // percentage, e.g. 2 = 2%
+  minMarketCapUSD?: number;    // absolute USD, e.g. 1_000_000_000
+}
+
+export async function getAllUSDividendStocks(filter?: StockUniverseFilter): Promise<{ symbol: string; name: string }[]> {
+  // Build cache key from filter params
+  const yieldFilter = filter?.minDividendYield ?? 0;
+  const mcapFilter = filter?.minMarketCapUSD ?? 0;
+  const cacheKey = `y${yieldFilter}_m${mcapFilter}`;
+
   // Return cache if fresh (30 min)
-  if (_allDividendStocksCache && Date.now() - _allDividendStocksCache.fetchedAt < 1800_000) {
-    logger.info(`[FMP] 전체 배당주 유니버스 캐시 반환: ${_allDividendStocksCache.data.length}개 (${Math.round((Date.now() - _allDividendStocksCache.fetchedAt) / 1000)}초 전 조회)`);
-    return _allDividendStocksCache.data;
+  const cached = _dividendStocksCache.get(cacheKey);
+  if (cached && Date.now() - cached.fetchedAt < 1800_000) {
+    logger.info(`[FMP] 배당주 유니버스 캐시 반환: ${cached.data.length}개 (key: ${cacheKey}, ${Math.round((Date.now() - cached.fetchedAt) / 1000)}초 전 조회)`);
+    return cached.data;
   }
 
   try {
     const startTime = Date.now();
     const exchanges = ['NYSE', 'NASDAQ', 'AMEX'];
 
-    logger.info('═══════════════════════════════════════════════════════');
-    logger.info('  🌐 전체 미국 배당주 유니버스 조회 시작');
-    logger.info('═══════════════════════════════════════════════════════');
+    // Build FMP API params with pre-filtering
+    const apiParams: Record<string, unknown> = {
+      dividendMoreThan: 0,
+      isActivelyTrading: true,
+      limit: 5000,
+    };
 
-    // Parallel fetch all 3 exchanges (bypass rate limiter - these are bulk queries)
+    // Pre-filter: market cap (FMP uses absolute value)
+    if (mcapFilter > 0) {
+      apiParams.marketCapMoreThan = mcapFilter;
+    }
+
+    logger.info('═══════════════════════════════════════════════════════');
+    logger.info('  🌐 미국 배당주 유니버스 조회 시작 (사전 필터 적용)');
+    logger.info('═══════════════════════════════════════════════════════');
+    logger.info(`  🔧 FMP API 사전 필터:`);
+    logger.info(`     • dividendMoreThan: 0 (배당 지급 종목만)`);
+    if (mcapFilter > 0) {
+      logger.info(`     • marketCapMoreThan: $${(mcapFilter / 1e9).toFixed(1)}B (시가총액 필터)`);
+    }
+    logger.info(`     • isActivelyTrading: true`);
+
+    // Parallel fetch all 3 exchanges
     const fetches = exchanges.map(async (exchange) => {
       const t0 = Date.now();
       logger.info(`  📡 ${exchange} 배당주 조회 중...`);
@@ -228,9 +258,7 @@ export async function getAllUSDividendStocks(): Promise<{ symbol: string; name: 
         params: {
           apikey: env.FMP_API_KEY,
           exchange,
-          dividendMoreThan: 0,
-          isActivelyTrading: true,
-          limit: 5000,
+          ...apiParams,
         },
         timeout: 30000,
       });
@@ -259,15 +287,18 @@ export async function getAllUSDividendStocks(): Promise<{ symbol: string; name: 
       logger.info(`     • ${r.exchange}: ${r.data.length}개`);
     }
     logger.info(`     • 중복 제거 후: ${deduped.length}개`);
+    if (mcapFilter > 0) {
+      logger.info(`  📉 사전 필터 효과: API 레벨에서 시총 $${(mcapFilter / 1e9).toFixed(1)}B 미만 제외`);
+    }
     logger.info(`  ⏱️  소요 시간: ${elapsed}초`);
     logger.info('═══════════════════════════════════════════════════════');
 
     // Cache result
-    _allDividendStocksCache = { data: deduped, fetchedAt: Date.now() };
+    _dividendStocksCache.set(cacheKey, { data: deduped, fetchedAt: Date.now() });
 
     return deduped;
   } catch (err) {
-    logger.error(`[FMP] 전체 배당주 유니버스 조회 실패: ${(err as Error).message}`);
+    logger.error(`[FMP] 배당주 유니버스 조회 실패: ${(err as Error).message}`);
     return [];
   }
 }
@@ -728,14 +759,19 @@ export async function screenDividendStocks(
     logger.info(`     • NASDAQ100: ${nasdaq.length}개`);
     logger.info(`     • 중복 제거 후: ${allSymbols.length}개`);
   } else {
-    // Full mode: all US dividend-paying stocks
-    logger.info('  🔍 종목 유니버스 수집 중 (전체 미국 배당주)...');
-    const allStocks = await getAllUSDividendStocks();
-    allSymbols = allStocks.map(s => s.symbol);
-    screeningOrder = `NYSE+NASDAQ+AMEX 배당 지급 종목 → ${allSymbols.length}개`;
+    // Full mode: all US dividend-paying stocks WITH pre-filtering
+    logger.info('  🔍 종목 유니버스 수집 중 (전체 미국 배당주 + 사전 필터)...');
+    const preFilter: StockUniverseFilter = {
+      minMarketCapUSD: criteria.minMarketCapUSD,
+    };
+    logger.info(`  🔧 사전 필터 전달: 시총≥$${(criteria.minMarketCapUSD / 1e9).toFixed(1)}B`);
 
-    logger.info(`  📈 유니버스 구성 (전체 모드):`);
-    logger.info(`     • 전체 미국 배당주: ${allSymbols.length}개`);
+    const allStocks = await getAllUSDividendStocks(preFilter);
+    allSymbols = allStocks.map(s => s.symbol);
+    screeningOrder = `NYSE+NASDAQ+AMEX 배당주 (시총≥$${(criteria.minMarketCapUSD / 1e9).toFixed(1)}B 사전필터) → ${allSymbols.length}개`;
+
+    logger.info(`  📈 유니버스 구성 (전체 + 사전필터 모드):`);
+    logger.info(`     • 사전 필터 적용 후: ${allSymbols.length}개`);
   }
 
   const totalToCheck = Math.min(allSymbols.length, criteria.maxStocksToCheck);

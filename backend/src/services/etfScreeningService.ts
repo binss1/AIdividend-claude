@@ -67,17 +67,79 @@ interface FMPETFListItem {
   exchangeShortName: string;
 }
 
-export async function getETFList(): Promise<FMPETFListItem[]> {
+export interface ETFUniverseFilter {
+  minAUM?: number;  // absolute USD, e.g. 100_000_000
+}
+
+// In-memory cache keyed by filter params (valid 30 min)
+const _etfListCache = new Map<string, { data: FMPETFListItem[]; fetchedAt: number }>();
+
+export async function getETFList(filter?: ETFUniverseFilter): Promise<FMPETFListItem[]> {
+  const aumFilter = filter?.minAUM ?? 0;
+  const cacheKey = `aum${aumFilter}`;
+
+  const cached = _etfListCache.get(cacheKey);
+  if (cached && Date.now() - cached.fetchedAt < 1800_000) {
+    logger.info(`[ETF] 유니버스 캐시 반환: ${cached.data.length}개 (key: ${cacheKey})`);
+    return cached.data;
+  }
+
+  // Use stock-screener with isEtf=true for pre-filtering
+  if (aumFilter > 0) {
+    logger.info(`[ETF] 사전 필터 적용: FMP stock-screener (isEtf=true, marketCap≥$${(aumFilter / 1e6).toFixed(0)}M, dividend>0)`);
+
+    const exchanges = ['NYSE', 'NASDAQ', 'AMEX'];
+    const allETFs: FMPETFListItem[] = [];
+    const seen = new Set<string>();
+
+    for (const exchange of exchanges) {
+      try {
+        const data = await fmpGet<any[]>('/v3/stock-screener', {
+          exchange,
+          isEtf: true,
+          isActivelyTrading: true,
+          dividendMoreThan: 0,
+          marketCapMoreThan: aumFilter,
+          limit: 5000,
+        });
+        if (data) {
+          for (const item of data) {
+            if (!seen.has(item.symbol)) {
+              seen.add(item.symbol);
+              allETFs.push({
+                symbol: item.symbol,
+                name: item.companyName || item.symbol,
+                price: item.price || 0,
+                exchange: exchange,
+                exchangeShortName: exchange,
+              });
+            }
+          }
+        }
+        logger.info(`  ✅ ${exchange} ETF (사전필터): ${data?.length ?? 0}개`);
+      } catch (err) {
+        logger.error(`  ❌ ${exchange} ETF 조회 실패: ${(err as Error).message}`);
+      }
+    }
+
+    logger.info(`[ETF] 사전 필터 결과: ${allETFs.length}개 (AUM≥$${(aumFilter / 1e6).toFixed(0)}M + 배당지급)`);
+    _etfListCache.set(cacheKey, { data: allETFs, fetchedAt: Date.now() });
+    return allETFs;
+  }
+
+  // No filter: use original /v3/etf/list
   const data = await fmpGet<FMPETFListItem[]>('/v3/etf/list');
   if (!data) return [];
 
-  // Filter US-listed ETFs
-  return data.filter(etf => {
+  const filtered = data.filter(etf => {
     const ex = (etf.exchangeShortName || '').toUpperCase();
     return ex === 'NYSE' || ex === 'NASDAQ' || ex === 'AMEX' || ex === 'NYSEArca' ||
       (etf.exchange || '').toUpperCase().includes('ARCA') ||
       (etf.exchange || '').toUpperCase().includes('BATS');
   });
+
+  _etfListCache.set(cacheKey, { data: filtered, fetchedAt: Date.now() });
+  return filtered;
 }
 
 // ==========================================
@@ -279,31 +341,36 @@ export async function screenDividendETFs(
   logger.info(`     • maxETFsToCheck: ${criteria.maxETFsToCheck}`);
   logger.info('───────────────────────────────────────────────────────');
 
-  // Build candidate list: popular ETFs first, then broader list
+  // Build candidate list with pre-filtering via FMP API
+  const minAUM = criteria.minAUM || 100_000_000;  // Use user's AUM filter for pre-filtering
+
+  logger.info(`  🔧 사전 필터: AUM≥$${(minAUM / 1e6).toFixed(0)}M + 배당지급 ETF`);
+
   const popularSymbols = new Set(POPULAR_DIVIDEND_ETFS);
   let allETFs: { symbol: string; name: string }[] = [];
 
-  // Add popular ETFs first
+  // Add popular ETFs first (always included regardless of filter)
   for (const sym of POPULAR_DIVIDEND_ETFS) {
     allETFs.push({ symbol: sym, name: sym });
   }
 
-  // Then get broader ETF list
+  // Then get pre-filtered ETF list from FMP
   try {
-    const etfList = await getETFList();
+    const etfList = await getETFList({ minAUM });
     for (const etf of etfList) {
       if (!popularSymbols.has(etf.symbol)) {
         allETFs.push({ symbol: etf.symbol, name: etf.name });
       }
     }
+    logger.info(`  📊 유니버스 구성: 큐레이션 ${POPULAR_DIVIDEND_ETFS.length}개 + 사전필터 ${etfList.length}개 = 총 ${allETFs.length}개 (중복제거)`);
   } catch (err) {
-    logger.warn('Failed to get full ETF list, using popular ETFs only');
+    logger.warn('Failed to get ETF list, using popular ETFs only');
   }
 
   const maxToCheck = criteria.maxETFsToCheck || 200;
   allETFs = allETFs.slice(0, maxToCheck);
 
-  logger.info(`ETF universe: ${allETFs.length} (popular: ${POPULAR_DIVIDEND_ETFS.length})`);
+  logger.info(`  🎯 분석 대상: ${allETFs.length}개 (최대 ${maxToCheck}개 제한)`);
 
   let processedCount = 0;
   const batchSize = 10;
@@ -449,7 +516,7 @@ async function analyzeETF(
     holdingsCount: holdings.length || etfInfo?.holdingsCount,
     top10Concentration: Math.round(top10Concentration * 100) / 100,
     beta: profile.beta,
-    isCoveredCall: isCoveredCallETF(symbol, profile.companyName || etfItem.name),
+    isCoveredCall: isCoveredCallETF(symbol, profile.companyName || symbol),
     lastUpdated: new Date().toISOString(),
   };
 }
@@ -500,7 +567,7 @@ export async function getETFDetail(symbol: string): Promise<ScreenedETF | null> 
     holdingsCount: holdings.length || etfInfo?.holdingsCount,
     top10Concentration: Math.round(top10Concentration * 100) / 100,
     beta: profile.beta,
-    isCoveredCall: isCoveredCallETF(symbol, profile.companyName || etfItem.name),
+    isCoveredCall: isCoveredCallETF(symbol, profile.companyName || symbol),
     lastUpdated: new Date().toISOString(),
   };
 }
