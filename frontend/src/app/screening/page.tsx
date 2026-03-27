@@ -624,7 +624,7 @@ export default function StockScreeningPage() {
             {/* Table */}
             <div className="overflow-x-auto">
               <table className="w-full text-sm table-fixed">
-                <colgroup><col className="w-[40px]" /><col className="w-[90px]" /><col className="w-[180px]" /><col className="w-[80px]" /><col className="w-[90px]" /><col className="w-[80px]" /><col className="w-[90px]" /><col className="w-[60px]" /><col className="w-[70px]" /><col className="w-[70px]" /><col className="w-[130px]" /><col className="w-[50px]" /></colgroup>
+                <colgroup><col style={{width:'3%'}} /><col style={{width:'7%'}} /><col style={{width:'16%'}} /><col style={{width:'7%'}} /><col style={{width:'8%'}} /><col style={{width:'8%'}} /><col style={{width:'8%'}} /><col style={{width:'6%'}} /><col style={{width:'7%'}} /><col style={{width:'7%'}} /><col style={{width:'14%'}} /><col style={{width:'5%'}} /></colgroup>
                 <thead>
                   <tr className="border-b border-zinc-800/80 bg-zinc-900/90">
                     <th className="px-3 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">
