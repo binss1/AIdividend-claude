@@ -448,7 +448,7 @@ export default function StockScreeningPage() {
                         }}
                         className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer"
                       />
-                      <span className="text-[11px] text-zinc-400 group-hover:text-zinc-300 transition-colors whitespace-nowrap">전체</span>
+                      <span className="text-[11px] text-zinc-400 group-hover:text-zinc-300 transition-colors whitespace-nowrap">전체종목</span>
                     </label>
                   </div>
                   <p className="mt-1.5 text-[11px] text-zinc-500 leading-relaxed">
