@@ -902,44 +902,44 @@ async function analyzeStock(
 ): Promise<ScreenedStock | null> {
   // Get profile first for quick filtering
   const profile = await getCompanyProfile(symbol);
-  if (!profile) return null;
+  if (!profile) { logger.info(`    [${symbol}] SKIP: 프로필 없음`); return null; }
 
   // Must be actively trading
-  if (!profile.isActivelyTrading) return null;
+  if (!profile.isActivelyTrading) { logger.info(`    [${symbol}] SKIP: 비활성 종목`); return null; }
 
   // Must be on NYSE or NASDAQ (strict match)
   const exchange = (profile.exchangeShortName || '').toUpperCase();
-  if (exchange !== 'NYSE' && exchange !== 'NASDAQ') return null;
+  if (exchange !== 'NYSE' && exchange !== 'NASDAQ') { logger.info(`    [${symbol}] SKIP: 거래소 ${exchange} (NYSE/NASDAQ 아님)`); return null; }
 
   // Skip ETFs
-  if (profile.isEtf) return null;
+  if (profile.isEtf) { logger.info(`    [${symbol}] SKIP: ETF`); return null; }
 
   // Market cap filter (always in USD)
-  if (profile.mktCap < criteria.minMarketCapUSD) return null;
+  if (profile.mktCap < criteria.minMarketCapUSD) { logger.info(`    [${symbol}] SKIP: 시총 $${(profile.mktCap / 1e9).toFixed(1)}B < $${(criteria.minMarketCapUSD / 1e9).toFixed(1)}B`); return null; }
 
   // Get quote for more data
   const quote = await getQuote(symbol);
-  if (!quote) return null;
+  if (!quote) { logger.info(`    [${symbol}] SKIP: 시세 없음`); return null; }
 
   // Get dividend history
   const dividends = await getDividendHistory(symbol);
-  if (dividends.length === 0) return null;
+  if (dividends.length === 0) { logger.info(`    [${symbol}] SKIP: 배당이력 없음`); return null; }
 
   // Dividend consistency check (3 of last 4 payments)
-  if (!checkDividendConsistency(dividends)) return null;
+  if (!checkDividendConsistency(dividends)) { logger.info(`    [${symbol}] SKIP: 배당 일관성 미달`); return null; }
 
   // Determine cycle and annual dividend
   const cycle = determineDividendCycle(dividends);
   const annualDividend = calculateAnnualDividend(cycle, dividends);
-  if (annualDividend <= 0) return null;
+  if (annualDividend <= 0) { logger.info(`    [${symbol}] SKIP: 연간배당 ≤0`); return null; }
 
   // Calculate dividend yield
   const price = quote.price || profile.price;
-  if (!price || price <= 0) return null;
+  if (!price || price <= 0) { logger.info(`    [${symbol}] SKIP: 주가 없음`); return null; }
   const dividendYield = (annualDividend / price) * 100;
 
   // Yield filter
-  if (dividendYield < criteria.minDividendYield) return null;
+  if (dividendYield < criteria.minDividendYield) { logger.info(`    [${symbol}] SKIP: 수익률 ${dividendYield.toFixed(2)}% < ${criteria.minDividendYield}%`); return null; }
 
   // Detect REIT
   const stockIsREIT = isREIT(symbol, profile.sector, profile.industry);
