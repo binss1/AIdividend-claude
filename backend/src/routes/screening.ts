@@ -6,8 +6,11 @@ import {
   getDividendHistory,
   getHistoricalPrices,
   getQuote,
+  getSP500Constituents,
+  getNasdaqConstituents,
 } from '../services/fmpService';
-import { screenDividendETFs } from '../services/etfScreeningService';
+import { screenDividendETFs, getETFList } from '../services/etfScreeningService';
+import { getExchangeRate } from '../services/exchangeRateService';
 import { saveScreeningResults, saveETFResults } from '../services/googleSheetsService';
 import logger from '../utils/logger';
 import {
@@ -40,6 +43,47 @@ let etfScreeningProgress: ETFScreeningProgress = {
   foundETFs: 0,
   progress: 0,
 };
+
+// ==========================================
+// Universe Info (cached for 10 min)
+// ==========================================
+
+let cachedUniverseInfo: { stockTotal: number; etfTotal: number; rate: number; fetchedAt: number } | null = null;
+
+router.get('/universe-info', async (_req: Request, res: Response) => {
+  try {
+    const now = Date.now();
+    if (cachedUniverseInfo && now - cachedUniverseInfo.fetchedAt < 600_000) {
+      res.json(cachedUniverseInfo);
+      return;
+    }
+
+    const [sp500, nasdaq, etfList, exchangeRateData] = await Promise.all([
+      getSP500Constituents(),
+      getNasdaqConstituents(),
+      getETFList().catch(() => [] as { symbol: string; name: string }[]),
+      getExchangeRate(),
+    ]);
+
+    // Deduplicate stocks
+    const symbolSet = new Set<string>();
+    for (const s of sp500) symbolSet.add(s.symbol);
+    for (const s of nasdaq) symbolSet.add(s.symbol);
+
+    cachedUniverseInfo = {
+      stockTotal: symbolSet.size,
+      etfTotal: etfList.length,
+      rate: exchangeRateData.rate,
+      fetchedAt: now,
+    };
+
+    logger.info(`[API] Universe info: stocks=${symbolSet.size}, ETFs=${etfList.length}, rate=${exchangeRateData.rate}`);
+    res.json(cachedUniverseInfo);
+  } catch (err) {
+    logger.error(`[API] Universe info error: ${(err as Error).message}`);
+    res.json({ stockTotal: 3500, etfTotal: 500, rate: 1400, fetchedAt: Date.now() });
+  }
+});
 
 // ==========================================
 // Stock Screening Endpoints

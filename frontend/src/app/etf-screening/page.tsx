@@ -83,6 +83,24 @@ export default function ETFScreeningPage() {
   const [maxCount, setMaxCount] = useState(200);
   const [filtersOpen, setFiltersOpen] = useState(true);
 
+  // Universe info (fetched once)
+  const [universeInfo, setUniverseInfo] = useState<{ stockTotal: number; etfTotal: number; rate: number } | null>(null);
+
+  useEffect(() => {
+    apiFetch<{ stockTotal: number; etfTotal: number; rate: number }>(API_ENDPOINTS.UNIVERSE_INFO)
+      .then(setUniverseInfo)
+      .catch(() => setUniverseInfo({ stockTotal: 3500, etfTotal: 500, rate: 1400 }));
+  }, []);
+
+  const krwRate = universeInfo?.rate ?? 1400;
+
+  function formatKRW(usd: number): string {
+    const krw = usd * krwRate;
+    if (krw >= 1e12) return `약 ${(krw / 1e12).toFixed(1)}조원`;
+    if (krw >= 1e8) return `약 ${(krw / 1e8).toFixed(0)}억원`;
+    return `약 ${Math.round(krw).toLocaleString()}원`;
+  }
+
   // Screening state
   const [isScreening, setIsScreening] = useState(false);
   const [progress, setProgress] = useState<ETFProgressType>({
@@ -476,6 +494,9 @@ export default function ETFScreeningPage() {
                       </option>
                     ))}
                   </select>
+                  <p className="mt-1.5 text-[11px] text-zinc-500">
+                    ≈ <span className="text-amber-400/80">{formatKRW(minAum)}</span>
+                  </p>
                 </div>
 
                 {/* Max Expense Ratio */}
@@ -524,7 +545,7 @@ export default function ETFScreeningPage() {
                     className="w-full rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono transition-colors"
                   />
                   <p className="mt-1.5 text-[11px] text-zinc-500 leading-relaxed">
-                    미국 배당 ETF 약 300~500개 중 앞에서부터 선택.<br/>
+                    미국 배당 ETF 최대 <span className="text-emerald-400/80 font-semibold">{universeInfo ? universeInfo.etfTotal.toLocaleString() : '~500'}개</span> 중 앞에서부터 선택.<br/>
                     조건 필터링 전 분석 대상 수이며, 200종목 ≈ 약 5~10분 소요.
                   </p>
                 </div>

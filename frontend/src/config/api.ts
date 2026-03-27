@@ -16,6 +16,9 @@ export const API_ENDPOINTS = {
   ETFS_SCREEN: '/screening/etf-screening',
   ETFS_PROGRESS: '/screening/etf-screening-progress',
 
+  // Universe Info (stock/etf counts + exchange rate)
+  UNIVERSE_INFO: '/screening/universe-info',
+
   // Exchange Rate
   EXCHANGE_RATE: '/exchange-rate',
 
