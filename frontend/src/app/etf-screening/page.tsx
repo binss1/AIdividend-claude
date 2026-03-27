@@ -747,12 +747,19 @@ export default function ETFScreeningPage() {
                             {idx + 1}
                           </td>
                           <td className="px-4 py-3">
-                            <span
-                              className="font-semibold text-zinc-100 font-mono text-xs hover:text-emerald-400 transition-colors cursor-pointer"
-                              onClick={() => router.push(`/etf/${etf.symbol}`)}
-                            >
-                              {etf.symbol}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className="font-semibold text-zinc-100 font-mono text-xs hover:text-emerald-400 transition-colors cursor-pointer"
+                                onClick={() => router.push(`/etf/${etf.symbol}`)}
+                              >
+                                {etf.symbol}
+                              </span>
+                              {etf.isCoveredCall && (
+                                <span className="shrink-0 rounded bg-orange-500/15 px-1 py-0.5 text-[9px] font-bold text-orange-400 border border-orange-500/20" title="Covered Call ETF">
+                                  CC
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td
                             className="px-4 py-3 text-zinc-300 max-w-[200px] truncate text-xs cursor-pointer hover:text-zinc-100 transition-colors"

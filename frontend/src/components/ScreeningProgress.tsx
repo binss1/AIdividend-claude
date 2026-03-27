@@ -29,7 +29,15 @@ export default function ScreeningProgress({
 }: ScreeningProgressProps) {
   const [pulseFound, setPulseFound] = useState(false);
   const [startedAt] = useState(() => Date.now());
+  const [elapsedNow, setElapsedNow] = useState(0);
   const percentage = total > 0 ? (processed / total) * 100 : 0;
+
+  // Update elapsed every second for live timer + self-calculated ETA
+  useEffect(() => {
+    if (status !== 'running') return;
+    const timer = setInterval(() => setElapsedNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [status]);
 
   useEffect(() => {
     if (found > 0) {
@@ -144,13 +152,23 @@ export default function ScreeningProgress({
         <div className="rounded-lg bg-zinc-800/50 px-3 py-2">
           <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-0.5">예상 완료</div>
           <div className="text-xs font-mono text-amber-400 font-medium">
-            {status === 'running' && estimatedTimeRemaining != null && estimatedTimeRemaining > 0
-              ? formatTime(estimatedTimeRemaining)
-              : status === 'completed'
-              ? '완료됨'
-              : status === 'running'
-              ? '계산 중...'
-              : '-'}
+            {(() => {
+              if (status === 'completed') return '완료됨';
+              if (status !== 'running') return '-';
+              // Use prop if provided
+              if (estimatedTimeRemaining != null && estimatedTimeRemaining > 0) {
+                return formatTime(estimatedTimeRemaining);
+              }
+              // Self-calculate ETA from elapsed time + progress
+              if (processed >= 3 && total > 0) {
+                const elapsedSec = (Date.now() - startedAt) / 1000;
+                const avgPerItem = elapsedSec / processed;
+                const remaining = (total - processed) * avgPerItem;
+                void elapsedNow; // trigger re-render from timer
+                return formatTime(remaining);
+              }
+              return '계산 중...';
+            })()}
           </div>
         </div>
 
@@ -158,7 +176,7 @@ export default function ScreeningProgress({
         <div className="rounded-lg bg-zinc-800/50 px-3 py-2">
           <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-0.5">경과 시간</div>
           <div className="text-xs font-mono text-zinc-300 font-medium">
-            {status === 'running' || status === 'completed' ? formatElapsed() : '-'}
+            {status === 'running' || status === 'completed' ? (void elapsedNow, formatElapsed()) : '-'}
           </div>
         </div>
       </div>

@@ -75,6 +75,7 @@ export interface ScreenedETF {
   top10Concentration?: number;
   dividendGrowth5Y?: number;
   beta?: number;
+  isCoveredCall?: boolean;
 
   lastUpdated: string;
 }

@@ -14,6 +14,27 @@ const POPULAR_DIVIDEND_ETFS = [
   'IDV', 'DWX', 'VYMI', 'FNDE', 'PFF', 'VNQ', 'XLRE', 'REM', 'MORT', 'KBWY',
 ];
 
+// Known covered call ETFs by ticker
+const COVERED_CALL_TICKERS = new Set([
+  'JEPI', 'JEPQ', 'XYLD', 'QYLD', 'RYLD', 'DIVO', 'NUSI', 'KNG',
+  'HNDL', 'DJIA', 'FTHI', 'SPYI', 'QQQI', 'IWMI', 'GPIQ', 'GPIX',
+  'ISPY', 'QQQY', 'XDTE', 'OARK', 'TSLY', 'NVDY', 'CONY', 'MSFO',
+  'AMZY', 'APLY', 'FBY', 'GOOY', 'BALI', 'YMAX', 'YMAG',
+]);
+
+// Covered call detection keywords in ETF name
+const COVERED_CALL_KEYWORDS = [
+  'covered call', 'buy-write', 'buywrite', 'option income',
+  'premium income', 'option overlay', 'call writing',
+  'option strategy', 'equity premium',
+];
+
+function isCoveredCallETF(symbol: string, name: string): boolean {
+  if (COVERED_CALL_TICKERS.has(symbol.toUpperCase())) return true;
+  const lower = name.toLowerCase();
+  return COVERED_CALL_KEYWORDS.some(kw => lower.includes(kw));
+}
+
 const REQUEST_DELAY_MS = 300;
 const BATCH_DELAY_MS = 2000;
 
@@ -428,6 +449,7 @@ async function analyzeETF(
     holdingsCount: holdings.length || etfInfo?.holdingsCount,
     top10Concentration: Math.round(top10Concentration * 100) / 100,
     beta: profile.beta,
+    isCoveredCall: isCoveredCallETF(symbol, profile.companyName || etfItem.name),
     lastUpdated: new Date().toISOString(),
   };
 }
@@ -478,6 +500,7 @@ export async function getETFDetail(symbol: string): Promise<ScreenedETF | null> 
     holdingsCount: holdings.length || etfInfo?.holdingsCount,
     top10Concentration: Math.round(top10Concentration * 100) / 100,
     beta: profile.beta,
+    isCoveredCall: isCoveredCallETF(symbol, profile.companyName || etfItem.name),
     lastUpdated: new Date().toISOString(),
   };
 }
