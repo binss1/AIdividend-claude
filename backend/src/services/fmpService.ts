@@ -230,10 +230,11 @@ export async function getAllUSDividendStocks(filter?: StockUniverseFilter): Prom
 
     // Build FMP API params with pre-filtering
     const apiParams: Record<string, unknown> = {
-      dividendMoreThan: 0,
+      dividendMoreThan: 0.01,  // >0.01 excludes non-dividend stocks (FMP treats 0 as "all")
       isActivelyTrading: true,
       limit: 5000,
     };
+    // Note: FMP ignores dividendYieldMoreThan param, so yield filtering remains post-fetch
 
     // Pre-filter: market cap (FMP uses absolute value)
     if (mcapFilter > 0) {
@@ -244,11 +245,12 @@ export async function getAllUSDividendStocks(filter?: StockUniverseFilter): Prom
     logger.info('  🌐 미국 배당주 유니버스 조회 시작 (사전 필터 적용)');
     logger.info('═══════════════════════════════════════════════════════');
     logger.info(`  🔧 FMP API 사전 필터:`);
-    logger.info(`     • dividendMoreThan: 0 (배당 지급 종목만)`);
+    logger.info(`     • dividendMoreThan: 0.01 (실제 배당 지급 종목만)`);
     if (mcapFilter > 0) {
       logger.info(`     • marketCapMoreThan: $${(mcapFilter / 1e9).toFixed(1)}B (시가총액 필터)`);
     }
     logger.info(`     • isActivelyTrading: true`);
+    logger.info(`     ⚠️ dividendYieldMoreThan: FMP API에서 미지원 → 수익률은 사후 필터링`);
 
     // Parallel fetch all 3 exchanges
     const fetches = exchanges.map(async (exchange) => {

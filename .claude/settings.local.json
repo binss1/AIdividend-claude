@@ -35,7 +35,12 @@
       "Bash(git log:*)",
       "Bash(curl -s \"https://financialmodelingprep.com/api/v3/stock-screener?apikey=W8FNny8Ek7UrOwbIVVTFtDYsQNxVk01b&exchange=NYSE&dividendMoreThan=0&marketCapMoreThan=1000000000&isActivelyTrading=true&limit=5000\")",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f''''Total: {len\\(d\\)}''''\\); [print\\(f''''{x[\"\"symbol\"\"]:8s} mcap={x.get\\(\"\"marketCap\"\",0\\)/1e9:.1f}B div={x.get\\(\"\"lastAnnualDividend\"\",0\\):.2f}''''\\) for x in d[:10]]\")",
-      "Bash(curl -s \"https://financialmodelingprep.com/api/v3/stock-screener?apikey=W8FNny8Ek7UrOwbIVVTFtDYsQNxVk01b&exchange=NYSE&dividendMoreThan=0&marketCapMoreThan=1000000000&isActivelyTrading=true&limit=10\")"
+      "Bash(curl -s \"https://financialmodelingprep.com/api/v3/stock-screener?apikey=W8FNny8Ek7UrOwbIVVTFtDYsQNxVk01b&exchange=NYSE&dividendMoreThan=0&marketCapMoreThan=1000000000&isActivelyTrading=true&limit=10\")",
+      "Bash(curl -s \"https://financialmodelingprep.com/api/v3/stock-screener?apikey=W8FNny8Ek7UrOwbIVVTFtDYsQNxVk01b&exchange=NYSE&dividendMoreThan=0&marketCapMoreThan=1000000000&isActivelyTrading=true&limit=5000\" -o /tmp/filtered.json)",
+      "Read(//tmp/**)",
+      "Bash(node -e \"const d=require\\(''/tmp/filtered.json''\\); console.log\\(''결과:'', d.length, ''개''\\);\")",
+      "Bash(curl -s \"https://financialmodelingprep.com/api/v3/stock-screener?apikey=W8FNny8Ek7UrOwbIVVTFtDYsQNxVk01b&exchange=NYSE&dividendMoreThan=0&isActivelyTrading=true&limit=5000\" -o /tmp/nofilter.json)",
+      "Bash(node -e \"const d=require\\(''/tmp/nofilter.json''\\); console.log\\(''결과:'', d.length, ''개''\\);\")"
     ]
   }
 }
