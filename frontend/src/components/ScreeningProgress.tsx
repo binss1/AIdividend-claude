@@ -28,9 +28,16 @@ export default function ScreeningProgress({
   message,
 }: ScreeningProgressProps) {
   const [pulseFound, setPulseFound] = useState(false);
-  const [startedAt] = useState(() => Date.now());
+  const [startedAt, setStartedAt] = useState(() => Date.now());
   const [elapsedNow, setElapsedNow] = useState(0);
   const percentage = total > 0 ? (processed / total) * 100 : 0;
+
+  // Reset startedAt when a new screening begins (status transitions to running with processed=0)
+  useEffect(() => {
+    if (status === 'running' && processed === 0) {
+      setStartedAt(Date.now());
+    }
+  }, [status, processed]);
 
   // Update elapsed every second for live timer + self-calculated ETA
   useEffect(() => {
