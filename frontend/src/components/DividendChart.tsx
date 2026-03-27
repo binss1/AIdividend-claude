@@ -46,11 +46,13 @@ export default function DividendChart({ data }: DividendChartProps) {
     );
   }
 
-  const maxAmount = Math.max(...data.map((d) => d.amount));
+  // Sort ascending by date: left=past, right=present
+  const sortedData = [...data].sort((a, b) => a.date.localeCompare(b.date));
+  const maxAmount = Math.max(...sortedData.map((d) => d.amount));
 
   return (
     <ResponsiveContainer width="100%" height={280}>
-      <BarChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+      <BarChart data={sortedData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
         <XAxis
           dataKey="date"
@@ -73,7 +75,7 @@ export default function DividendChart({ data }: DividendChartProps) {
         />
         <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
         <Bar dataKey="amount" radius={[4, 4, 0, 0]} animationDuration={800}>
-          {data.map((entry, index) => {
+          {sortedData.map((entry, index) => {
             const intensity = 0.4 + (entry.amount / maxAmount) * 0.6;
             return (
               <Cell

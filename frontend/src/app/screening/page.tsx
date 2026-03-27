@@ -411,25 +411,44 @@ export default function StockScreeningPage() {
                   <label className="block text-sm font-medium text-zinc-300 mb-2">
                     최대 분석 종목수
                   </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={5000}
-                    step={10}
-                    value={maxStocks === 0 ? '' : maxStocks}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === '') {
-                        setMaxStocks(0);
-                      } else {
-                        setMaxStocks(parseInt(val) || 0);
-                      }
-                    }}
-                    onBlur={() => {
-                      if (maxStocks < 10) setMaxStocks(10);
-                    }}
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono transition-colors"
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={activeUniverse?.stockTotal || 10000}
+                      step={10}
+                      value={maxStocks === 0 ? '' : maxStocks}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '') {
+                          setMaxStocks(0);
+                        } else {
+                          const num = parseInt(val) || 0;
+                          const cap = activeUniverse?.stockTotal || 10000;
+                          setMaxStocks(Math.min(num, cap));
+                        }
+                      }}
+                      onBlur={() => {
+                        if (maxStocks < 10 && maxStocks !== 0) setMaxStocks(10);
+                        const cap = activeUniverse?.stockTotal || 10000;
+                        if (maxStocks > cap) setMaxStocks(cap);
+                      }}
+                      className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono transition-colors"
+                    />
+                    <label className="inline-flex items-center gap-1.5 cursor-pointer group shrink-0" title="전체 종목 분석">
+                      <input
+                        type="checkbox"
+                        checked={activeUniverse ? maxStocks === activeUniverse.stockTotal : false}
+                        onChange={(e) => {
+                          if (e.target.checked && activeUniverse) {
+                            setMaxStocks(activeUniverse.stockTotal);
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer"
+                      />
+                      <span className="text-[11px] text-zinc-400 group-hover:text-zinc-300 transition-colors whitespace-nowrap">전체</span>
+                    </label>
+                  </div>
                   <p className="mt-1.5 text-[11px] text-zinc-500 leading-relaxed">
                     {loadingUniverse ? (
                       <span className="text-zinc-600">필터 조건으로 유니버스 조회 중...</span>

@@ -87,7 +87,9 @@ export default function PriceChart({ data }: PriceChartProps) {
     cutoff.setDate(cutoff.getDate() - days);
     const cutoffStr = cutoff.toISOString().slice(0, 10);
     const filtered = data.filter((d) => d.date >= cutoffStr);
-    return filtered.length > 0 ? filtered : data.slice(-30);
+    const result = filtered.length > 0 ? filtered : data.slice(-30);
+    // Sort ascending by date: left=past, right=present
+    return [...result].sort((a, b) => a.date.localeCompare(b.date));
   }, [data, period]);
 
   const priceChange = useMemo(() => {
