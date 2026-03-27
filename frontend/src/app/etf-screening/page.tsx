@@ -502,17 +502,31 @@ export default function ETFScreeningPage() {
                 {/* Max Count */}
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-3">
-                    최대 분석 수
+                    최대 분석 종목수
                   </label>
                   <input
                     type="number"
-                    min={10}
+                    min={0}
                     max={500}
                     step={10}
-                    value={maxCount}
-                    onChange={(e) => setMaxCount(parseInt(e.target.value) || 200)}
+                    value={maxCount === 0 ? '' : maxCount}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setMaxCount(0);
+                      } else {
+                        setMaxCount(parseInt(val) || 0);
+                      }
+                    }}
+                    onBlur={() => {
+                      if (maxCount < 10) setMaxCount(10);
+                    }}
                     className="w-full rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono transition-colors"
                   />
+                  <p className="mt-1.5 text-[11px] text-zinc-500 leading-relaxed">
+                    미국 배당 ETF 약 300~500개 중 앞에서부터 선택.<br/>
+                    조건 필터링 전 분석 대상 수이며, 200종목 ≈ 약 5~10분 소요.
+                  </p>
                 </div>
               </div>
 
