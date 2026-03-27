@@ -565,6 +565,8 @@ export default function ETFScreeningPage() {
                         onChange={(e) => {
                           if (e.target.checked && universeInfo) {
                             setMaxCount(universeInfo.etfTotal);
+                          } else {
+                            setMaxCount(200);
                           }
                         }}
                         className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer"

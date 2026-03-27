@@ -442,6 +442,8 @@ export default function StockScreeningPage() {
                         onChange={(e) => {
                           if (e.target.checked && activeUniverse) {
                             setMaxStocks(activeUniverse.stockTotal);
+                          } else {
+                            setMaxStocks(500);
                           }
                         }}
                         className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer"
