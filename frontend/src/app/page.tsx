@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 /* ────────────────────────────────────────
    Static Data
@@ -203,58 +204,48 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right: Visual - Mini dashboard mockup */}
+            {/* Right: Hero Image */}
             <div className="animate-fade-in stagger-3 hidden lg:block">
-              <div className="glass-card rounded-2xl p-6 animate-warm-glow">
-                {/* Mock header */}
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full bg-emerald-500" />
-                    <span className="text-sm font-medium text-gray-300">배당 포트폴리오 요약</span>
-                  </div>
-                  <span className="text-xs text-gray-500">실시간</span>
+              <div className="relative rounded-2xl overflow-hidden animate-warm-glow shadow-2xl shadow-emerald-500/10">
+                <Image
+                  src="/images/hero-dividend.png"
+                  alt="배당 투자 - HIGH DIVIDEND YIELD 7.1%"
+                  width={640}
+                  height={360}
+                  className="w-full h-auto rounded-2xl"
+                  priority
+                />
+                {/* Overlay gradient for seamless blend with dark theme */}
+                <div className="absolute inset-0 rounded-2xl ring-1 ring-white/10" />
+                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-gray-950/80 to-transparent" />
+                {/* Caption */}
+                <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between">
+                  <span className="text-xs text-gray-300/80">매 분기 계좌에 쌓이는 배당금</span>
+                  <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-semibold text-emerald-400 backdrop-blur-sm">
+                    DIVIDEND INCOME
+                  </span>
                 </div>
+              </div>
+            </div>
+          </div>
 
-                {/* Mock yield display */}
-                <div className="mb-5 text-center">
-                  <div className="text-sm text-gray-400">예상 연간 배당수익률</div>
-                  <div className="mt-1 text-5xl font-bold text-emerald-400">7.1%</div>
-                  <div className="mt-1 text-sm text-emerald-500/80">+2.3% vs 정기예금</div>
-                </div>
-
-                {/* Mock mini bars */}
-                <div className="flex items-end justify-center gap-1.5 h-24 mb-4">
-                  {[40, 55, 45, 60, 50, 70, 65, 80, 75, 90, 85, 95].map((h, i) => (
-                    <div
-                      key={i}
-                      className="chart-bar w-5 rounded-t bg-gradient-to-t from-emerald-600 to-emerald-400 opacity-80"
-                      style={{ height: `${h}%`, animationDelay: `${i * 0.08}s` }}
-                    />
-                  ))}
-                </div>
-                <div className="flex justify-between text-xs text-gray-500 px-1">
-                  <span>1월</span><span>3월</span><span>6월</span><span>9월</span><span>12월</span>
-                </div>
-
-                {/* Mock stocks */}
-                <div className="mt-5 space-y-2">
-                  {[
-                    { ticker: 'JNJ', name: 'Johnson & Johnson', yield: '3.2%', grade: 'A' },
-                    { ticker: 'O', name: 'Realty Income', yield: '5.8%', grade: 'A-' },
-                    { ticker: 'KO', name: 'Coca-Cola', yield: '3.1%', grade: 'A' },
-                  ].map((s) => (
-                    <div key={s.ticker} className="flex items-center justify-between rounded-lg bg-gray-800/50 px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-xs font-bold text-emerald-400">{s.ticker}</span>
-                        <span className="text-sm text-gray-400">{s.name}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-semibold text-emerald-400">{s.yield}</span>
-                        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-bold text-emerald-400">{s.grade}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          {/* Mobile-only hero image */}
+          <div className="mt-10 lg:hidden animate-fade-in stagger-4">
+            <div className="relative rounded-2xl overflow-hidden shadow-xl shadow-emerald-500/10">
+              <Image
+                src="/images/hero-dividend.png"
+                alt="배당 투자 - HIGH DIVIDEND YIELD 7.1%"
+                width={640}
+                height={360}
+                className="w-full h-auto rounded-2xl"
+              />
+              <div className="absolute inset-0 rounded-2xl ring-1 ring-white/10" />
+              <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-950/80 to-transparent" />
+              <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between">
+                <span className="text-xs text-gray-300/80">매 분기 계좌에 쌓이는 배당금</span>
+                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-semibold text-emerald-400 backdrop-blur-sm">
+                  DIVIDEND INCOME
+                </span>
               </div>
             </div>
           </div>
