@@ -16,6 +16,7 @@ import { apiFetch, API_ENDPOINTS } from '@/config/api';
 import { ScreenedETF, ETFScreeningProgress as ETFProgressType } from '@/types';
 import ScreeningProgress from '@/components/ScreeningProgress';
 import ScoreBar from '@/components/ScoreBar';
+import PortfolioRecommendation from '@/components/PortfolioRecommendation';
 
 type SortField = 'totalScore' | 'dividendYield' | 'expenseRatio' | 'aum' | 'price' | 'symbol' | 'name';
 type SortDir = 'asc' | 'desc';
@@ -1002,6 +1003,10 @@ export default function ETFScreeningPage() {
                   </div>
                 </div>
               </div>
+            )}
+            {/* Portfolio Recommendation */}
+            {results.length > 0 && !isScreening && (
+              <PortfolioRecommendation assetType="etf" assets={results} exchangeRate={krwRate} />
             )}
           </>
         )}

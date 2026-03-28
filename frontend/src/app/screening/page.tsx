@@ -7,6 +7,7 @@ import { ScreenedStock, ScreeningProgress as ScreeningProgressType } from '@/typ
 import ScreeningProgress from '@/components/ScreeningProgress';
 import GradeBadge from '@/components/GradeBadge';
 import ScoreBar from '@/components/ScoreBar';
+import PortfolioRecommendation from '@/components/PortfolioRecommendation';
 
 type SortField = 'overallScore' | 'dividendYield' | 'payoutRatio' | 'marketCap' | 'currentPrice' | 'pe' | 'roe' | 'symbol' | 'name';
 type SortDir = 'asc' | 'desc';
@@ -778,6 +779,11 @@ export default function StockScreeningPage() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Portfolio Recommendation */}
+        {results.length > 0 && !isScreening && (
+          <PortfolioRecommendation assetType="stock" assets={results} exchangeRate={krwRate} />
         )}
 
         {/* Empty State */}

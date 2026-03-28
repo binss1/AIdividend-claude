@@ -262,3 +262,85 @@ export interface ExchangeRateData {
   source: string;
   lastUpdated: string;
 }
+
+// ==========================================
+// Portfolio Recommendation
+// ==========================================
+
+export type InvestmentTendency = 'conservative' | 'balanced' | 'growth' | 'aggressive';
+export type SectorConcentration = 'low' | 'medium' | 'high';
+export type DividendFrequencyPref = 'monthly' | 'quarterly' | 'any';
+
+export interface PortfolioRecommendRequest {
+  assetType: 'stock' | 'etf';
+  assets: ScreenedStock[] | ScreenedETF[];
+  preferences: {
+    totalInvestment: number;
+    targetMonthlyDividend: number;
+    monthlyAdditionalInvestment: number;
+    reinvestDividends: boolean;
+    investmentTendency: InvestmentTendency;
+    maxHoldings: number;
+    sectorConcentration: SectorConcentration;
+    dividendFrequency: DividendFrequencyPref;
+    investmentYears: number;
+  };
+  exchangeRate: number;
+}
+
+export interface PortfolioHolding {
+  symbol: string;
+  name: string;
+  weight: number;
+  amount: number;
+  shares: number;
+  currentPrice: number;
+  annualDividend: number;
+  monthlyDividend: number;
+  dividendYield: number;
+  score: number;
+  grade: string;
+  category: string;
+}
+
+export interface PortfolioMetrics {
+  totalInvestment: number;
+  weightedYield: number;
+  expectedAnnualDividend: number;
+  expectedMonthlyDividendPreTax: number;
+  expectedMonthlyDividendPostTax: number;
+  portfolioBeta: number;
+  avgExpenseRatio?: number;
+  avgScore: number;
+  sectorDistribution: Record<string, number>;
+  dividendCalendar: number[];
+}
+
+export interface PortfolioProjection {
+  years: number[];
+  portfolioValues: number[];
+  monthlyDividends: number[];
+  totalDividends: number[];
+}
+
+export interface PortfolioVariant {
+  name: string;
+  description: string;
+  holdings: PortfolioHolding[];
+  metrics: PortfolioMetrics;
+  projection: PortfolioProjection;
+}
+
+export interface Achievability {
+  isAchievable: boolean;
+  currentMonthlyDividend: number;
+  targetMonthlyDividend: number;
+  gap: number;
+  monthsToTarget: number | null;
+  yearsToTarget: number | null;
+}
+
+export interface PortfolioRecommendResponse {
+  portfolios: PortfolioVariant[];
+  achievability: Achievability;
+}

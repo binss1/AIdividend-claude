@@ -13,6 +13,7 @@ import {
 } from '../services/fmpService';
 import { screenDividendETFs, getETFList } from '../services/etfScreeningService';
 import { getExchangeRate } from '../services/exchangeRateService';
+import { recommendPortfolio } from '../services/portfolioRecommendService';
 import { saveScreeningResults, saveETFResults } from '../services/googleSheetsService';
 import logger from '../utils/logger';
 import {
@@ -761,6 +762,20 @@ router.post('/portfolio-simulate', optionalAuth, async (req: Request, res: Respo
   } catch (err) {
     logger.error('Portfolio simulation failed', (err as Error).message);
     res.status(500).json({ error: 'Portfolio simulation failed' });
+  }
+});
+
+// ==========================================
+// Portfolio Recommendation
+// ==========================================
+
+router.post('/portfolio-recommend', optionalAuth, async (req: Request, res: Response) => {
+  try {
+    const result = await recommendPortfolio(req.body);
+    res.json(result);
+  } catch (err) {
+    logger.error('Portfolio recommendation failed', (err as Error).message);
+    res.status(500).json({ error: 'Portfolio recommendation failed' });
   }
 });
 

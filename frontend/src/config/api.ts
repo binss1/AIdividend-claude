@@ -25,6 +25,9 @@ export const API_ENDPOINTS = {
   // Portfolio Simulator
   PORTFOLIO_SIMULATE: '/screening/portfolio-simulate',
 
+  // Portfolio Recommendation
+  PORTFOLIO_RECOMMEND: '/screening/portfolio-recommend',
+
   // Exchange Rate
   EXCHANGE_RATE: '/exchange-rate',
 
