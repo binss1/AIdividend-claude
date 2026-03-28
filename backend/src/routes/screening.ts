@@ -466,6 +466,304 @@ router.get('/stock/:symbol/dividend-history', optionalAuth, async (req: Request,
 });
 
 // ==========================================
+// Dividend Calendar
+// ==========================================
+
+router.get('/dividend-calendar', optionalAuth, async (req: Request, res: Response) => {
+  try {
+    const from = (req.query.from as string) || new Date().toISOString().split('T')[0];
+    const toDate = new Date(from);
+    toDate.setMonth(toDate.getMonth() + 3);
+    const to = (req.query.to as string) || toDate.toISOString().split('T')[0];
+
+    logger.info(`📅 배당 캘린더 조회: ${from} ~ ${to}`);
+
+    const response = await fmpClient.get('/v3/stock_dividend_calendar', {
+      params: { from, to },
+    });
+
+    const allEvents = response.data || [];
+
+    // Filter: US exchanges only, valid data
+    const usExchanges = new Set(['NYSE', 'NASDAQ', 'AMEX']);
+    const usSymbols = allEvents.filter((e: any) =>
+      e.symbol &&
+      !e.symbol.includes('.') &&  // exclude foreign stocks like 0DWV.L, 7279.T
+      e.date &&
+      e.dividend > 0
+    );
+
+    // Get quote data for enrichment (batch by 50)
+    const symbols = [...new Set(usSymbols.map((e: any) => e.symbol))].slice(0, 500);
+    let quoteMap: Record<string, any> = {};
+
+    // Batch fetch quotes in groups of 50
+    for (let i = 0; i < symbols.length; i += 50) {
+      const batch = symbols.slice(i, i + 50);
+      try {
+        const quoteRes = await fmpClient.get('/v3/quote/' + batch.join(','));
+        for (const q of (quoteRes.data || [])) {
+          quoteMap[q.symbol] = q;
+        }
+      } catch { /* skip batch on error */ }
+    }
+
+    const enriched = usSymbols.map((e: any) => {
+      const quote = quoteMap[e.symbol];
+      return {
+        symbol: e.symbol,
+        name: quote?.name || e.symbol,
+        exDividendDate: e.date,
+        recordDate: e.recordDate || null,
+        paymentDate: e.paymentDate || null,
+        declarationDate: e.declarationDate || null,
+        dividend: e.dividend,
+        dividendYield: quote ? (e.dividend * 4 / quote.price * 100) : null,
+        price: quote?.price || null,
+        exchange: quote?.exchange || null,
+      };
+    });
+
+    // Sort by ex-dividend date
+    enriched.sort((a: any, b: any) => a.exDividendDate.localeCompare(b.exDividendDate));
+
+    logger.info(`📅 배당 캘린더: ${enriched.length}건 반환 (${from} ~ ${to})`);
+
+    res.json({
+      from,
+      to,
+      totalEvents: enriched.length,
+      events: enriched,
+    });
+  } catch (err) {
+    logger.error('Failed to get dividend calendar', (err as Error).message);
+    res.status(500).json({ error: 'Failed to get dividend calendar' });
+  }
+});
+
+// ==========================================
+// Portfolio Simulator
+// ==========================================
+
+router.post('/portfolio-simulate', optionalAuth, async (req: Request, res: Response) => {
+  try {
+    const {
+      stocks,           // [{symbol, shares, avgPrice?}]
+      additionalMonthly = 0,
+      years = 10,
+      dividendReinvest = true,
+      dividendGrowthRate = 5, // annual % increase in dividend
+      priceGrowthRate = 7,    // annual % price appreciation
+    } = req.body;
+
+    if (!stocks || !Array.isArray(stocks) || stocks.length === 0) {
+      return res.status(400).json({ error: 'stocks array required' });
+    }
+
+    logger.info(`💰 포트폴리오 시뮬레이션: ${stocks.length}종목, ${years}년, DRIP=${dividendReinvest}`);
+
+    // Fetch current data for all symbols
+    const symbols = stocks.map((s: any) => s.symbol);
+    const quoteRes = await fmpClient.get('/v3/quote/' + symbols.join(','));
+    const quotes: Record<string, any> = {};
+    for (const q of (quoteRes.data || [])) {
+      quotes[q.symbol] = q;
+    }
+
+    // Fetch dividend history for each stock
+    const dividendData: Record<string, { annualDividend: number; frequency: number }> = {};
+    for (const s of stocks) {
+      try {
+        const divRes = await fmpClient.get(`/v3/historical-price-full/stock_dividend/${s.symbol}`);
+        const history = divRes.data?.historical || [];
+
+        // Calculate annual dividend from last 12 months
+        const oneYearAgo = new Date();
+        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+        const recentDivs = history.filter((d: any) => new Date(d.date) >= oneYearAgo);
+        const annualDiv = recentDivs.reduce((sum: number, d: any) => sum + (d.dividend || 0), 0);
+        const freq = recentDivs.length || 4; // default quarterly
+
+        dividendData[s.symbol] = { annualDividend: annualDiv, frequency: freq };
+      } catch {
+        dividendData[s.symbol] = { annualDividend: 0, frequency: 4 };
+      }
+    }
+
+    // Build portfolio holdings
+    const holdings = stocks.map((s: any) => {
+      const quote = quotes[s.symbol];
+      const price = quote?.price || s.avgPrice || 0;
+      const shares = s.shares || 0;
+      const divInfo = dividendData[s.symbol] || { annualDividend: 0, frequency: 4 };
+
+      return {
+        symbol: s.symbol,
+        name: quote?.name || s.symbol,
+        shares,
+        currentPrice: price,
+        avgPrice: s.avgPrice || price,
+        marketValue: shares * price,
+        annualDividend: divInfo.annualDividend,
+        dividendYield: price > 0 ? (divInfo.annualDividend / price * 100) : 0,
+        frequency: divInfo.frequency,
+      };
+    });
+
+    // === SIMULATION ENGINE ===
+    // Month-by-month simulation with compound growth
+    const monthlyDivGrowth = Math.pow(1 + dividendGrowthRate / 100, 1/12);
+    const monthlyPriceGrowth = Math.pow(1 + priceGrowthRate / 100, 1/12);
+    const totalMonths = years * 12;
+
+    // Track portfolio state
+    let totalShares: Record<string, number> = {};
+    let sharePrice: Record<string, number> = {};
+    let annualDiv: Record<string, number> = {};
+
+    for (const h of holdings) {
+      totalShares[h.symbol] = h.shares;
+      sharePrice[h.symbol] = h.currentPrice;
+      annualDiv[h.symbol] = h.annualDividend;
+    }
+
+    const initialInvestment = holdings.reduce((s, h) => s + h.marketValue, 0);
+    let totalDividendsReceived = 0;
+    let totalAdditionalInvested = 0;
+
+    // Yearly snapshots for chart
+    const yearlySnapshots: Array<{
+      year: number;
+      portfolioValue: number;
+      totalDividends: number;
+      totalInvested: number;
+      annualDividendIncome: number;
+      dividendYield: number;
+    }> = [];
+
+    // Year 0 snapshot
+    yearlySnapshots.push({
+      year: 0,
+      portfolioValue: initialInvestment,
+      totalDividends: 0,
+      totalInvested: initialInvestment,
+      annualDividendIncome: holdings.reduce((s, h) => s + h.annualDividend * h.shares, 0),
+      dividendYield: initialInvestment > 0
+        ? (holdings.reduce((s, h) => s + h.annualDividend * h.shares, 0) / initialInvestment * 100)
+        : 0,
+    });
+
+    for (let month = 1; month <= totalMonths; month++) {
+      // 1. Price growth
+      for (const sym of symbols) {
+        sharePrice[sym] *= monthlyPriceGrowth;
+      }
+
+      // 2. Dividend growth (annually, applied in January)
+      if (month % 12 === 1 && month > 1) {
+        for (const sym of symbols) {
+          annualDiv[sym] *= (1 + dividendGrowthRate / 100);
+        }
+      }
+
+      // 3. Pay dividends (monthly simulation of quarterly/monthly payments)
+      let monthlyDividend = 0;
+      for (const sym of symbols) {
+        const freq = dividendData[sym]?.frequency || 4;
+        const divPerPayment = annualDiv[sym] / freq;
+
+        // Simulate payment months based on frequency
+        const isPaymentMonth = freq === 12 || // monthly
+          (freq === 4 && month % 3 === 0) || // quarterly
+          (freq === 2 && month % 6 === 0) || // semi-annual
+          (freq === 1 && month % 12 === 0);  // annual
+
+        if (isPaymentMonth) {
+          const dividend = divPerPayment * totalShares[sym];
+          monthlyDividend += dividend;
+
+          // DRIP: reinvest dividends
+          if (dividendReinvest && sharePrice[sym] > 0) {
+            const newShares = dividend / sharePrice[sym];
+            totalShares[sym] += newShares;
+          }
+        }
+      }
+      totalDividendsReceived += monthlyDividend;
+
+      // 4. Additional monthly investment (distribute proportionally)
+      if (additionalMonthly > 0) {
+        totalAdditionalInvested += additionalMonthly;
+        const totalValue = symbols.reduce((s, sym) => s + totalShares[sym] * sharePrice[sym], 0);
+        for (const sym of symbols) {
+          const weight = totalValue > 0 ? (totalShares[sym] * sharePrice[sym]) / totalValue : 1 / symbols.length;
+          const investAmount = additionalMonthly * weight;
+          if (sharePrice[sym] > 0) {
+            totalShares[sym] += investAmount / sharePrice[sym];
+          }
+        }
+      }
+
+      // 5. Yearly snapshot
+      if (month % 12 === 0) {
+        const yearNum = month / 12;
+        const portfolioValue = symbols.reduce((s, sym) => s + totalShares[sym] * sharePrice[sym], 0);
+        const currentAnnualIncome = symbols.reduce((s, sym) => s + annualDiv[sym] * totalShares[sym], 0);
+        const totalInvested = initialInvestment + totalAdditionalInvested;
+
+        yearlySnapshots.push({
+          year: yearNum,
+          portfolioValue,
+          totalDividends: totalDividendsReceived,
+          totalInvested,
+          annualDividendIncome: currentAnnualIncome,
+          dividendYield: portfolioValue > 0 ? (currentAnnualIncome / portfolioValue * 100) : 0,
+        });
+      }
+    }
+
+    const finalValue = symbols.reduce((s, sym) => s + totalShares[sym] * sharePrice[sym], 0);
+    const totalInvested = initialInvestment + totalAdditionalInvested;
+    const finalAnnualIncome = symbols.reduce((s, sym) => s + annualDiv[sym] * totalShares[sym], 0);
+
+    const result = {
+      // Input summary
+      initialInvestment,
+      additionalMonthly,
+      years,
+      dividendReinvest,
+      dividendGrowthRate,
+      priceGrowthRate,
+
+      // Holdings detail
+      holdings,
+
+      // Final results
+      finalPortfolioValue: finalValue,
+      totalInvested,
+      totalDividendsReceived,
+      totalReturn: finalValue - totalInvested + (dividendReinvest ? 0 : totalDividendsReceived),
+      totalReturnPercent: totalInvested > 0
+        ? ((finalValue - totalInvested + (dividendReinvest ? 0 : totalDividendsReceived)) / totalInvested * 100)
+        : 0,
+      finalAnnualDividendIncome: finalAnnualIncome,
+      finalMonthlyDividendIncome: finalAnnualIncome / 12,
+      yieldOnCost: totalInvested > 0 ? (finalAnnualIncome / totalInvested * 100) : 0,
+
+      // Chart data
+      yearlySnapshots,
+    };
+
+    logger.info(`💰 시뮬레이션 완료: 초기 $${initialInvestment.toFixed(0)} → 최종 $${finalValue.toFixed(0)} (${years}년)`);
+
+    res.json(result);
+  } catch (err) {
+    logger.error('Portfolio simulation failed', (err as Error).message);
+    res.status(500).json({ error: 'Portfolio simulation failed' });
+  }
+});
+
+// ==========================================
 // Helpers
 // ==========================================
 

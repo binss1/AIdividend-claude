@@ -19,6 +19,12 @@ export const API_ENDPOINTS = {
   // Universe Info (stock/etf counts + exchange rate)
   UNIVERSE_INFO: '/screening/universe-info',
 
+  // Dividend Calendar
+  DIVIDEND_CALENDAR: '/screening/dividend-calendar',
+
+  // Portfolio Simulator
+  PORTFOLIO_SIMULATE: '/screening/portfolio-simulate',
+
   // Exchange Rate
   EXCHANGE_RATE: '/exchange-rate',
 
