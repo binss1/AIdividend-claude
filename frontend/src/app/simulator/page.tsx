@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { apiFetch, API_ENDPOINTS } from '@/config/api';
 
 interface Holding {
@@ -49,9 +49,18 @@ function genId() {
 }
 
 function formatUSD(v: number): string {
-  if (v >= 1e6) return `$${(v / 1e6).toFixed(2)}M`;
-  if (v >= 1e3) return `$${(v / 1e3).toFixed(1)}K`;
-  return `$${v.toFixed(2)}`;
+  return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function formatKRW(v: number, rate: number): string {
+  const krw = v * rate;
+  if (krw >= 1e8) return `${(krw / 1e8).toFixed(1)}억원`;
+  if (krw >= 1e4) return `${(krw / 1e4).toFixed(0)}만원`;
+  return `${krw.toFixed(0)}원`;
+}
+
+function formatDual(v: number, rate: number): string {
+  return `${formatUSD(v)} (${formatKRW(v, rate)})`;
 }
 
 export default function SimulatorPage() {
@@ -66,6 +75,13 @@ export default function SimulatorPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SimResult | null>(null);
   const [error, setError] = useState('');
+  const [exchangeRate, setExchangeRate] = useState(1500);
+
+  useEffect(() => {
+    apiFetch<{ rate: number }>(API_ENDPOINTS.EXCHANGE_RATE)
+      .then(data => { if (data.rate) setExchangeRate(data.rate); })
+      .catch(() => {});
+  }, []);
 
   const addHolding = () => {
     setHoldings([...holdings, { id: genId(), symbol: '', shares: 0, avgPrice: 0 }]);
@@ -304,25 +320,29 @@ export default function SimulatorPage() {
                   <SummaryCard
                     label="최종 포트폴리오"
                     value={formatUSD(result.finalPortfolioValue)}
-                    sub={`${result.totalReturnPercent >= 0 ? '+' : ''}${result.totalReturnPercent.toFixed(1)}% 수익`}
+                    sub={formatKRW(result.finalPortfolioValue, exchangeRate)}
+                    sub2={`${result.totalReturnPercent >= 0 ? '+' : ''}${result.totalReturnPercent.toFixed(1)}% 수익`}
                     color={result.totalReturnPercent >= 0 ? 'emerald' : 'red'}
                   />
                   <SummaryCard
                     label="총 투자금"
                     value={formatUSD(result.totalInvested)}
-                    sub={`초기 ${formatUSD(result.initialInvestment)}`}
+                    sub={formatKRW(result.totalInvested, exchangeRate)}
+                    sub2={`초기 ${formatUSD(result.initialInvestment)}`}
                     color="zinc"
                   />
                   <SummaryCard
                     label="연간 배당 수입"
                     value={formatUSD(result.finalAnnualDividendIncome)}
-                    sub={`월 ${formatUSD(result.finalMonthlyDividendIncome)}`}
+                    sub={formatKRW(result.finalAnnualDividendIncome, exchangeRate)}
+                    sub2={`월 ${formatUSD(result.finalMonthlyDividendIncome)} (${formatKRW(result.finalMonthlyDividendIncome, exchangeRate)})`}
                     color="emerald"
                   />
                   <SummaryCard
                     label="총 수령 배당금"
                     value={formatUSD(result.totalDividendsReceived)}
-                    sub={`YOC ${result.yieldOnCost.toFixed(1)}%`}
+                    sub={formatKRW(result.totalDividendsReceived, exchangeRate)}
+                    sub2={`YOC ${result.yieldOnCost.toFixed(1)}%`}
                     color="teal"
                   />
                 </div>
@@ -353,7 +373,10 @@ export default function SimulatorPage() {
                             </td>
                             <td className="px-3 py-2 text-right text-zinc-300">{h.shares.toLocaleString()}</td>
                             <td className="px-3 py-2 text-right text-zinc-300">${h.currentPrice.toFixed(2)}</td>
-                            <td className="px-3 py-2 text-right text-white">{formatUSD(h.marketValue)}</td>
+                            <td className="px-3 py-2 text-right">
+                              <div className="text-white">{formatUSD(h.marketValue)}</div>
+                              <div className="text-[10px] text-zinc-500">{formatKRW(h.marketValue, exchangeRate)}</div>
+                            </td>
                             <td className="px-3 py-2 text-right text-zinc-300">${h.annualDividend.toFixed(2)}</td>
                             <td className="px-3 py-2 text-right text-emerald-400">{h.dividendYield.toFixed(2)}%</td>
                           </tr>
@@ -384,13 +407,16 @@ export default function SimulatorPage() {
                               className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500/70 to-teal-500/70 rounded-lg"
                               style={{ width: `${pctWidth}%` }}
                             />
-                            <div className="relative z-10 flex items-center h-full px-2">
+                            <div className="relative z-10 flex items-center h-full px-2 gap-2">
                               <span className="text-xs font-medium text-white drop-shadow-sm">
                                 {formatUSD(snap.portfolioValue)}
                               </span>
+                              <span className="text-[10px] text-zinc-400 drop-shadow-sm">
+                                {formatKRW(snap.portfolioValue, exchangeRate)}
+                              </span>
                             </div>
                           </div>
-                          <span className="text-[10px] text-zinc-500 w-16 text-right shrink-0">
+                          <span className="text-[10px] text-zinc-500 w-24 text-right shrink-0">
                             배당 {formatUSD(snap.annualDividendIncome)}/년
                           </span>
                         </div>
@@ -434,10 +460,22 @@ export default function SimulatorPage() {
                           return (
                             <tr key={snap.year} className="hover:bg-zinc-800/30">
                               <td className="px-4 py-2 text-center text-zinc-400">{snap.year}</td>
-                              <td className="px-3 py-2 text-right font-medium text-white">{formatUSD(snap.portfolioValue)}</td>
-                              <td className="px-3 py-2 text-right text-zinc-400">{formatUSD(snap.totalInvested)}</td>
-                              <td className="px-3 py-2 text-right text-teal-400">{formatUSD(snap.totalDividends)}</td>
-                              <td className="px-3 py-2 text-right text-emerald-400">{formatUSD(snap.annualDividendIncome)}</td>
+                              <td className="px-3 py-2 text-right">
+                                <div className="font-medium text-white">{formatUSD(snap.portfolioValue)}</div>
+                                <div className="text-[10px] text-zinc-500">{formatKRW(snap.portfolioValue, exchangeRate)}</div>
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <div className="text-zinc-400">{formatUSD(snap.totalInvested)}</div>
+                                <div className="text-[10px] text-zinc-500">{formatKRW(snap.totalInvested, exchangeRate)}</div>
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <div className="text-teal-400">{formatUSD(snap.totalDividends)}</div>
+                                <div className="text-[10px] text-zinc-500">{formatKRW(snap.totalDividends, exchangeRate)}</div>
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <div className="text-emerald-400">{formatUSD(snap.annualDividendIncome)}</div>
+                                <div className="text-[10px] text-zinc-500">{formatKRW(snap.annualDividendIncome, exchangeRate)}</div>
+                              </td>
                               <td className={`px-3 py-2 text-right font-medium ${returnPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {returnPct >= 0 ? '+' : ''}{returnPct.toFixed(1)}%
                               </td>
@@ -457,7 +495,7 @@ export default function SimulatorPage() {
   );
 }
 
-function SummaryCard({ label, value, sub, color }: { label: string; value: string; sub: string; color: string }) {
+function SummaryCard({ label, value, sub, sub2, color }: { label: string; value: string; sub: string; sub2?: string; color: string }) {
   const colors: Record<string, string> = {
     emerald: 'border-emerald-500/20 bg-emerald-500/5',
     teal: 'border-teal-500/20 bg-teal-500/5',
@@ -475,7 +513,8 @@ function SummaryCard({ label, value, sub, color }: { label: string; value: strin
     <div className={`rounded-xl border p-3 ${colors[color] || colors.zinc}`}>
       <div className="text-[10px] text-zinc-500 uppercase tracking-wider">{label}</div>
       <div className={`text-lg font-bold mt-1 ${textColors[color] || 'text-white'}`}>{value}</div>
-      <div className="text-xs text-zinc-500 mt-0.5">{sub}</div>
+      <div className="text-xs text-zinc-400 mt-0.5">{sub}</div>
+      {sub2 && <div className="text-[10px] text-zinc-500 mt-0.5">{sub2}</div>}
     </div>
   );
 }
