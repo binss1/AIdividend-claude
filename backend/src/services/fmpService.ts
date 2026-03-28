@@ -61,7 +61,7 @@ function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const fmpClient: AxiosInstance = axios.create({
+export const fmpClient: AxiosInstance = axios.create({
   baseURL: env.FMP_BASE_URL,
   timeout: 15000,
   params: { apikey: env.FMP_API_KEY },

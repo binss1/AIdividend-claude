@@ -9,6 +9,7 @@ import {
   getSP500Constituents,
   getNasdaqConstituents,
   getAllUSDividendStocks,
+  fmpClient,
 } from '../services/fmpService';
 import { screenDividendETFs, getETFList } from '../services/etfScreeningService';
 import { getExchangeRate } from '../services/exchangeRateService';
