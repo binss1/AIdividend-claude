@@ -116,14 +116,14 @@ export default function StockScreeningPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Load cached results on mount
+  // Load cached results on mount + check if screening is already running on backend
   useEffect(() => {
+    // Load cache
     try {
       const cached = localStorage.getItem(CACHE_KEY);
       const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
       if (cached && cachedTime) {
         const age = Date.now() - parseInt(cachedTime);
-        // Cache valid for 1 hour
         if (age < 3600000) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -131,9 +131,39 @@ export default function StockScreeningPage() {
           }
         }
       }
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
+
+    // Check backend screening status (handles page re-entry during screening)
+    apiFetch<ScreeningProgressType>(API_ENDPOINTS.STOCKS_PROGRESS)
+      .then(data => {
+        if (data.status === 'running') {
+          setIsScreening(true);
+          setProgress(data);
+          // Start polling
+          const interval = setInterval(async () => {
+            try {
+              const d = await apiFetch<ScreeningProgressType>(API_ENDPOINTS.STOCKS_PROGRESS);
+              setProgress(d);
+              if (d.status === 'completed') {
+                clearInterval(interval);
+                setIsScreening(false);
+                if (d.results && d.results.length > 0) {
+                  setResults(d.results);
+                  localStorage.setItem(CACHE_KEY, JSON.stringify(d.results));
+                  localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+                }
+              } else if (d.status === 'error') {
+                clearInterval(interval);
+                setIsScreening(false);
+                setError(d.error || 'Screening failed');
+              }
+            } catch { clearInterval(interval); setIsScreening(false); }
+          }, 2000);
+          pollingRef.current = interval;
+        }
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stopPolling = useCallback(() => {

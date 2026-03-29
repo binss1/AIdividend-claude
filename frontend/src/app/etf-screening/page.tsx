@@ -134,7 +134,7 @@ export default function ETFScreeningPage() {
   // Q-LEAD breakdown expand
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
-  // Load cached results
+  // Load cached results + check if screening is already running on backend
   useEffect(() => {
     try {
       const cached = localStorage.getItem(CACHE_KEY);
@@ -148,9 +148,38 @@ export default function ETFScreeningPage() {
           }
         }
       }
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
+
+    // Check backend screening status (handles page re-entry during screening)
+    apiFetch<ETFProgressType>(API_ENDPOINTS.ETFS_PROGRESS)
+      .then(data => {
+        if (data.status === 'running') {
+          setIsScreening(true);
+          setProgress(data);
+          const interval = setInterval(async () => {
+            try {
+              const d = await apiFetch<ETFProgressType>(API_ENDPOINTS.ETFS_PROGRESS);
+              setProgress(d);
+              if (d.status === 'completed') {
+                clearInterval(interval);
+                setIsScreening(false);
+                if (d.results && d.results.length > 0) {
+                  setResults(d.results);
+                  localStorage.setItem(CACHE_KEY, JSON.stringify(d.results));
+                  localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+                }
+              } else if (d.status === 'error') {
+                clearInterval(interval);
+                setIsScreening(false);
+                setError(d.error || 'ETF screening failed');
+              }
+            } catch { clearInterval(interval); setIsScreening(false); }
+          }, 2000);
+          pollingRef.current = interval;
+        }
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stopPolling = useCallback(() => {
