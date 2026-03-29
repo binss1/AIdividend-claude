@@ -93,6 +93,35 @@ function fmtDual(v: number, rate: number): string {
   return `${fmtUSD(v)} (${fmtKRW(v, rate)})`;
 }
 
+function fmtKRWHangul(v: number): string {
+  if (v <= 0) return '0원';
+  const eok = Math.floor(v / 1e8);
+  const cheon = Math.floor((v % 1e8) / 1e7);
+  const baek = Math.floor((v % 1e7) / 1e6);
+  const sib = Math.floor((v % 1e6) / 1e5);
+  const man = Math.floor((v % 1e5) / 1e4);
+  let result = '';
+  if (eok > 0) result += `${eok}억`;
+  if (cheon > 0) result += `${cheon}천`;
+  if (baek > 0) result += `${baek}백`;
+  if ((cheon > 0 || baek > 0 || sib > 0 || man > 0) && eok > 0 && cheon === 0 && baek === 0) {
+    // 억 다음에 바로 십만/만 단위
+  }
+  if (sib > 0 || man > 0) {
+    const manVal = sib * 10 + man;
+    if (result && !result.endsWith('천') && !result.endsWith('백')) result += '';
+    result += `${manVal}만`;
+  }
+  if (!result) {
+    const remainder = Math.round(v);
+    return `${remainder.toLocaleString()}원`;
+  }
+  const below = v % 1e4;
+  if (below > 0) result += `${Math.round(below).toLocaleString()}`;
+  result += '원';
+  return result;
+}
+
 const CATEGORY_LABELS: Record<string, string> = {
   'bond-income': '채권',
   'covered-call': '커버드콜',
@@ -204,17 +233,17 @@ export default function PortfolioRecommendation({ assetType, assets, exchangeRat
           <div className="space-y-4">
             {/* Row 1: Investment amounts (KRW 기준 입력) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <FormField label="총 투자금액 (원)" sub={`${fmtUSD(totalInvestmentUSD)}`}>
+              <FormField label="총 투자금액 (원)" sub={`${fmtKRWHangul(totalInvestmentKRW)} / ${fmtUSD(totalInvestmentUSD)}`}>
                 <input type="number" value={totalInvestmentKRW} step={100000}
                   onChange={e => setTotalInvestmentKRW(Number(e.target.value))}
                   className="w-full bg-zinc-800/60 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
               </FormField>
-              <FormField label="희망 월 배당금 세후 (원)" sub={`${fmtUSD(targetMonthlyDivUSD)}`}>
+              <FormField label="희망 월 배당금 세후 (원)" sub={`${fmtKRWHangul(targetMonthlyDivKRW)} / ${fmtUSD(targetMonthlyDivUSD)}`}>
                 <input type="number" value={targetMonthlyDivKRW} step={10000}
                   onChange={e => setTargetMonthlyDivKRW(Number(e.target.value))}
                   className="w-full bg-zinc-800/60 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
               </FormField>
-              <FormField label="월 추가 투자금 (원)" sub={`${fmtUSD(monthlyAdditionalUSD)}`}>
+              <FormField label="월 추가 투자금 (원)" sub={`${fmtKRWHangul(monthlyAdditionalKRW)} / ${fmtUSD(monthlyAdditionalUSD)}`}>
                 <input type="number" value={monthlyAdditionalKRW} step={100000}
                   onChange={e => setMonthlyAdditionalKRW(Number(e.target.value))}
                   className="w-full bg-zinc-800/60 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
