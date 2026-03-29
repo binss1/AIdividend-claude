@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import Link from 'next/link';
 
 // ==========================================
@@ -350,8 +350,8 @@ export default function PricingPage() {
                 </thead>
                 <tbody>
                   {COMPARE_FEATURES.map((cat) => (
-                    <>
-                      <tr key={cat.category} className="bg-zinc-800/20">
+                    <Fragment key={cat.category}>
+                      <tr className="bg-zinc-800/20">
                         <td colSpan={6} className="px-4 py-2 text-xs font-bold text-zinc-400 uppercase tracking-wider">{cat.category}</td>
                       </tr>
                       {cat.features.map((f, i) => (
@@ -364,7 +364,7 @@ export default function PricingPage() {
                           <td className="px-3 py-2.5 text-center text-xs">{renderCell(f.enterprise)}</td>
                         </tr>
                       ))}
-                    </>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
