@@ -493,9 +493,9 @@ function PortfolioDisplay({ portfolio, exchangeRate, assetType }: {
                     <div className="text-[10px] text-zinc-500">{fmtKRW(h.amount, exchangeRate)}</div>
                   </td>
                   <td className="px-3 py-2 text-right text-zinc-300">{h.shares}</td>
-                  <td className="px-3 py-2 text-right text-emerald-400">{h.dividendYield.toFixed(2)}%</td>
+                  <td className="px-3 py-2 text-right text-red-400">{h.dividendYield.toFixed(2)}%</td>
                   <td className="px-3 py-2 text-center">
-                    <span className={`text-xs ${h.dividendCycle === 'monthly' ? 'text-emerald-400 font-semibold' : 'text-zinc-400'}`}>
+                    <span className={`text-xs ${h.dividendCycle === 'monthly' ? 'text-emerald-400 font-semibold' : h.dividendCycle === 'quarterly' ? 'text-blue-400' : 'text-zinc-400'}`}>
                       {h.dividendCycle === 'monthly' ? '월배당' : h.dividendCycle === 'quarterly' ? '분기' : h.dividendCycle === 'semi-annual' ? '반기' : h.dividendCycle === 'annual' ? '연간' : '-'}
                     </span>
                   </td>
