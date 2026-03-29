@@ -32,6 +32,11 @@ export const API_ENDPOINTS = {
   SCREENING_HISTORY: '/screening/history',
   SCREENING_HISTORY_DETAIL: (id: number) => `/screening/history/${id}`,
 
+  // Market Insights
+  SECTOR_PERFORMANCE: '/screening/sector-performance',
+  ECONOMIC_CALENDAR: '/screening/economic-calendar',
+  STOCK_NEWS: '/screening/stock-news',
+
   // Exchange Rate
   EXCHANGE_RATE: '/exchange-rate',
 

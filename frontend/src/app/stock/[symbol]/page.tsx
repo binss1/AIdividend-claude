@@ -53,6 +53,19 @@ interface StockDetailData {
   };
   isREIT: boolean;
   lastUpdated: string;
+  // Valuation data (1단계)
+  dcf?: { dcf: number; stockPrice: number; date: string } | null;
+  rating?: {
+    rating: string; ratingScore: number; ratingRecommendation: string;
+    ratingDetailsDCFScore: number; ratingDetailsROEScore: number;
+    ratingDetailsDEScore: number; ratingDetailsPEScore: number; ratingDetailsPBScore: number;
+  } | null;
+  priceTarget?: {
+    lastMonth: number; lastMonthAvgPriceTarget: number;
+    lastQuarter: number; lastQuarterAvgPriceTarget: number;
+    lastYear: number; lastYearAvgPriceTarget: number;
+  } | null;
+  peers?: string[];
 }
 
 interface PriceDataPoint {
@@ -409,6 +422,143 @@ export default function StockDetailPage() {
             ))}
           </div>
         </section>
+
+        {/* ============================================================ */}
+        {/* VALUATION & ANALYST (1단계)                                  */}
+        {/* ============================================================ */}
+        {(stock.dcf || stock.rating || stock.priceTarget) && (
+          <section className="bg-gray-900/60 border border-gray-800/60 rounded-2xl p-6 backdrop-blur-sm">
+            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              밸류에이션 & 애널리스트
+            </h2>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* DCF 적정가 분석 */}
+              {stock.dcf && (
+                <div className="bg-gray-800/50 border border-gray-700/40 rounded-xl p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-zinc-300">DCF 적정가 분석</h3>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] text-zinc-500">적정가 (DCF)</p>
+                      <p className="text-xl font-bold text-white">${stock.dcf.dcf?.toFixed(2)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-zinc-500">현재가</p>
+                      <p className="text-xl font-bold text-zinc-300">${stock.currentPrice?.toFixed(2)}</p>
+                    </div>
+                    <div className="text-right">
+                      {(() => {
+                        const gap = stock.dcf.dcf && stock.currentPrice
+                          ? ((stock.dcf.dcf - stock.currentPrice) / stock.currentPrice * 100)
+                          : 0;
+                        const isUnder = gap > 0;
+                        return (
+                          <div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${isUnder ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                              {isUnder ? '저평가' : '고평가'}
+                            </span>
+                            <p className={`text-sm font-mono mt-1 ${isUnder ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {gap > 0 ? '+' : ''}{gap.toFixed(1)}%
+                            </p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 투자 등급 */}
+              {stock.rating && (
+                <div className="bg-gray-800/50 border border-gray-700/40 rounded-xl p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-zinc-300">FMP 투자 등급</h3>
+                  <div className="flex items-center gap-4">
+                    <div className="text-center">
+                      <p className={`text-2xl font-bold ${
+                        stock.rating.ratingRecommendation === 'Strong Buy' ? 'text-emerald-400' :
+                        stock.rating.ratingRecommendation === 'Buy' ? 'text-green-400' :
+                        stock.rating.ratingRecommendation === 'Neutral' ? 'text-yellow-400' :
+                        'text-red-400'
+                      }`}>{stock.rating.rating}</p>
+                      <p className="text-[10px] text-zinc-500">{stock.rating.ratingRecommendation}</p>
+                    </div>
+                    <div className="flex-1 space-y-1.5">
+                      {[
+                        { label: 'DCF', score: stock.rating.ratingDetailsDCFScore },
+                        { label: 'ROE', score: stock.rating.ratingDetailsROEScore },
+                        { label: 'D/E', score: stock.rating.ratingDetailsDEScore },
+                        { label: 'P/E', score: stock.rating.ratingDetailsPEScore },
+                        { label: 'P/B', score: stock.rating.ratingDetailsPBScore },
+                      ].map(r => (
+                        <div key={r.label} className="flex items-center gap-2">
+                          <span className="text-[10px] text-zinc-500 w-7">{r.label}</span>
+                          <div className="flex-1 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full transition-all ${
+                              r.score >= 4 ? 'bg-emerald-500' : r.score >= 3 ? 'bg-yellow-500' : 'bg-red-500'
+                            }`} style={{ width: `${(r.score / 5) * 100}%` }} />
+                          </div>
+                          <span className="text-[10px] text-zinc-400 w-4 text-right">{r.score}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 애널리스트 목표가 */}
+              {stock.priceTarget && (
+                <div className="bg-gray-800/50 border border-gray-700/40 rounded-xl p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-zinc-300">애널리스트 목표가</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-zinc-500">최근 1개월 평균</span>
+                      <span className="text-white font-mono">${stock.priceTarget.lastMonthAvgPriceTarget?.toFixed(2)} ({stock.priceTarget.lastMonth}명)</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-zinc-500">최근 분기 평균</span>
+                      <span className="text-white font-mono">${stock.priceTarget.lastQuarterAvgPriceTarget?.toFixed(2)} ({stock.priceTarget.lastQuarter}명)</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-zinc-500">최근 1년 평균</span>
+                      <span className="text-white font-mono">${stock.priceTarget.lastYearAvgPriceTarget?.toFixed(2)} ({stock.priceTarget.lastYear}명)</span>
+                    </div>
+                    {stock.priceTarget.lastQuarterAvgPriceTarget && stock.currentPrice && (
+                      <div className="mt-2 pt-2 border-t border-zinc-700/40">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-zinc-400">상승여력</span>
+                          {(() => {
+                            const upside = ((stock.priceTarget.lastQuarterAvgPriceTarget - stock.currentPrice) / stock.currentPrice * 100);
+                            return (
+                              <span className={`font-mono font-bold ${upside > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {upside > 0 ? '+' : ''}{upside.toFixed(1)}%
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 유사 종목 */}
+              {stock.peers && stock.peers.length > 0 && (
+                <div className="bg-gray-800/50 border border-gray-700/40 rounded-xl p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-zinc-300">유사 종목</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {stock.peers.slice(0, 10).map((peer: string) => (
+                      <a key={peer} href={`/stock/${peer}`}
+                        className="px-3 py-1.5 rounded-lg bg-zinc-700/50 text-xs text-zinc-300 hover:bg-emerald-500/20 hover:text-emerald-400 transition-colors font-mono">
+                        {peer}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* ============================================================ */}
         {/* SCORE BREAKDOWN                                              */}

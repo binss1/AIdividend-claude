@@ -10,6 +10,13 @@ import {
   getNasdaqConstituents,
   getAllUSDividendStocks,
   fmpClient,
+  getDCF,
+  getRating,
+  getPriceTarget,
+  getStockPeers,
+  getSectorPerformance,
+  getEconomicCalendar,
+  getStockNews,
 } from '../services/fmpService';
 import { screenDividendETFs, getETFList } from '../services/etfScreeningService';
 import { getExchangeRate } from '../services/exchangeRateService';
@@ -367,6 +374,51 @@ router.get('/etf/:symbol/holdings', optionalAuth, async (req: Request, res: Resp
 });
 
 // ==========================================
+// Market Insight Endpoints (2단계)
+// ==========================================
+
+router.get('/sector-performance', async (_req: Request, res: Response) => {
+  try {
+    const data = await getSectorPerformance();
+    res.json({ sectors: data });
+  } catch (err) {
+    logger.error('Failed to get sector performance', (err as Error).message);
+    res.status(500).json({ error: 'Failed to get sector performance' });
+  }
+});
+
+router.get('/economic-calendar', async (req: Request, res: Response) => {
+  try {
+    const now = new Date();
+    const from = req.query.from as string || now.toISOString().split('T')[0];
+    const toDate = new Date(now);
+    toDate.setDate(toDate.getDate() + 7);
+    const to = req.query.to as string || toDate.toISOString().split('T')[0];
+    const data = await getEconomicCalendar(from, to);
+    // Filter US events only and limit
+    const usEvents = data
+      .filter(e => e.country === 'US')
+      .slice(0, 30);
+    res.json({ events: usEvents, from, to });
+  } catch (err) {
+    logger.error('Failed to get economic calendar', (err as Error).message);
+    res.status(500).json({ error: 'Failed to get economic calendar' });
+  }
+});
+
+router.get('/stock-news', async (req: Request, res: Response) => {
+  try {
+    const tickers = req.query.tickers as string || 'AAPL,MSFT';
+    const limit = parseInt(req.query.limit as string) || 10;
+    const data = await getStockNews(tickers, limit);
+    res.json({ news: data });
+  } catch (err) {
+    logger.error('Failed to get stock news', (err as Error).message);
+    res.status(500).json({ error: 'Failed to get stock news' });
+  }
+});
+
+// ==========================================
 // Market Overview Endpoint (must be before /stock/:symbol)
 // ==========================================
 
@@ -432,7 +484,21 @@ router.get('/stock/:symbol', optionalAuth, async (req: Request, res: Response) =
       return;
     }
 
-    res.json(detail);
+    // Fetch valuation data in parallel (non-blocking, optional)
+    const [dcf, rating, priceTarget, peers] = await Promise.allSettled([
+      getDCF(symbol.toUpperCase()),
+      getRating(symbol.toUpperCase()),
+      getPriceTarget(symbol.toUpperCase()),
+      getStockPeers(symbol.toUpperCase()),
+    ]);
+
+    res.json({
+      ...detail,
+      dcf: dcf.status === 'fulfilled' ? dcf.value : null,
+      rating: rating.status === 'fulfilled' ? rating.value : null,
+      priceTarget: priceTarget.status === 'fulfilled' ? priceTarget.value : null,
+      peers: peers.status === 'fulfilled' ? peers.value : [],
+    });
   } catch (err) {
     logger.error(`Failed to get stock detail for ${req.params.symbol}`, (err as Error).message);
     res.status(500).json({ error: 'Failed to get stock detail' });

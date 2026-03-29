@@ -73,8 +73,11 @@ export default function DashboardPage() {
   const [stockCache, setStockCache] = useState<CachedScreening | null>(null);
   const [etfCache, setETFCache] = useState<CachedETFScreening | null>(null);
   const [marketIndices, setMarketIndices] = useState<MarketIndex[]>([]);
+  const [sectorPerf, setSectorPerf] = useState<Array<{ sector: string; changesPercentage: string }>>([]);
+  const [econEvents, setEconEvents] = useState<Array<{ event: string; date: string; actual: number | null; previous: number | null; estimate: number | null; impact: string }>>([]);
+  const [stockNews, setStockNews] = useState<Array<{ symbol: string; publishedDate: string; title: string; site: string; url: string }>>([]);
 
-  // Fetch exchange rate + market overview
+  // Fetch exchange rate + market overview + market insights
   useEffect(() => {
     const base = getApiBaseUrl();
     fetch(`${base}/exchange-rate`)
@@ -91,6 +94,28 @@ export default function DashboardPage() {
       .then((data) => {
         if (data && Array.isArray(data)) setMarketIndices(data);
       })
+      .catch(() => {});
+
+    // Sector performance
+    fetch(`${base}/screening/sector-performance`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data?.sectors) setSectorPerf(data.sectors); })
+      .catch(() => {});
+
+    // Economic calendar
+    fetch(`${base}/screening/economic-calendar`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data?.events) setEconEvents(data.events.slice(0, 10)); })
+      .catch(() => {});
+
+    // Stock news (top stocks from cached results)
+    const cached = typeof window !== 'undefined' ? localStorage.getItem('stock_screening_results') : null;
+    const tickers = cached ? (() => {
+      try { return JSON.parse(cached).slice(0, 3).map((s: { symbol: string }) => s.symbol).join(','); } catch { return 'AAPL,MSFT,JNJ'; }
+    })() : 'AAPL,MSFT,JNJ';
+    fetch(`${base}/screening/stock-news?tickers=${tickers}&limit=5`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data?.news) setStockNews(data.news); })
       .catch(() => {});
   }, []);
 
@@ -422,6 +447,91 @@ export default function DashboardPage() {
             })()}
           </div>
         </section>
+
+        {/* ============================================================ */}
+        {/* SECTOR PERFORMANCE                                           */}
+        {/* ============================================================ */}
+        {sectorPerf.length > 0 && (
+          <section className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 backdrop-blur-xl p-5 shadow-xl shadow-black/10">
+            <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5" />
+              </svg>
+              섹터별 퍼포먼스
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+              {sectorPerf.map((s) => {
+                const pct = parseFloat(s.changesPercentage);
+                const isUp = pct >= 0;
+                return (
+                  <div key={s.sector} className="rounded-lg bg-zinc-800/50 border border-zinc-700/30 p-3 hover:border-zinc-600/50 transition-colors">
+                    <p className="text-xs text-zinc-400 truncate">{s.sector}</p>
+                    <p className={`text-sm font-bold font-mono mt-1 ${isUp ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {isUp ? '+' : ''}{pct.toFixed(2)}%
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* ============================================================ */}
+        {/* ECONOMIC CALENDAR + NEWS                                     */}
+        {/* ============================================================ */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Economic Calendar */}
+          {econEvents.length > 0 && (
+            <section className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 backdrop-blur-xl p-5 shadow-xl shadow-black/10">
+              <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
+                경제 캘린더 (미국)
+              </h2>
+              <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+                {econEvents.map((e, i) => (
+                  <div key={i} className="flex items-center gap-3 rounded-lg bg-zinc-800/30 px-3 py-2 text-xs">
+                    <span className="text-zinc-500 w-20 shrink-0">{e.date?.split(' ')[0]}</span>
+                    <span className="text-zinc-300 flex-1 truncate">{e.event}</span>
+                    <span className="text-zinc-400 w-14 text-right shrink-0">
+                      {e.estimate != null ? e.estimate : '-'}
+                    </span>
+                    <span className="text-zinc-500 w-14 text-right shrink-0">
+                      {e.previous != null ? `(${e.previous})` : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-zinc-600 mt-2">예상 | (이전)</p>
+            </section>
+          )}
+
+          {/* Stock News */}
+          {stockNews.length > 0 && (
+            <section className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 backdrop-blur-xl p-5 shadow-xl shadow-black/10">
+              <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />
+                </svg>
+                관련 뉴스
+              </h2>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {stockNews.map((n, i) => (
+                  <a key={i} href={n.url} target="_blank" rel="noopener noreferrer"
+                    className="block rounded-lg bg-zinc-800/30 px-3 py-2.5 hover:bg-zinc-800/50 transition-colors">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-[9px] text-emerald-400 font-bold">{n.symbol}</span>
+                      <span className="text-[10px] text-zinc-500">{n.site}</span>
+                      <span className="text-[10px] text-zinc-600 ml-auto">{n.publishedDate?.split(' ')[0]}</span>
+                    </div>
+                    <p className="text-xs text-zinc-300 line-clamp-2">{n.title}</p>
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
       </div>
     </div>
   );

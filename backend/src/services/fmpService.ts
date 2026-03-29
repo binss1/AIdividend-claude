@@ -322,6 +322,137 @@ export async function getHistoricalPrices(
 }
 
 // ==========================================
+// Valuation & Analysis APIs (1단계)
+// ==========================================
+
+export async function getDCF(symbol: string): Promise<{ dcf: number; stockPrice: number; date: string } | null> {
+  try {
+    const { data } = await fmpClient.get(`/v3/discounted-cash-flow/${symbol}`);
+    return data?.[0] ?? null;
+  } catch (err) {
+    logger.error(`Failed to get DCF for ${symbol}`, (err as Error).message);
+    return null;
+  }
+}
+
+export async function getRating(symbol: string): Promise<{
+  symbol: string; date: string; rating: string; ratingScore: number;
+  ratingRecommendation: string;
+  ratingDetailsDCFScore: number; ratingDetailsDCFRecommendation: string;
+  ratingDetailsROEScore: number; ratingDetailsROERecommendation: string;
+  ratingDetailsDEScore: number; ratingDetailsDERecommendation: string;
+  ratingDetailsPEScore: number; ratingDetailsPERecommendation: string;
+  ratingDetailsPBScore: number; ratingDetailsPBRecommendation: string;
+} | null> {
+  try {
+    const { data } = await fmpClient.get(`/v3/rating/${symbol}`);
+    return data?.[0] ?? null;
+  } catch (err) {
+    logger.error(`Failed to get rating for ${symbol}`, (err as Error).message);
+    return null;
+  }
+}
+
+export async function getPriceTarget(symbol: string): Promise<{
+  symbol: string; lastMonth: number; lastMonthAvgPriceTarget: number;
+  lastQuarter: number; lastQuarterAvgPriceTarget: number;
+  lastYear: number; lastYearAvgPriceTarget: number;
+  allTime: number; allTimeAvgPriceTarget: number;
+  publishers: string;
+} | null> {
+  try {
+    const { data } = await fmpClient.get(`/v4/price-target-summary`, { params: { symbol } });
+    return data?.[0] ?? null;
+  } catch (err) {
+    logger.error(`Failed to get price target for ${symbol}`, (err as Error).message);
+    return null;
+  }
+}
+
+export async function getStockPeers(symbol: string): Promise<string[]> {
+  try {
+    const { data } = await fmpClient.get(`/v4/stock_peers`, { params: { symbol } });
+    return data?.[0]?.peersList ?? [];
+  } catch (err) {
+    logger.error(`Failed to get peers for ${symbol}`, (err as Error).message);
+    return [];
+  }
+}
+
+// ==========================================
+// Market Insight APIs (2단계)
+// ==========================================
+
+export async function getSectorPerformance(): Promise<Array<{ sector: string; changesPercentage: string }>> {
+  try {
+    const { data } = await fmpClient.get('/v3/sector-performance');
+    return data ?? [];
+  } catch (err) {
+    logger.error('Failed to get sector performance', (err as Error).message);
+    return [];
+  }
+}
+
+export async function getEconomicCalendar(from: string, to: string): Promise<Array<{
+  event: string; date: string; country: string; actual: number | null;
+  previous: number | null; change: number | null; estimate: number | null;
+  impact: string;
+}>> {
+  try {
+    const { data } = await fmpClient.get('/v3/economic_calendar', { params: { from, to } });
+    return data ?? [];
+  } catch (err) {
+    logger.error('Failed to get economic calendar', (err as Error).message);
+    return [];
+  }
+}
+
+export async function getStockNews(tickers: string, limit = 10): Promise<Array<{
+  symbol: string; publishedDate: string; title: string; image: string;
+  site: string; text: string; url: string;
+}>> {
+  try {
+    const { data } = await fmpClient.get('/v3/stock_news', { params: { tickers, limit } });
+    return data ?? [];
+  } catch (err) {
+    logger.error('Failed to get stock news', (err as Error).message);
+    return [];
+  }
+}
+
+// ==========================================
+// Scoring Enhancement APIs (3단계)
+// ==========================================
+
+export async function getFinancialGrowth(symbol: string, limit = 5): Promise<Array<{
+  date: string; revenueGrowth: number; netIncomeGrowth: number;
+  epsgrowth: number; freeCashFlowGrowth: number; operatingCashFlowGrowth: number;
+  [key: string]: unknown;
+}>> {
+  try {
+    const { data } = await fmpClient.get(`/v3/financial-growth/${symbol}`, { params: { limit } });
+    return data ?? [];
+  } catch (err) {
+    logger.error(`Failed to get financial growth for ${symbol}`, (err as Error).message);
+    return [];
+  }
+}
+
+export async function getKeyMetricsTTM(symbol: string): Promise<{
+  peRatioTTM: number; pegRatioTTM: number; evToEbitdaTTM: number;
+  freeCashFlowYieldTTM: number; dividendYieldPercentageTTM: number;
+  [key: string]: unknown;
+} | null> {
+  try {
+    const { data } = await fmpClient.get(`/v3/key-metrics-ttm/${symbol}`);
+    return data?.[0] ?? null;
+  } catch (err) {
+    logger.error(`Failed to get key metrics TTM for ${symbol}`, (err as Error).message);
+    return null;
+  }
+}
+
+// ==========================================
 // REIT Detection
 // ==========================================
 
@@ -533,7 +664,9 @@ function calculateStockScore(
   stock: Partial<ScreenedStock>,
   incomeStatements: FMPIncomeStatement[],
   cashFlows: FMPCashFlow[],
-  balanceSheets: FMPBalanceSheet[]
+  balanceSheets: FMPBalanceSheet[],
+  financialGrowth?: Array<{ revenueGrowth: number; netIncomeGrowth: number; epsgrowth: number; freeCashFlowGrowth: number; [key: string]: unknown }>,
+  keyMetricsTTM?: { pegRatioTTM: number; evToEbitdaTTM: number; freeCashFlowYieldTTM: number; [key: string]: unknown } | null,
 ): { score: number; grade: StockGrade; breakdown: ScoreBreakdown } {
   // --- Stability (30%) ---
   let stabilityScore = 0;
@@ -590,14 +723,46 @@ function calculateStockScore(
     profitabilityScore = roeScore + marginScore;
   }
 
-  // --- Growth (15%) ---
+  // --- Growth (15%) --- Enhanced with multi-year CAGR
   let growthScore = 0;
   {
-    if (incomeStatements.length >= 2) {
+    if (financialGrowth && financialGrowth.length >= 3) {
+      // Use multi-year average growth (CAGR proxy)
+      const years = financialGrowth.slice(0, 5);
+      const avgRevGrowth = (years.reduce((s, y) => s + (y.revenueGrowth || 0), 0) / years.length) * 100;
+      const avgEpsGrowth = (years.reduce((s, y) => s + (y.epsgrowth || 0), 0) / years.length) * 100;
+      const avgFcfGrowth = (years.reduce((s, y) => s + (y.freeCashFlowGrowth || 0), 0) / years.length) * 100;
+
+      // Revenue CAGR (35 points)
+      let revScore = 0;
+      if (avgRevGrowth >= 15) revScore = 35;
+      else if (avgRevGrowth >= 10) revScore = 30;
+      else if (avgRevGrowth >= 5) revScore = 22;
+      else if (avgRevGrowth >= 0) revScore = 14;
+      else revScore = 4;
+
+      // EPS CAGR (35 points)
+      let epsScore = 0;
+      if (avgEpsGrowth >= 20) epsScore = 35;
+      else if (avgEpsGrowth >= 10) epsScore = 28;
+      else if (avgEpsGrowth >= 5) epsScore = 20;
+      else if (avgEpsGrowth >= 0) epsScore = 12;
+      else epsScore = 4;
+
+      // FCF growth (30 points) - NEW
+      let fcfScore = 0;
+      if (avgFcfGrowth >= 15) fcfScore = 30;
+      else if (avgFcfGrowth >= 10) fcfScore = 24;
+      else if (avgFcfGrowth >= 5) fcfScore = 18;
+      else if (avgFcfGrowth >= 0) fcfScore = 10;
+      else fcfScore = 3;
+
+      growthScore = revScore + epsScore + fcfScore;
+    } else if (incomeStatements.length >= 2) {
+      // Fallback: single-year growth (existing logic)
       const latest = incomeStatements[0];
       const previous = incomeStatements[1];
 
-      // Revenue growth
       const revGrowth = previous.revenue > 0
         ? ((latest.revenue - previous.revenue) / previous.revenue) * 100
         : 0;
@@ -608,7 +773,6 @@ function calculateStockScore(
       else if (revGrowth >= 0) revScore = 20;
       else revScore = 5;
 
-      // EPS growth
       const epsGrowth = previous.epsdiluted > 0
         ? ((latest.epsdiluted - previous.epsdiluted) / previous.epsdiluted) * 100
         : 0;
@@ -623,29 +787,69 @@ function calculateStockScore(
     }
   }
 
-  // --- Valuation (15%) ---
+  // --- Valuation (15%) --- Enhanced with EV/EBITDA, FCF Yield, PEG
   let valuationScore = 0;
   {
-    // PE ratio (sweet spot 10-20)
-    const pe = stock.pe ?? 0;
-    let peScore = 0;
-    if (pe > 0 && pe <= 15) peScore = 50;
-    else if (pe > 15 && pe <= 20) peScore = 42;
-    else if (pe > 20 && pe <= 25) peScore = 30;
-    else if (pe > 25 && pe <= 35) peScore = 18;
-    else if (pe > 35) peScore = 8;
-    else peScore = 5; // negative or 0
+    if (keyMetricsTTM) {
+      // P/E ratio (25 points)
+      const pe = stock.pe ?? 0;
+      let peScore = 0;
+      if (pe > 0 && pe <= 15) peScore = 25;
+      else if (pe > 15 && pe <= 20) peScore = 21;
+      else if (pe > 20 && pe <= 25) peScore = 15;
+      else if (pe > 25 && pe <= 35) peScore = 9;
+      else if (pe > 35) peScore = 4;
+      else peScore = 3;
 
-    // PB ratio
-    const pb = stock.pb ?? 0;
-    let pbScore = 0;
-    if (pb > 0 && pb <= 1.5) pbScore = 50;
-    else if (pb > 1.5 && pb <= 3) pbScore = 38;
-    else if (pb > 3 && pb <= 5) pbScore = 25;
-    else if (pb > 5) pbScore = 10;
-    else pbScore = 5;
+      // PEG ratio (25 points) - lower is better, <1 = undervalued
+      const peg = keyMetricsTTM.pegRatioTTM ?? 0;
+      let pegScore = 0;
+      if (peg > 0 && peg <= 1) pegScore = 25;
+      else if (peg > 1 && peg <= 1.5) pegScore = 20;
+      else if (peg > 1.5 && peg <= 2) pegScore = 14;
+      else if (peg > 2 && peg <= 3) pegScore = 8;
+      else pegScore = 3;
 
-    valuationScore = peScore + pbScore;
+      // EV/EBITDA (25 points) - lower is better, <10 attractive
+      const evEbitda = keyMetricsTTM.evToEbitdaTTM ?? 0;
+      let evScore = 0;
+      if (evEbitda > 0 && evEbitda <= 8) evScore = 25;
+      else if (evEbitda > 8 && evEbitda <= 12) evScore = 20;
+      else if (evEbitda > 12 && evEbitda <= 16) evScore = 14;
+      else if (evEbitda > 16 && evEbitda <= 25) evScore = 8;
+      else evScore = 3;
+
+      // FCF Yield (25 points) - higher is better
+      const fcfYield = (keyMetricsTTM.freeCashFlowYieldTTM ?? 0) * 100;
+      let fcfYieldScore = 0;
+      if (fcfYield >= 8) fcfYieldScore = 25;
+      else if (fcfYield >= 5) fcfYieldScore = 20;
+      else if (fcfYield >= 3) fcfYieldScore = 14;
+      else if (fcfYield >= 1) fcfYieldScore = 8;
+      else fcfYieldScore = 3;
+
+      valuationScore = peScore + pegScore + evScore + fcfYieldScore;
+    } else {
+      // Fallback: original P/E + P/B scoring
+      const pe = stock.pe ?? 0;
+      let peScore = 0;
+      if (pe > 0 && pe <= 15) peScore = 50;
+      else if (pe > 15 && pe <= 20) peScore = 42;
+      else if (pe > 20 && pe <= 25) peScore = 30;
+      else if (pe > 25 && pe <= 35) peScore = 18;
+      else if (pe > 35) peScore = 8;
+      else peScore = 5;
+
+      const pb = stock.pb ?? 0;
+      let pbScore = 0;
+      if (pb > 0 && pb <= 1.5) pbScore = 50;
+      else if (pb > 1.5 && pb <= 3) pbScore = 38;
+      else if (pb > 3 && pb <= 5) pbScore = 25;
+      else if (pb > 5) pbScore = 10;
+      else pbScore = 5;
+
+      valuationScore = peScore + pbScore;
+    }
   }
 
   // --- Dividend (20%) ---
@@ -946,12 +1150,14 @@ async function analyzeStock(
   // Detect REIT
   const stockIsREIT = isREIT(symbol, profile.sector, profile.industry);
 
-  // Get financial data
-  const [incomeStatements, balanceSheets, cashFlows, ratios] = await Promise.all([
+  // Get financial data (including enhanced scoring data)
+  const [incomeStatements, balanceSheets, cashFlows, ratios, finGrowth, keyMetrics] = await Promise.all([
     getIncomeStatements(symbol, 5),
     getBalanceSheet(symbol),
     getCashFlowStatements(symbol),
     getFinancialRatios(symbol),
+    getFinancialGrowth(symbol, 5),
+    getKeyMetricsTTM(symbol),
   ]);
 
   // Payout ratio calculation
@@ -1075,9 +1281,11 @@ async function analyzeStock(
     isREIT: stockIsREIT,
   };
 
-  // Calculate score
+  // Calculate score (enhanced with financial growth + key metrics)
   const { score, grade, breakdown } = calculateStockScore(
-    partialStock, incomeStatements, cashFlows, balanceSheets
+    partialStock, incomeStatements, cashFlows, balanceSheets,
+    finGrowth.length > 0 ? finGrowth : undefined,
+    keyMetrics,
   );
 
   const screenedStock: ScreenedStock = {
