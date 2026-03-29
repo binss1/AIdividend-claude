@@ -121,6 +121,17 @@ const CATEGORY_LABELS: Record<string, string> = {
   'high-risk': '고위험',
 };
 
+const CATEGORY_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+  'high-risk': { bg: 'bg-red-500/15', text: 'text-red-400', dot: 'bg-red-500' },
+  'medium-risk': { bg: 'bg-amber-500/15', text: 'text-amber-400', dot: 'bg-amber-500' },
+  'low-risk': { bg: 'bg-emerald-500/15', text: 'text-emerald-400', dot: 'bg-emerald-500' },
+  'bond-income': { bg: 'bg-blue-500/15', text: 'text-blue-400', dot: 'bg-blue-500' },
+  'covered-call': { bg: 'bg-orange-500/15', text: 'text-orange-400', dot: 'bg-orange-500' },
+  'equity-dividend': { bg: 'bg-emerald-500/15', text: 'text-emerald-400', dot: 'bg-emerald-500' },
+  reit: { bg: 'bg-purple-500/15', text: 'text-purple-400', dot: 'bg-purple-500' },
+  international: { bg: 'bg-cyan-500/15', text: 'text-cyan-400', dot: 'bg-cyan-500' },
+};
+
 const TENDENCY_LABELS: Record<Tendency, string> = {
   conservative: '보수적',
   balanced: '균형',
@@ -476,7 +487,11 @@ function PortfolioDisplay({ portfolio, exchangeRate, assetType }: {
                     <div className="text-[10px] text-zinc-500 truncate max-w-[120px]">{h.name}</div>
                   </td>
                   <td className="px-3 py-2 text-center">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-zinc-700/50 text-zinc-300">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                      CATEGORY_COLORS[h.category]
+                        ? `${CATEGORY_COLORS[h.category].bg} ${CATEGORY_COLORS[h.category].text} border-transparent`
+                        : 'bg-zinc-700/50 text-zinc-300 border-transparent'
+                    }`}>
                       {CATEGORY_LABELS[h.category] || h.category}
                     </span>
                   </td>
@@ -538,13 +553,16 @@ function PortfolioDisplay({ portfolio, exchangeRate, assetType }: {
       <div className="rounded-xl bg-zinc-800/30 border border-zinc-700/40 p-4">
         <h4 className="text-xs font-semibold text-zinc-400 mb-3">{assetType === 'etf' ? '자산유형 분포' : '리스크 분포'}</h4>
         <div className="flex gap-2 flex-wrap">
-          {Object.entries(m.sectorDistribution).map(([sector, weight]) => (
-            <div key={sector} className="flex items-center gap-2 bg-zinc-900/50 rounded-lg px-3 py-1.5">
-              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="text-xs text-zinc-300">{CATEGORY_LABELS[sector] || sector}</span>
-              <span className="text-xs text-white font-medium">{weight.toFixed(1)}%</span>
-            </div>
-          ))}
+          {Object.entries(m.sectorDistribution).map(([sector, weight]) => {
+            const color = CATEGORY_COLORS[sector];
+            return (
+              <div key={sector} className="flex items-center gap-2 bg-zinc-900/50 rounded-lg px-3 py-1.5">
+                <div className={`w-2 h-2 rounded-full ${color?.dot || 'bg-zinc-500'}`} />
+                <span className={`text-xs ${color?.text || 'text-zinc-300'}`}>{CATEGORY_LABELS[sector] || sector}</span>
+                <span className="text-xs text-white font-medium">{weight.toFixed(1)}%</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
