@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { apiFetch, API_ENDPOINTS } from '@/config/api';
 import PortfolioRecommendation from '@/components/PortfolioRecommendation';
+import ScoreBar from '@/components/ScoreBar';
 
 // ==========================================
 // Types
@@ -205,96 +206,31 @@ export default function HistoryPage() {
             </div>
 
             {/* Results Table */}
-            <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 backdrop-blur-xl p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                  <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
-                  </svg>
-                  스크리닝 결과
-                </h3>
-                <span className="text-xs text-zinc-500">총 {detail.results.length}종목</span>
+            <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 backdrop-blur-xl overflow-hidden shadow-xl shadow-black/20">
+              {/* Toolbar */}
+              <div className="flex flex-col gap-3 border-b border-zinc-800/80 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+                    <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
+                    </svg>
+                  </div>
+                  <span className="text-sm text-zinc-400">
+                    총 <span className="text-emerald-400 font-semibold">{detail.results.length}</span>개 종목
+                  </span>
+                </div>
+                <span className="text-xs text-zinc-500">
+                  {detail.session.session_date} {isETF ? 'ETF' : '배당주'} {detail.session.session_number}회차
+                </span>
               </div>
 
+              {/* Table */}
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-xs text-zinc-500 border-b border-zinc-800/40">
-                      <th className="px-3 py-2 text-left">#</th>
-                      <th className="px-3 py-2 text-left">티커</th>
-                      <th className="px-3 py-2 text-left">{isETF ? 'ETF명' : '종목명'}</th>
-                      <th className="px-3 py-2 text-right">가격</th>
-                      <th className="px-3 py-2 text-right">배당수익률</th>
-                      {isETF ? (
-                        <>
-                          <th className="px-3 py-2 text-right">AUM</th>
-                          <th className="px-3 py-2 text-right">운용보수</th>
-                          <th className="px-3 py-2 text-right">Q-LEAD</th>
-                        </>
-                      ) : (
-                        <>
-                          <th className="px-3 py-2 text-right">배당성향</th>
-                          <th className="px-3 py-2 text-right">시가총액</th>
-                          <th className="px-3 py-2 text-right">점수</th>
-                          <th className="px-3 py-2 text-right">등급</th>
-                        </>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-800/30">
-                    {detail.results.map((item: any, idx: number) => (
-                      <tr key={item.symbol || idx} className="hover:bg-zinc-800/30">
-                        <td className="px-3 py-2 text-zinc-500">{idx + 1}</td>
-                        <td className="px-3 py-2 font-semibold text-white">{item.symbol}</td>
-                        <td className="px-3 py-2 text-zinc-300 truncate max-w-[200px]">{item.name}</td>
-                        <td className="px-3 py-2 text-right text-zinc-300">
-                          ${(item.currentPrice || item.price || 0).toFixed(2)}
-                        </td>
-                        <td className="px-3 py-2 text-right text-emerald-400">
-                          {isETF
-                            ? `${((item.dividendYield || 0) * 100).toFixed(2)}%`
-                            : `${(item.dividendYield || 0).toFixed(2)}%`}
-                        </td>
-                        {isETF ? (
-                          <>
-                            <td className="px-3 py-2 text-right text-zinc-300">
-                              {formatAUM(item.aum)}
-                            </td>
-                            <td className="px-3 py-2 text-right text-zinc-300">
-                              {((item.expenseRatio || 0) * 100).toFixed(2)}%
-                            </td>
-                            <td className="px-3 py-2 text-right text-white font-medium">
-                              {(item.totalScore || 0).toFixed(1)}
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td className="px-3 py-2 text-right text-zinc-300">
-                              {(item.payoutRatio || 0).toFixed(1)}%
-                            </td>
-                            <td className="px-3 py-2 text-right text-zinc-300">
-                              {formatAUM(item.marketCap)}
-                            </td>
-                            <td className="px-3 py-2 text-right text-white font-medium">
-                              {(item.overallScore || 0).toFixed(1)}
-                            </td>
-                            <td className="px-3 py-2 text-right">
-                              <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-                                item.grade === 'A+' ? 'bg-emerald-500/20 text-emerald-400' :
-                                item.grade === 'A' ? 'bg-green-500/20 text-green-400' :
-                                item.grade === 'B+' ? 'bg-teal-500/20 text-teal-400' :
-                                item.grade === 'B' ? 'bg-yellow-500/20 text-yellow-400' :
-                                'bg-zinc-500/20 text-zinc-400'
-                              }`}>
-                                {item.grade}
-                              </span>
-                            </td>
-                          </>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {isETF ? (
+                  <ETFResultTable results={detail.results} />
+                ) : (
+                  <StockResultTable results={detail.results} />
+                )}
               </div>
             </div>
 
@@ -328,4 +264,201 @@ function formatAUM(v: number | undefined): string {
   if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
   if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
   return `$${v.toLocaleString()}`;
+}
+
+function formatMarketCap(v: number | undefined): string {
+  if (!v) return '-';
+  if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
+  return `$${v.toLocaleString()}`;
+}
+
+function getGradeStyle(grade: string): string {
+  switch (grade) {
+    case 'A+': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+    case 'A': return 'bg-green-500/20 text-green-400 border-green-500/30';
+    case 'B+': return 'bg-teal-500/20 text-teal-400 border-teal-500/30';
+    case 'B': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+    case 'C': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+    default: return 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
+  }
+}
+
+function getScoreGradeETF(score: number): string {
+  if (score >= 85) return 'A+';
+  if (score >= 75) return 'A';
+  if (score >= 65) return 'B+';
+  if (score >= 55) return 'B';
+  if (score >= 40) return 'C';
+  return 'D';
+}
+
+const QLEAD_COLORS = {
+  quality: { bar: 'bg-emerald-500', bg: 'bg-emerald-500/15', text: 'text-emerald-400', label: 'Q' },
+  liquidity: { bar: 'bg-blue-500', bg: 'bg-blue-500/15', text: 'text-blue-400', label: 'L' },
+  exposure: { bar: 'bg-amber-500', bg: 'bg-amber-500/15', text: 'text-amber-400', label: 'E' },
+  dividend: { bar: 'bg-purple-500', bg: 'bg-purple-500/15', text: 'text-purple-400', label: 'D' },
+};
+
+// ==========================================
+// ETF Result Table (matches etf-screening page)
+// ==========================================
+
+function ETFResultTable({ results }: { results: any[] }) {
+  return (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="border-b border-zinc-800/80 bg-zinc-900/90">
+          <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider w-12">#</th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">티커</th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">ETF명</th>
+          <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">가격</th>
+          <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">AUM</th>
+          <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">배당수익률</th>
+          <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">운용보수</th>
+          <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">Q-LEAD</th>
+          <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider min-w-[140px]">총점</th>
+          <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">등급</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-zinc-800/40">
+        {results.map((etf: any, idx: number) => {
+          const grade = getScoreGradeETF(etf.totalScore || 0);
+          return (
+            <tr key={etf.symbol || idx} className="hover:bg-emerald-500/[0.03] transition-colors duration-150">
+              <td className="px-4 py-3 text-zinc-600 font-mono text-xs">{idx + 1}</td>
+              <td className="px-4 py-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-zinc-100 font-mono text-xs">{etf.symbol}</span>
+                  {etf.isCoveredCall && (
+                    <span className="shrink-0 rounded bg-orange-500/15 px-1 py-0.5 text-[9px] font-bold text-orange-400 border border-orange-500/20">CC</span>
+                  )}
+                </div>
+              </td>
+              <td className="px-4 py-3 text-zinc-300 max-w-[200px] truncate text-xs">{etf.name}</td>
+              <td className="px-4 py-3 text-right font-mono text-zinc-300 text-xs">${(etf.price || 0).toFixed(2)}</td>
+              <td className="px-4 py-3 text-right text-zinc-400 font-mono text-xs">{formatAUM(etf.aum)}</td>
+              <td className="px-4 py-3 text-right">
+                <span className="font-semibold text-emerald-400 font-mono text-xs">
+                  {((etf.dividendYield || 0) * 100).toFixed(2)}%
+                </span>
+              </td>
+              <td className="px-4 py-3 text-right font-mono text-zinc-400 text-xs">
+                {((etf.expenseRatio || 0) * 100).toFixed(2)}%
+              </td>
+              <td className="px-4 py-3">
+                <QLeadMiniBars etf={etf} />
+              </td>
+              <td className="px-4 py-3">
+                <ScoreBar score={etf.totalScore || 0} />
+              </td>
+              <td className="px-4 py-3 text-center">
+                <span className={`inline-flex items-center justify-center font-bold rounded-full border px-2 py-0.5 text-xs ${getGradeStyle(grade)}`}>
+                  {grade}
+                </span>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+// ==========================================
+// Q-LEAD Mini Bars
+// ==========================================
+
+function QLeadMiniBars({ etf }: { etf: any }) {
+  const items = [
+    { score: etf.qualityScore || 0, ...QLEAD_COLORS.quality },
+    { score: etf.liquidityScore || 0, ...QLEAD_COLORS.liquidity },
+    { score: etf.exposureScore || 0, ...QLEAD_COLORS.exposure },
+    { score: etf.dividendScore || 0, ...QLEAD_COLORS.dividend },
+  ];
+  return (
+    <div className="flex items-center gap-1.5">
+      {items.map((item, i) => (
+        <div key={i} className="group/bar relative">
+          <div className={`w-6 h-3 rounded-sm ${item.bg} overflow-hidden`}>
+            <div className={`h-full rounded-sm ${item.bar}`} style={{ width: `${Math.min(item.score, 100)}%` }} />
+          </div>
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/bar:block z-10">
+            <div className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-[10px] text-zinc-300 whitespace-nowrap shadow-lg">
+              <span className={item.text}>{item.label}</span>: {item.score.toFixed(1)}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ==========================================
+// Stock Result Table (matches screening page)
+// ==========================================
+
+function StockResultTable({ results }: { results: any[] }) {
+  return (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="border-b border-zinc-800/80 bg-zinc-900/90">
+          <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider w-12">#</th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">티커</th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">종목명</th>
+          <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">현재가</th>
+          <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">배당수익률</th>
+          <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">배당성향</th>
+          <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">시가총액</th>
+          <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">P/E</th>
+          <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">ROE</th>
+          <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">배당주기</th>
+          <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider min-w-[140px]">점수</th>
+          <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">등급</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-zinc-800/40">
+        {results.map((s: any, idx: number) => (
+          <tr key={s.symbol || idx} className="hover:bg-emerald-500/[0.03] transition-colors duration-150">
+            <td className="px-4 py-3 text-zinc-600 font-mono text-xs text-center">{idx + 1}</td>
+            <td className="px-4 py-3">
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-zinc-100 font-mono text-xs">{s.symbol}</span>
+                {s.isREIT && (
+                  <span className="shrink-0 rounded bg-purple-500/15 px-1 py-0.5 text-[9px] font-bold text-purple-400 border border-purple-500/20">REIT</span>
+                )}
+              </div>
+            </td>
+            <td className="px-4 py-3 text-zinc-300 max-w-[180px] truncate text-xs">{s.name}</td>
+            <td className="px-4 py-3 text-right font-mono text-zinc-300 text-xs">${(s.currentPrice || 0).toFixed(2)}</td>
+            <td className="px-4 py-3 text-right">
+              <span className="font-semibold text-emerald-400 font-mono text-xs">{(s.dividendYield || 0).toFixed(2)}%</span>
+            </td>
+            <td className="px-4 py-3 text-right font-mono text-zinc-400 text-xs">{(s.payoutRatio || 0).toFixed(1)}%</td>
+            <td className="px-4 py-3 text-right text-zinc-400 font-mono text-xs">{formatMarketCap(s.marketCap)}</td>
+            <td className="px-4 py-3 text-right font-mono text-zinc-400 text-xs">{(s.pe || 0).toFixed(1)}</td>
+            <td className="px-4 py-3 text-right">
+              <span className={`font-mono text-xs ${(s.roe || 0) >= 15 ? 'text-emerald-400' : (s.roe || 0) < 0 ? 'text-red-400' : 'text-zinc-400'}`}>
+                {(s.roe || 0).toFixed(1)}%
+              </span>
+            </td>
+            <td className="px-4 py-3 text-center">
+              <span className={`text-xs ${s.dividendCycle === 'monthly' ? 'text-emerald-400 font-semibold' : 'text-zinc-400'}`}>
+                {s.dividendCycle === 'monthly' ? '월배당' : s.dividendCycle === 'quarterly' ? '분기' : s.dividendCycle === 'semi-annual' ? '반기' : s.dividendCycle === 'annual' ? '연간' : '-'}
+              </span>
+            </td>
+            <td className="px-4 py-3">
+              <ScoreBar score={s.overallScore || 0} />
+            </td>
+            <td className="px-4 py-3 text-center">
+              <span className={`inline-flex items-center justify-center font-bold rounded-full border px-2 py-0.5 text-xs ${getGradeStyle(s.grade || 'D')}`}>
+                {s.grade || 'D'}
+              </span>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
 }
