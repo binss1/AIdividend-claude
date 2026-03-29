@@ -439,8 +439,8 @@ export async function getFinancialGrowth(symbol: string, limit = 5): Promise<Arr
 }
 
 export async function getKeyMetricsTTM(symbol: string): Promise<{
-  peRatioTTM: number; pegRatioTTM: number; evToEbitdaTTM: number;
-  freeCashFlowYieldTTM: number; dividendYieldPercentageTTM: number;
+  peRatioTTM: number; pegRatioTTM: number; enterpriseValueOverEBITDATTM: number;
+  pfcfRatioTTM: number; freeCashFlowYieldTTM: number;
   [key: string]: unknown;
 } | null> {
   try {
@@ -666,7 +666,7 @@ function calculateStockScore(
   cashFlows: FMPCashFlow[],
   balanceSheets: FMPBalanceSheet[],
   financialGrowth?: Array<{ revenueGrowth: number; netIncomeGrowth: number; epsgrowth: number; freeCashFlowGrowth: number; [key: string]: unknown }>,
-  keyMetricsTTM?: { pegRatioTTM: number; evToEbitdaTTM: number; freeCashFlowYieldTTM: number; [key: string]: unknown } | null,
+  keyMetricsTTM?: { pegRatioTTM: number; enterpriseValueOverEBITDATTM: number; pfcfRatioTTM: number; freeCashFlowYieldTTM: number; [key: string]: unknown } | null,
 ): { score: number; grade: StockGrade; breakdown: ScoreBreakdown } {
   // --- Stability (30%) ---
   let stabilityScore = 0;
@@ -802,16 +802,29 @@ function calculateStockScore(
       else peScore = 3;
 
       // PEG ratio (25 points) - lower is better, <1 = undervalued
+      // If PEG unavailable, use P/FCF ratio instead
       const peg = keyMetricsTTM.pegRatioTTM ?? 0;
+      const pfcf = keyMetricsTTM.pfcfRatioTTM ?? 0;
       let pegScore = 0;
-      if (peg > 0 && peg <= 1) pegScore = 25;
-      else if (peg > 1 && peg <= 1.5) pegScore = 20;
-      else if (peg > 1.5 && peg <= 2) pegScore = 14;
-      else if (peg > 2 && peg <= 3) pegScore = 8;
-      else pegScore = 3;
+      if (peg > 0) {
+        if (peg <= 1) pegScore = 25;
+        else if (peg <= 1.5) pegScore = 20;
+        else if (peg <= 2) pegScore = 14;
+        else if (peg <= 3) pegScore = 8;
+        else pegScore = 3;
+      } else if (pfcf > 0) {
+        // P/FCF fallback: lower is better (<10 good)
+        if (pfcf <= 10) pegScore = 25;
+        else if (pfcf <= 15) pegScore = 20;
+        else if (pfcf <= 20) pegScore = 14;
+        else if (pfcf <= 30) pegScore = 8;
+        else pegScore = 3;
+      } else {
+        pegScore = 12; // neutral if no data
+      }
 
       // EV/EBITDA (25 points) - lower is better, <10 attractive
-      const evEbitda = keyMetricsTTM.evToEbitdaTTM ?? 0;
+      const evEbitda = keyMetricsTTM.enterpriseValueOverEBITDATTM ?? 0;
       let evScore = 0;
       if (evEbitda > 0 && evEbitda <= 8) evScore = 25;
       else if (evEbitda > 8 && evEbitda <= 12) evScore = 20;
@@ -819,8 +832,9 @@ function calculateStockScore(
       else if (evEbitda > 16 && evEbitda <= 25) evScore = 8;
       else evScore = 3;
 
-      // FCF Yield (25 points) - higher is better
-      const fcfYield = (keyMetricsTTM.freeCashFlowYieldTTM ?? 0) * 100;
+      // FCF Yield (25 points) - higher is better (use 1/pfcf if freeCashFlowYieldTTM unavailable)
+      let fcfYield = (keyMetricsTTM.freeCashFlowYieldTTM ?? 0) * 100;
+      if (fcfYield === 0 && pfcf > 0) fcfYield = (1 / pfcf) * 100;
       let fcfYieldScore = 0;
       if (fcfYield >= 8) fcfYieldScore = 25;
       else if (fcfYield >= 5) fcfYieldScore = 20;
