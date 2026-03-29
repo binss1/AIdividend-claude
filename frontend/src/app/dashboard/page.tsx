@@ -423,10 +423,7 @@ export default function DashboardPage() {
                         <span className="text-xs text-emerald-400 font-medium shrink-0">
                           수익률 {stock.dividendYield.toFixed(2)}%
                         </span>
-                        <div className="w-16 shrink-0">
-                          <ScoreBar score={stock.overallScore} height={4} showLabel={false} />
-                        </div>
-                        <span className="text-xs text-gray-400 font-mono w-6 text-right shrink-0">{stock.overallScore.toFixed(0)}</span>
+                        <span className="text-xs text-gray-400 font-mono shrink-0 ml-auto">{stock.overallScore.toFixed(0)}점</span>
                       </div>
                     </div>
                     <svg className="w-4 h-4 text-gray-600 group-hover:text-gray-400 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -486,10 +483,7 @@ export default function DashboardPage() {
                         <span className="text-xs text-gray-500 shrink-0">
                           보수 {(etf.expenseRatio * 100).toFixed(2)}%
                         </span>
-                        <div className="w-16 shrink-0">
-                          <ScoreBar score={etf.totalScore} height={4} showLabel={false} />
-                        </div>
-                        <span className="text-xs text-gray-400 font-mono w-6 text-right shrink-0">{etf.totalScore.toFixed(0)}</span>
+                        <span className="text-xs text-gray-400 font-mono shrink-0 ml-auto">{etf.totalScore.toFixed(0)}점</span>
                       </div>
                     </div>
                     <svg className="w-4 h-4 text-gray-600 group-hover:text-gray-400 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
