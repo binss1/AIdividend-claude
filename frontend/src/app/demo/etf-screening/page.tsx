@@ -187,8 +187,7 @@ export default function DemoETFScreeningPage() {
                 {filteredResults.map((etf, idx) => (
                   <tr
                     key={etf.symbol}
-                    className="hover:bg-blue-500/[0.03] cursor-pointer transition-colors duration-150"
-                    onClick={() => window.location.href = `/etf/${etf.symbol}`}
+                    className="hover:bg-blue-500/[0.03] transition-colors duration-150"
                   >
                     <td className="px-4 py-3 text-zinc-600 font-mono text-xs">{idx + 1}</td>
                     <td className="px-4 py-3">

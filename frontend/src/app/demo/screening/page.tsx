@@ -201,8 +201,7 @@ export default function DemoScreeningPage() {
                 {filteredResults.map((stock, idx) => (
                   <tr
                     key={stock.symbol}
-                    onClick={() => router.push(`/stock/${stock.symbol}`)}
-                    className="hover:bg-emerald-500/[0.03] cursor-pointer transition-colors duration-150"
+                    className="hover:bg-emerald-500/[0.03] transition-colors duration-150"
                   >
                     <td className="px-4 py-3 text-zinc-600 font-mono text-xs">{idx + 1}</td>
                     <td className="px-4 py-3">
