@@ -17,6 +17,10 @@ import {
   getSectorPerformance,
   getEconomicCalendar,
   getStockNews,
+  getInsiderTrading,
+  getInstitutionalHolders,
+  getSocialSentiment,
+  getAnalystEstimates,
 } from '../services/fmpService';
 import { screenDividendETFs, getETFList } from '../services/etfScreeningService';
 import { getExchangeRate } from '../services/exchangeRateService';
@@ -493,12 +497,16 @@ router.get('/stock/:symbol', optionalAuth, async (req: Request, res: Response) =
       return;
     }
 
-    // Fetch valuation data in parallel (non-blocking, optional)
-    const [dcf, rating, priceTarget, peers] = await Promise.allSettled([
+    // Fetch valuation + advanced data in parallel (non-blocking, optional)
+    const [dcf, rating, priceTarget, peers, insider, institutional, sentiment, estimates] = await Promise.allSettled([
       getDCF(symbol.toUpperCase()),
       getRating(symbol.toUpperCase()),
       getPriceTarget(symbol.toUpperCase()),
       getStockPeers(symbol.toUpperCase()),
+      getInsiderTrading(symbol.toUpperCase(), 10),
+      getInstitutionalHolders(symbol.toUpperCase()),
+      getSocialSentiment(symbol.toUpperCase()),
+      getAnalystEstimates(symbol.toUpperCase(), 4),
     ]);
 
     res.json({
@@ -507,6 +515,10 @@ router.get('/stock/:symbol', optionalAuth, async (req: Request, res: Response) =
       rating: rating.status === 'fulfilled' ? rating.value : null,
       priceTarget: priceTarget.status === 'fulfilled' ? priceTarget.value : null,
       peers: peers.status === 'fulfilled' ? peers.value : [],
+      insiderTrading: insider.status === 'fulfilled' ? insider.value : [],
+      institutionalHolders: institutional.status === 'fulfilled' ? institutional.value : [],
+      socialSentiment: sentiment.status === 'fulfilled' ? sentiment.value : [],
+      analystEstimates: estimates.status === 'fulfilled' ? estimates.value : [],
     });
   } catch (err) {
     logger.error(`Failed to get stock detail for ${req.params.symbol}`, (err as Error).message);

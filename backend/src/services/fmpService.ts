@@ -453,6 +453,67 @@ export async function getKeyMetricsTTM(symbol: string): Promise<{
 }
 
 // ==========================================
+// Advanced APIs (4순위 - 유료 서비스 차별화)
+// ==========================================
+
+export async function getInsiderTrading(symbol: string, limit = 20): Promise<Array<{
+  symbol: string; transactionDate: string; transactionType: string;
+  securitiesOwned: number; securitiesTransacted: number;
+  price: number; reportingName: string; typeOfOwner: string;
+}>> {
+  try {
+    const { data } = await fmpClient.get('/v4/insider-trading', { params: { symbol, limit } });
+    return data ?? [];
+  } catch (err) {
+    logger.error(`Failed to get insider trading for ${symbol}`, (err as Error).message);
+    return [];
+  }
+}
+
+export async function getInstitutionalHolders(symbol: string): Promise<Array<{
+  holder: string; shares: number; dateReported: string;
+  change: number; weightPercent: number;
+}>> {
+  try {
+    const { data } = await fmpClient.get(`/v3/institutional-holder/${symbol}`);
+    return (data ?? []).slice(0, 15);
+  } catch (err) {
+    logger.error(`Failed to get institutional holders for ${symbol}`, (err as Error).message);
+    return [];
+  }
+}
+
+export async function getSocialSentiment(symbol: string): Promise<Array<{
+  date: string; symbol: string; stocktwitsPosts: number; twitterPosts: number;
+  stocktwitsComments: number; twitterComments: number;
+  stocktwitsSentiment: number; twitterSentiment: number;
+  stocktwitsLikes: number; twitterLikes: number;
+}>> {
+  try {
+    const { data } = await fmpClient.get('/v4/social-sentiment', { params: { symbol, limit: 30 } });
+    return data ?? [];
+  } catch (err) {
+    logger.error(`Failed to get social sentiment for ${symbol}`, (err as Error).message);
+    return [];
+  }
+}
+
+export async function getAnalystEstimates(symbol: string, limit = 4): Promise<Array<{
+  symbol: string; date: string; estimatedRevenueAvg: number; estimatedRevenueHigh: number;
+  estimatedRevenueLow: number; estimatedEpsAvg: number; estimatedEpsHigh: number;
+  estimatedEpsLow: number; numberAnalystEstimatedRevenue: number;
+  numberAnalystsEstimatedEps: number;
+}>> {
+  try {
+    const { data } = await fmpClient.get(`/v3/analyst-estimates/${symbol}`, { params: { limit, period: 'quarter' } });
+    return data ?? [];
+  } catch (err) {
+    logger.error(`Failed to get analyst estimates for ${symbol}`, (err as Error).message);
+    return [];
+  }
+}
+
+// ==========================================
 // REIT Detection
 // ==========================================
 

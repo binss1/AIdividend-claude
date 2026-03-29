@@ -66,6 +66,23 @@ interface StockDetailData {
     lastYear: number; lastYearAvgPriceTarget: number;
   } | null;
   peers?: string[];
+  // Advanced data (4순위)
+  insiderTrading?: Array<{
+    transactionDate: string; transactionType: string; securitiesTransacted: number;
+    price: number; reportingName: string; typeOfOwner: string;
+  }>;
+  institutionalHolders?: Array<{
+    holder: string; shares: number; dateReported: string; change: number; weightPercent: number;
+  }>;
+  socialSentiment?: Array<{
+    date: string; stocktwitsPosts: number; twitterPosts: number;
+    stocktwitsSentiment: number; twitterSentiment: number;
+  }>;
+  analystEstimates?: Array<{
+    date: string; estimatedRevenueAvg: number; estimatedEpsAvg: number;
+    estimatedEpsHigh: number; estimatedEpsLow: number;
+    numberAnalystsEstimatedEps: number;
+  }>;
 }
 
 interface PriceDataPoint {
@@ -593,6 +610,136 @@ export default function StockDetailPage() {
             </p>
           </div>
         </section>
+
+        {/* ============================================================ */}
+        {/* ADVANCED: INSIDER TRADING + INSTITUTIONAL + SENTIMENT + EST  */}
+        {/* ============================================================ */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Insider Trading */}
+          {stock.insiderTrading && stock.insiderTrading.length > 0 && (
+            <section className="bg-gray-900/60 border border-gray-800/60 rounded-2xl p-5 backdrop-blur-sm">
+              <h2 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+                내부자 거래
+              </h2>
+              <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                {stock.insiderTrading.slice(0, 8).map((t, i) => {
+                  const isBuy = t.transactionType?.toLowerCase().includes('purchase') || t.transactionType?.toLowerCase().includes('buy');
+                  return (
+                    <div key={i} className="flex items-center gap-2 text-xs rounded-lg bg-gray-800/30 px-3 py-1.5">
+                      <span className={`w-8 font-bold ${isBuy ? 'text-red-400' : 'text-blue-400'}`}>{isBuy ? '매수' : '매도'}</span>
+                      <span className="text-zinc-400 w-20 shrink-0">{t.transactionDate?.split(' ')[0]}</span>
+                      <span className="text-zinc-300 flex-1 truncate">{t.reportingName}</span>
+                      <span className="text-zinc-400 w-16 text-right">{t.securitiesTransacted?.toLocaleString()}주</span>
+                      <span className="text-zinc-500 w-14 text-right">${t.price?.toFixed(2)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Institutional Holders */}
+          {stock.institutionalHolders && stock.institutionalHolders.length > 0 && (
+            <section className="bg-gray-900/60 border border-gray-800/60 rounded-2xl p-5 backdrop-blur-sm">
+              <h2 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 0h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" /></svg>
+                기관투자자 보유
+              </h2>
+              <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                {stock.institutionalHolders.slice(0, 8).map((h, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs rounded-lg bg-gray-800/30 px-3 py-1.5">
+                    <span className="text-zinc-300 flex-1 truncate">{h.holder}</span>
+                    <span className="text-zinc-400 w-20 text-right">{(h.shares / 1e6).toFixed(2)}M주</span>
+                    <span className={`w-16 text-right font-mono ${h.change > 0 ? 'text-red-400' : h.change < 0 ? 'text-blue-400' : 'text-zinc-500'}`}>
+                      {h.change > 0 ? '+' : ''}{(h.change / 1e3).toFixed(0)}K
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Social Sentiment */}
+          {stock.socialSentiment && stock.socialSentiment.length > 0 && (
+            <section className="bg-gray-900/60 border border-gray-800/60 rounded-2xl p-5 backdrop-blur-sm">
+              <h2 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
+                소셜 감성 분석
+              </h2>
+              {(() => {
+                const recent = stock.socialSentiment.slice(0, 7);
+                const avgSentiment = recent.reduce((s, d) => s + (d.stocktwitsSentiment || 0), 0) / recent.length;
+                const totalPosts = recent.reduce((s, d) => s + (d.stocktwitsPosts || 0) + (d.twitterPosts || 0), 0);
+                return (
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <div className="flex-1 rounded-lg bg-gray-800/30 p-3 text-center">
+                        <p className="text-[10px] text-zinc-500">7일 평균 감성</p>
+                        <p className={`text-lg font-bold ${avgSentiment > 0.6 ? 'text-emerald-400' : avgSentiment > 0.4 ? 'text-yellow-400' : 'text-red-400'}`}>
+                          {avgSentiment > 0.6 ? '긍정적' : avgSentiment > 0.4 ? '중립' : '부정적'}
+                        </p>
+                        <p className="text-xs text-zinc-500">{(avgSentiment * 100).toFixed(0)}%</p>
+                      </div>
+                      <div className="flex-1 rounded-lg bg-gray-800/30 p-3 text-center">
+                        <p className="text-[10px] text-zinc-500">7일 총 게시물</p>
+                        <p className="text-lg font-bold text-white">{totalPosts.toLocaleString()}</p>
+                        <p className="text-xs text-zinc-500">Stocktwits + X</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      {recent.reverse().map((d, i) => {
+                        const s = d.stocktwitsSentiment || 0.5;
+                        return (
+                          <div key={i} className="flex-1 text-center">
+                            <div className="h-8 rounded-sm" style={{
+                              backgroundColor: s > 0.6 ? 'rgba(16,185,129,0.3)' : s > 0.4 ? 'rgba(234,179,8,0.3)' : 'rgba(239,68,68,0.3)',
+                            }} />
+                            <p className="text-[8px] text-zinc-600 mt-0.5">{d.date?.slice(5, 10)}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+            </section>
+          )}
+
+          {/* Analyst Estimates */}
+          {stock.analystEstimates && stock.analystEstimates.length > 0 && (
+            <section className="bg-gray-900/60 border border-gray-800/60 rounded-2xl p-5 backdrop-blur-sm">
+              <h2 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-teal-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" /><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" /></svg>
+                애널리스트 추정치
+              </h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-zinc-500 border-b border-zinc-700/30">
+                      <th className="px-2 py-1.5 text-left">분기</th>
+                      <th className="px-2 py-1.5 text-right">EPS 추정</th>
+                      <th className="px-2 py-1.5 text-right">범위</th>
+                      <th className="px-2 py-1.5 text-right">매출 추정</th>
+                      <th className="px-2 py-1.5 text-right">애널리스트</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/20">
+                    {stock.analystEstimates.slice(0, 4).map((e, i) => (
+                      <tr key={i} className="hover:bg-gray-800/20">
+                        <td className="px-2 py-1.5 text-zinc-400">{e.date?.slice(0, 7)}</td>
+                        <td className="px-2 py-1.5 text-right text-white font-mono">${e.estimatedEpsAvg?.toFixed(2)}</td>
+                        <td className="px-2 py-1.5 text-right text-zinc-500 font-mono">${e.estimatedEpsLow?.toFixed(2)}~${e.estimatedEpsHigh?.toFixed(2)}</td>
+                        <td className="px-2 py-1.5 text-right text-zinc-400 font-mono">{e.estimatedRevenueAvg ? `$${(e.estimatedRevenueAvg / 1e9).toFixed(2)}B` : '-'}</td>
+                        <td className="px-2 py-1.5 text-right text-zinc-500">{e.numberAnalystsEstimatedEps}명</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+        </div>
 
         {/* ============================================================ */}
         {/* INVESTMENT SUMMARY                                           */}
