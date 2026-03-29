@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import {
-  AreaChart,
+  ComposedChart,
   Area,
+  Bar,
   XAxis,
   YAxis,
   Tooltip,
@@ -137,8 +138,8 @@ export default function PriceChart({ data }: PriceChartProps) {
           ))}
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={320}>
-        <AreaChart data={filteredData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+      <ResponsiveContainer width="100%" height={380}>
+        <ComposedChart data={filteredData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
           <defs>
             <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
@@ -159,6 +160,7 @@ export default function PriceChart({ data }: PriceChartProps) {
             minTickGap={50}
           />
           <YAxis
+            yAxisId="price"
             axisLine={false}
             tickLine={false}
             tick={{ fill: '#6b7280', fontSize: 11 }}
@@ -166,8 +168,26 @@ export default function PriceChart({ data }: PriceChartProps) {
             tickFormatter={(val: number) => `$${val.toFixed(0)}`}
             width={60}
           />
+          <YAxis
+            yAxisId="volume"
+            orientation="right"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: '#4b5563', fontSize: 9 }}
+            tickFormatter={(val: number) => formatVolume(val)}
+            width={45}
+            domain={[0, (max: number) => max * 4]}
+          />
           <Tooltip content={<CustomTooltip />} />
+          <Bar
+            yAxisId="volume"
+            dataKey="volume"
+            fill="rgba(59, 130, 246, 0.15)"
+            radius={[1, 1, 0, 0]}
+            animationDuration={600}
+          />
           <Area
+            yAxisId="price"
             type="monotone"
             dataKey="close"
             stroke="#10b981"
@@ -175,7 +195,7 @@ export default function PriceChart({ data }: PriceChartProps) {
             fill="url(#priceGradient)"
             animationDuration={800}
           />
-        </AreaChart>
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   );
