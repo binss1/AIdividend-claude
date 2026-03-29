@@ -95,29 +95,16 @@ function fmtDual(v: number, rate: number): string {
 
 function fmtKRWHangul(v: number): string {
   if (v <= 0) return '0원';
-  const eok = Math.floor(v / 1e8);
-  const cheon = Math.floor((v % 1e8) / 1e7);
-  const baek = Math.floor((v % 1e7) / 1e6);
-  const sib = Math.floor((v % 1e6) / 1e5);
-  const man = Math.floor((v % 1e5) / 1e4);
+  const rounded = Math.round(v);
+  const eok = Math.floor(rounded / 1e8);
+  const manTotal = Math.floor((rounded % 1e8) / 1e4);
+  const below = rounded % 1e4;
+
   let result = '';
   if (eok > 0) result += `${eok}억`;
-  if (cheon > 0) result += `${cheon}천`;
-  if (baek > 0) result += `${baek}백`;
-  if ((cheon > 0 || baek > 0 || sib > 0 || man > 0) && eok > 0 && cheon === 0 && baek === 0) {
-    // 억 다음에 바로 십만/만 단위
-  }
-  if (sib > 0 || man > 0) {
-    const manVal = sib * 10 + man;
-    if (result && !result.endsWith('천') && !result.endsWith('백')) result += '';
-    result += `${manVal}만`;
-  }
-  if (!result) {
-    const remainder = Math.round(v);
-    return `${remainder.toLocaleString()}원`;
-  }
-  const below = v % 1e4;
-  if (below > 0) result += `${Math.round(below).toLocaleString()}`;
+  if (manTotal > 0) result += `${manTotal.toLocaleString()}만`;
+  if (!result) return `${rounded.toLocaleString()}원`;
+  if (below > 0) result += `${below.toLocaleString()}`;
   result += '원';
   return result;
 }
