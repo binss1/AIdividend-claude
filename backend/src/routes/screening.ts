@@ -392,7 +392,7 @@ router.get('/economic-calendar', async (req: Request, res: Response) => {
     const now = new Date();
     const from = req.query.from as string || now.toISOString().split('T')[0];
     const toDate = new Date(now);
-    toDate.setDate(toDate.getDate() + 7);
+    toDate.setDate(toDate.getDate() + 14);
     const to = req.query.to as string || toDate.toISOString().split('T')[0];
     const data = await getEconomicCalendar(from, to);
     // Filter US events, prioritize non-CFTC events
