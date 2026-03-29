@@ -4,6 +4,7 @@ import { env } from './config/env';
 import logger from './utils/logger';
 import screeningRouter from './routes/screening';
 import exchangeRateRouter from './routes/exchangeRate';
+import { initDB } from './services/dbService';
 
 const app = express();
 
@@ -68,6 +69,9 @@ const PORT = env.PORT;
 app.listen(PORT, () => {
   logger.info(`Server started on port ${PORT} (${env.NODE_ENV})`);
   logger.info(`Health check: http://localhost:${PORT}/api/health`);
+
+  // Initialize SQLite database
+  try { initDB(); } catch (e) { logger.error('DB init failed', (e as Error).message); }
 
   if (!env.FMP_API_KEY) {
     logger.warn('FMP_API_KEY is not set. Stock screening will not work.');

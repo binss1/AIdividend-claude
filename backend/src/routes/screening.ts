@@ -14,6 +14,7 @@ import {
 import { screenDividendETFs, getETFList } from '../services/etfScreeningService';
 import { getExchangeRate } from '../services/exchangeRateService';
 import { recommendPortfolio } from '../services/portfolioRecommendService';
+import { saveScreeningSession, getSessionList, getSessionDetail, deleteSession } from '../services/dbService';
 import { saveScreeningResults, saveETFResults } from '../services/googleSheetsService';
 import logger from '../utils/logger';
 import {
@@ -178,6 +179,14 @@ router.get('/stock-screening', optionalAuth, async (req: Request, res: Response)
           logger.error('Background sheets save failed', (err as Error).message);
         });
 
+        // Save to SQLite (non-blocking)
+        try {
+          saveScreeningSession('stock', criteria, results);
+          logger.info(`[DB] 배당주 스크리닝 결과 저장 완료: ${results.length}종목`);
+        } catch (dbErr) {
+          logger.error('[DB] 배당주 결과 저장 실패', (dbErr as Error).message);
+        }
+
         const elapsed = stockScreeningProgress.startedAt
           ? ((Date.now() - new Date(stockScreeningProgress.startedAt).getTime()) / 1000).toFixed(0)
           : '?';
@@ -272,6 +281,14 @@ router.post('/etf-screening', optionalAuth, async (req: Request, res: Response) 
         saveETFResults(results).catch(err => {
           logger.error('Background ETF sheets save failed', (err as Error).message);
         });
+
+        // Save to SQLite (non-blocking)
+        try {
+          saveScreeningSession('etf', criteria, results);
+          logger.info(`[DB] ETF 스크리닝 결과 저장 완료: ${results.length}종목`);
+        } catch (dbErr) {
+          logger.error('[DB] ETF 결과 저장 실패', (dbErr as Error).message);
+        }
 
         logger.info(`ETF screening completed: ${results.length} ETFs found`);
       } catch (err) {
@@ -762,6 +779,45 @@ router.post('/portfolio-simulate', optionalAuth, async (req: Request, res: Respo
   } catch (err) {
     logger.error('Portfolio simulation failed', (err as Error).message);
     res.status(500).json({ error: 'Portfolio simulation failed' });
+  }
+});
+
+// ==========================================
+// Screening History (SQLite)
+// ==========================================
+
+router.get('/history', optionalAuth, async (_req: Request, res: Response) => {
+  try {
+    const sessions = getSessionList();
+    res.json({ sessions });
+  } catch (err) {
+    logger.error('Failed to get screening history', (err as Error).message);
+    res.status(500).json({ error: 'Failed to get screening history' });
+  }
+});
+
+router.get('/history/:id', optionalAuth, async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id as string, 10);
+    if (isNaN(id)) { res.status(400).json({ error: 'Invalid session ID' }); return; }
+    const detail = getSessionDetail(id);
+    if (!detail) { res.status(404).json({ error: 'Session not found' }); return; }
+    res.json(detail);
+  } catch (err) {
+    logger.error('Failed to get session detail', (err as Error).message);
+    res.status(500).json({ error: 'Failed to get session detail' });
+  }
+});
+
+router.delete('/history/:id', optionalAuth, async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id as string, 10);
+    if (isNaN(id)) { res.status(400).json({ error: 'Invalid session ID' }); return; }
+    const deleted = deleteSession(id);
+    res.json({ success: deleted });
+  } catch (err) {
+    logger.error('Failed to delete session', (err as Error).message);
+    res.status(500).json({ error: 'Failed to delete session' });
   }
 });
 

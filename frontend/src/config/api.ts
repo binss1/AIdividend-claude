@@ -28,6 +28,10 @@ export const API_ENDPOINTS = {
   // Portfolio Recommendation
   PORTFOLIO_RECOMMEND: '/screening/portfolio-recommend',
 
+  // Screening History
+  SCREENING_HISTORY: '/screening/history',
+  SCREENING_HISTORY_DETAIL: (id: number) => `/screening/history/${id}`,
+
   // Exchange Rate
   EXCHANGE_RATE: '/exchange-rate',
 
