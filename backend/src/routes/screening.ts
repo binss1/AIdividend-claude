@@ -395,12 +395,20 @@ router.get('/economic-calendar', async (req: Request, res: Response) => {
     toDate.setDate(toDate.getDate() + 14);
     const to = req.query.to as string || toDate.toISOString().split('T')[0];
     const data = await getEconomicCalendar(from, to);
-    // Filter US events, prioritize non-CFTC events
-    const usEvents = data.filter(e => e.country === 'US');
-    const major = usEvents.filter(e => !e.event.includes('CFTC'));
-    const cftc = usEvents.filter(e => e.event.includes('CFTC'));
-    const sorted = [...major, ...cftc].slice(0, 30);
-    res.json({ events: sorted, from, to });
+    // Filter US events, sort by date ASC, CFTC last within same date
+    const usEvents = data
+      .filter(e => e.country === 'US')
+      .sort((a, b) => {
+        const dateA = a.date || '';
+        const dateB = b.date || '';
+        if (dateA !== dateB) return dateA.localeCompare(dateB);
+        // Same date: non-CFTC first
+        const aCftc = a.event.includes('CFTC') ? 1 : 0;
+        const bCftc = b.event.includes('CFTC') ? 1 : 0;
+        return aCftc - bCftc;
+      })
+      .slice(0, 40);
+    res.json({ events: usEvents, from, to });
   } catch (err) {
     logger.error('Failed to get economic calendar', (err as Error).message);
     res.status(500).json({ error: 'Failed to get economic calendar' });
