@@ -22,10 +22,14 @@ type SortField = 'totalScore' | 'dividendYield' | 'expenseRatio' | 'aum' | 'pric
 type SortDir = 'asc' | 'desc';
 
 const AUM_OPTIONS = [
+  { label: '$50M', value: 50_000_000 },
   { label: '$100M', value: 100_000_000 },
+  { label: '$300M', value: 300_000_000 },
   { label: '$500M', value: 500_000_000 },
   { label: '$1B', value: 1_000_000_000 },
+  { label: '$2B', value: 2_000_000_000 },
   { label: '$5B', value: 5_000_000_000 },
+  { label: '$10B', value: 10_000_000_000 },
 ];
 
 const CACHE_KEY = 'etf_screening_results';

@@ -13,10 +13,15 @@ type SortField = 'overallScore' | 'dividendYield' | 'payoutRatio' | 'marketCap' 
 type SortDir = 'asc' | 'desc';
 
 const MARKET_CAP_OPTIONS = [
+  { label: '$100M', value: 100_000_000 },
+  { label: '$300M', value: 300_000_000 },
   { label: '$500M', value: 500_000_000 },
   { label: '$1B', value: 1_000_000_000 },
+  { label: '$2B', value: 2_000_000_000 },
   { label: '$5B', value: 5_000_000_000 },
   { label: '$10B', value: 10_000_000_000 },
+  { label: '$50B', value: 50_000_000_000 },
+  { label: '$100B', value: 100_000_000_000 },
 ];
 
 const CACHE_KEY = 'stock_screening_results';
