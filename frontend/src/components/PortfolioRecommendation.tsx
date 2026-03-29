@@ -521,7 +521,8 @@ function PortfolioDisplay({ portfolio, exchangeRate, assetType }: {
                   <div className="text-[10px] text-zinc-500">{fmtKRW(m.totalInvestment, exchangeRate)}</div>
                 </td>
                 <td />
-                <td className="px-3 py-2 text-right text-emerald-400">{m.weightedYield.toFixed(2)}%</td>
+                <td className="px-3 py-2 text-right text-red-400">{m.weightedYield.toFixed(2)}%</td>
+                <td />
                 <td className="px-3 py-2 text-right">
                   <div className="text-teal-400">{fmtUSD(m.expectedMonthlyDividendPostTax)}</div>
                   <div className="text-[10px] text-zinc-500">{fmtKRW(m.expectedMonthlyDividendPostTax, exchangeRate)} (세후)</div>
