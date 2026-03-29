@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { apiFetch, API_ENDPOINTS } from '@/config/api';
 import PortfolioRecommendation from '@/components/PortfolioRecommendation';
 import ScoreBar from '@/components/ScoreBar';
@@ -306,6 +307,7 @@ const QLEAD_COLORS = {
 // ==========================================
 
 function ETFResultTable({ results }: { results: any[] }) {
+  const router = useRouter();
   return (
     <table className="w-full text-sm">
       <thead>
@@ -330,13 +332,15 @@ function ETFResultTable({ results }: { results: any[] }) {
               <td className="px-4 py-3 text-zinc-600 font-mono text-xs">{idx + 1}</td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-zinc-100 font-mono text-xs">{etf.symbol}</span>
+                  <span className="font-semibold text-zinc-100 font-mono text-xs hover:text-emerald-400 cursor-pointer transition-colors"
+                    onClick={() => router.push(`/etf/${etf.symbol}`)}>{etf.symbol}</span>
                   {etf.isCoveredCall && (
                     <span className="shrink-0 rounded bg-orange-500/15 px-1 py-0.5 text-[9px] font-bold text-orange-400 border border-orange-500/20">CC</span>
                   )}
                 </div>
               </td>
-              <td className="px-4 py-3 text-zinc-300 max-w-[200px] truncate text-xs">{etf.name}</td>
+              <td className="px-4 py-3 text-zinc-300 max-w-[200px] truncate text-xs hover:text-zinc-100 cursor-pointer transition-colors"
+                onClick={() => router.push(`/etf/${etf.symbol}`)}>{etf.name}</td>
               <td className="px-4 py-3 text-right font-mono text-zinc-300 text-xs">${(etf.price || 0).toFixed(2)}</td>
               <td className="px-4 py-3 text-right text-zinc-400 font-mono text-xs">{formatAUM(etf.aum)}</td>
               <td className="px-4 py-3 text-right">
@@ -400,6 +404,7 @@ function QLeadMiniBars({ etf }: { etf: any }) {
 // ==========================================
 
 function StockResultTable({ results }: { results: any[] }) {
+  const router = useRouter();
   return (
     <table className="w-full text-sm">
       <thead>
@@ -424,13 +429,15 @@ function StockResultTable({ results }: { results: any[] }) {
             <td className="px-4 py-3 text-zinc-600 font-mono text-xs text-center">{idx + 1}</td>
             <td className="px-4 py-3">
               <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-zinc-100 font-mono text-xs">{s.symbol}</span>
+                <span className="font-semibold text-zinc-100 font-mono text-xs hover:text-emerald-400 cursor-pointer transition-colors"
+                  onClick={() => router.push(`/stock/${s.symbol}`)}>{s.symbol}</span>
                 {s.isREIT && (
                   <span className="shrink-0 rounded bg-purple-500/15 px-1 py-0.5 text-[9px] font-bold text-purple-400 border border-purple-500/20">REIT</span>
                 )}
               </div>
             </td>
-            <td className="px-4 py-3 text-zinc-300 max-w-[180px] truncate text-xs">{s.name}</td>
+            <td className="px-4 py-3 text-zinc-300 max-w-[180px] truncate text-xs hover:text-zinc-100 cursor-pointer transition-colors"
+              onClick={() => router.push(`/stock/${s.symbol}`)}>{s.name}</td>
             <td className="px-4 py-3 text-right font-mono text-zinc-300 text-xs">${(s.currentPrice || 0).toFixed(2)}</td>
             <td className="px-4 py-3 text-right">
               <span className="font-semibold text-emerald-400 font-mono text-xs">{(s.dividendYield || 0).toFixed(2)}%</span>

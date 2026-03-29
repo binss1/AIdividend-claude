@@ -78,6 +78,52 @@ const ECON_EVENT_KR: Record<string, string> = {
   'Treasury Budget': '재정수지',
   'Crude Oil Inventories': '원유재고',
   'Baker Hughes US Oil Rig Count': '석유 시추기 수',
+  'Baker Hughes Oil Rig Count': '석유 시추기 수',
+  'ISM Services New Orders': 'ISM 서비스업 신규주문',
+  'ISM Services Employment': 'ISM 서비스업 고용',
+  'ISM Services Prices': 'ISM 서비스업 물가',
+  'ISM Services PMI': 'ISM 서비스업 PMI',
+  'ISM Services Business Activity': 'ISM 서비스업 경기활동',
+  'S&P Global Composite PMI': 'S&P 종합 PMI',
+  'S&P Global Services PMI': 'S&P 서비스업 PMI',
+  'S&P Global Manufacturing PMI': 'S&P 제조업 PMI',
+  'Manufacturing Payrolls': '제조업 고용',
+  'Nonfarm Payrolls Private': '민간 비농업 고용',
+  'Average Hourly Earnings YoY': '평균시급 (전년비)',
+  'Average Hourly Earnings MoM': '평균시급 (전월비)',
+  'Average Weekly Hours': '주당 평균근로시간',
+  'Participation Rate': '경제활동참가율',
+  'U-6 Unemployment Rate': 'U-6 실업률 (광의)',
+  'Government Payrolls': '정부부문 고용',
+  'Fed Balance Sheet': '연준 대차대조표',
+  'Fed Logan Speech': '연준 로건 연설',
+  '30-Year Mortgage Rate': '30년 모기지 금리',
+  '15-Year Mortgage Rate': '15년 모기지 금리',
+  '8-Week Bill Auction': '8주 국채 입찰',
+  '4-Week Bill Auction': '4주 국채 입찰',
+  'Bill Auction': '국채 입찰',
+  'EIA Natural Gas Stocks Change': 'EIA 천연가스 재고변동',
+  'EIA Crude Oil Stocks Change': 'EIA 원유 재고변동',
+  'Goods Trade Balance Adv': '상품 무역수지 (속보)',
+  'Goods Trade Balance': '상품 무역수지',
+  'Imports': '수입액',
+  'Exports': '수출액',
+  'Jobless Claims 4-Week Average': '실업수당청구 4주평균',
+  'Chicago PMI': '시카고 PMI',
+  'Dallas Fed Manufacturing Index': '댈러스 연준 제조업지수',
+  'Richmond Fed Manufacturing Index': '리치몬드 연준 제조업지수',
+  'Philadelphia Fed Manufacturing Index': '필라델피아 연준 제조업지수',
+  'NY Empire State Manufacturing Index': 'NY 제조업지수',
+  'CB Consumer Confidence': 'CB 소비자신뢰지수',
+  'ADP Employment Change': 'ADP 민간고용 변화',
+  'JOLTs Job Openings': 'JOLTs 구인건수',
+  'Factory Orders': '공장주문',
+  'Factory Orders MoM': '공장주문 (전월비)',
+  'Pending Home Sales': '잠정주택매매',
+  'Budget Balance': '재정수지',
+  'Michigan Current Conditions': '미시간 현재경기',
+  'Michigan Consumer Expectations': '미시간 소비자기대',
+  'Inflation Expectations': '기대인플레이션',
 };
 
 function translateEconEvent(event: string): string {
@@ -565,7 +611,11 @@ export default function DashboardPage() {
                   );
                 })}
               </div>
-              <p className="text-[10px] text-zinc-600 mt-2">예상 | (이전)</p>
+              <div className="flex gap-4 mt-2 text-[10px] text-zinc-600">
+                <span>숫자: <span className="text-zinc-400">예상치</span></span>
+                <span>괄호: <span className="text-zinc-400">이전 발표치</span></span>
+                <span>발표 후 실제치가 업데이트됩니다</span>
+              </div>
             </section>
           )}
 
