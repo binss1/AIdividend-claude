@@ -78,7 +78,6 @@ const ECON_EVENT_KR: Record<string, string> = {
   'Treasury Budget': '재정수지',
   'Crude Oil Inventories': '원유재고',
   'Baker Hughes US Oil Rig Count': '석유 시추기 수',
-  'CFTC': 'CFTC 투기포지션',
 };
 
 function translateEconEvent(event: string): string {
