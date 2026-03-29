@@ -202,7 +202,12 @@ export default function StockDetailPage() {
 
       if (divRes.status === 'fulfilled' && divRes.value.ok) {
         const data = await divRes.value.json();
-        setDividendHistory(Array.isArray(data) ? data : data.dividends ?? data.data ?? []);
+        const rawDivs = Array.isArray(data) ? data : data.dividends ?? data.data ?? [];
+        // Normalize: FMP returns { date, dividend }, chart expects { date, amount }
+        setDividendHistory(rawDivs.map((d: { date: string; dividend?: number; amount?: number }) => ({
+          date: d.date,
+          amount: d.amount ?? d.dividend ?? 0,
+        })));
       }
     } catch {
       setError('데이터를 불러오는 중 오류가 발생했습니다.');
@@ -650,9 +655,9 @@ export default function StockDetailPage() {
                 {stock.institutionalHolders.slice(0, 8).map((h, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs rounded-lg bg-gray-800/30 px-3 py-1.5">
                     <span className="text-zinc-300 flex-1 truncate">{h.holder}</span>
-                    <span className="text-zinc-400 w-20 text-right">{(h.shares / 1e6).toFixed(2)}M주</span>
-                    <span className={`w-16 text-right font-mono ${h.change > 0 ? 'text-red-400' : h.change < 0 ? 'text-blue-400' : 'text-zinc-500'}`}>
-                      {h.change > 0 ? '+' : ''}{(h.change / 1e3).toFixed(0)}K
+                    <span className="text-zinc-400 w-24 text-right">{h.shares >= 1e6 ? `${(h.shares / 1e6).toFixed(1)}백만주` : `${(h.shares / 1e3).toFixed(0)}천주`}</span>
+                    <span className={`w-20 text-right font-mono ${h.change > 0 ? 'text-red-400' : h.change < 0 ? 'text-blue-400' : 'text-zinc-500'}`}>
+                      {h.change > 0 ? '+' : ''}{Math.abs(h.change) >= 1e6 ? `${(h.change / 1e6).toFixed(1)}백만` : Math.abs(h.change) >= 1e3 ? `${(h.change / 1e3).toFixed(0)}천` : h.change.toLocaleString()}
                     </span>
                   </div>
                 ))}
@@ -668,9 +673,27 @@ export default function StockDetailPage() {
                 소셜 감성 분석
               </h2>
               {(() => {
-                const recent = stock.socialSentiment.slice(0, 7);
-                const avgSentiment = recent.reduce((s, d) => s + (d.stocktwitsSentiment || 0), 0) / recent.length;
-                const totalPosts = recent.reduce((s, d) => s + (d.stocktwitsPosts || 0) + (d.twitterPosts || 0), 0);
+                // Aggregate hourly data into daily
+                const dailyMap = new Map<string, { sentiment: number[]; posts: number }>();
+                for (const d of stock.socialSentiment!) {
+                  const day = d.date?.slice(0, 10) || '';
+                  if (!dailyMap.has(day)) dailyMap.set(day, { sentiment: [], posts: 0 });
+                  const entry = dailyMap.get(day)!;
+                  if (d.stocktwitsSentiment > 0) entry.sentiment.push(d.stocktwitsSentiment);
+                  entry.posts += (d.stocktwitsPosts || 0) + (d.twitterPosts || 0);
+                }
+                const daily = [...dailyMap.entries()]
+                  .map(([date, v]) => ({
+                    date,
+                    sentiment: v.sentiment.length > 0 ? v.sentiment.reduce((a, b) => a + b, 0) / v.sentiment.length : 0.5,
+                    posts: v.posts,
+                  }))
+                  .sort((a, b) => a.date.localeCompare(b.date))
+                  .slice(-7);
+                const avgSentiment = daily.length > 0
+                  ? daily.reduce((s, d) => s + d.sentiment, 0) / daily.length
+                  : 0.5;
+                const totalPosts = daily.reduce((s, d) => s + d.posts, 0);
                 return (
                   <div className="space-y-3">
                     <div className="flex gap-3">
@@ -688,18 +711,18 @@ export default function StockDetailPage() {
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      {recent.reverse().map((d, i) => {
-                        const s = d.stocktwitsSentiment || 0.5;
-                        return (
-                          <div key={i} className="flex-1 text-center">
-                            <div className="h-8 rounded-sm" style={{
-                              backgroundColor: s > 0.6 ? 'rgba(16,185,129,0.3)' : s > 0.4 ? 'rgba(234,179,8,0.3)' : 'rgba(239,68,68,0.3)',
-                            }} />
-                            <p className="text-[8px] text-zinc-600 mt-0.5">{d.date?.slice(5, 10)}</p>
+                      {daily.map((d, i) => (
+                        <div key={i} className="flex-1 text-center">
+                          <div className="h-8 rounded-sm flex items-end justify-center" style={{
+                            backgroundColor: d.sentiment > 0.6 ? 'rgba(16,185,129,0.3)' : d.sentiment > 0.4 ? 'rgba(234,179,8,0.2)' : 'rgba(239,68,68,0.3)',
+                          }}>
+                            <span className="text-[8px] text-zinc-400 pb-0.5">{d.posts}</span>
                           </div>
-                        );
-                      })}
+                          <p className="text-[8px] text-zinc-600 mt-0.5">{d.date.slice(5, 10)}</p>
+                        </div>
+                      ))}
                     </div>
+                    <p className="text-[10px] text-zinc-600">바 색상: 초록=긍정 / 노랑=중립 / 빨강=부정 | 숫자=게시물 수</p>
                   </div>
                 );
               })()}
@@ -725,7 +748,7 @@ export default function StockDetailPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/20">
-                    {stock.analystEstimates.slice(0, 4).map((e, i) => (
+                    {[...stock.analystEstimates].sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4).map((e, i) => (
                       <tr key={i} className="hover:bg-gray-800/20">
                         <td className="px-2 py-1.5 text-zinc-400">{e.date?.slice(0, 7)}</td>
                         <td className="px-2 py-1.5 text-right text-white font-mono">${e.estimatedEpsAvg?.toFixed(2)}</td>
