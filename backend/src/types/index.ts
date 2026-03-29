@@ -301,6 +301,7 @@ export interface PortfolioHolding {
   score: number;
   grade: string;
   category: string;
+  dividendCycle: string;
 }
 
 export interface PortfolioMetrics {

@@ -319,6 +319,7 @@ function buildPortfolio(
         score: sa.qualityScore,
         grade: sa.grade,
         category: cat,
+        dividendCycle: sa.dividendCycle,
       });
     }
   }
