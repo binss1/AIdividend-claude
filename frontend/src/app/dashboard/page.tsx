@@ -423,10 +423,7 @@ export default function DashboardPage() {
                         <span className="text-xs text-emerald-400 font-medium">
                           수익률 {stock.dividendYield.toFixed(2)}%
                         </span>
-                        <div className="flex-1 max-w-[100px]">
-                          <ScoreBar score={stock.overallScore} height={4} showLabel={false} />
-                        </div>
-                        <span className="text-xs text-gray-400 font-mono">{stock.overallScore.toFixed(1)}</span>
+                        <span className="text-xs text-gray-400 font-mono w-8 text-right">{stock.overallScore.toFixed(0)}</span>
                       </div>
                     </div>
                     <svg className="w-4 h-4 text-gray-600 group-hover:text-gray-400 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -462,9 +459,10 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-3">
                 {topETFs.map((etf, i) => (
-                  <div
+                  <button
                     key={etf.symbol}
-                    className="flex items-center gap-4 p-3 bg-gray-800/40 rounded-xl"
+                    onClick={() => router.push(`/etf/${etf.symbol}`)}
+                    className="w-full flex items-center gap-4 p-3 bg-gray-800/40 hover:bg-gray-800/70 rounded-xl transition-colors text-left group"
                   >
                     <span className="text-xs text-gray-500 font-mono w-5">{i + 1}</span>
                     <div className="flex-1 min-w-0">
@@ -485,13 +483,11 @@ export default function DashboardPage() {
                         <span className="text-xs text-gray-500">
                           보수 {(etf.expenseRatio * 100).toFixed(2)}%
                         </span>
-                        <div className="flex-1 max-w-[80px]">
-                          <ScoreBar score={etf.totalScore} height={4} showLabel={false} />
-                        </div>
-                        <span className="text-xs text-gray-400 font-mono">{etf.totalScore.toFixed(1)}</span>
+                        <span className="text-xs text-gray-400 font-mono w-8 text-right">{etf.totalScore.toFixed(0)}</span>
                       </div>
                     </div>
-                  </div>
+                    <svg className="w-4 h-4 text-gray-600 group-hover:text-gray-400 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                  </button>
                 ))}
               </div>
             )}
