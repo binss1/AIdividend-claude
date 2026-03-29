@@ -39,6 +39,63 @@ interface MarketIndex {
 // Helpers
 // -------------------------------------------------------------------
 
+const ECON_EVENT_KR: Record<string, string> = {
+  'CPI': '소비자물가지수',
+  'Core CPI': '근원 소비자물가',
+  'PPI': '생산자물가지수',
+  'Core PPI': '근원 생산자물가',
+  'GDP': 'GDP 성장률',
+  'GDP Growth Rate': 'GDP 성장률',
+  'Initial Jobless Claims': '신규 실업수당 청구',
+  'Continuing Jobless Claims': '계속 실업수당 청구',
+  'Non Farm Payrolls': '비농업 고용',
+  'Nonfarm Payrolls': '비농업 고용',
+  'Unemployment Rate': '실업률',
+  'Interest Rate Decision': '기준금리 결정',
+  'Federal Funds Rate': '연방기금금리',
+  'FOMC': '연준 통화정책회의',
+  'FOMC Minutes': '연준 의사록',
+  'Retail Sales': '소매판매',
+  'Core Retail Sales': '근원 소매판매',
+  'Industrial Production': '산업생산',
+  'Manufacturing PMI': '제조업 PMI',
+  'Services PMI': '서비스업 PMI',
+  'ISM Manufacturing PMI': 'ISM 제조업 PMI',
+  'ISM Non-Manufacturing PMI': 'ISM 비제조업 PMI',
+  'Consumer Confidence': '소비자신뢰지수',
+  'Michigan Consumer Sentiment': '미시간 소비자심리',
+  'Housing Starts': '주택착공',
+  'Building Permits': '건축허가',
+  'Existing Home Sales': '기존주택매매',
+  'New Home Sales': '신규주택매매',
+  'Durable Goods Orders': '내구재 주문',
+  'Trade Balance': '무역수지',
+  'Current Account': '경상수지',
+  'Personal Income': '개인소득',
+  'Personal Spending': '개인소비',
+  'PCE Price Index': 'PCE 물가지수',
+  'Core PCE Price Index': '근원 PCE 물가',
+  'Treasury Budget': '재정수지',
+  'Crude Oil Inventories': '원유재고',
+  'Baker Hughes US Oil Rig Count': '석유 시추기 수',
+  'CFTC': 'CFTC 투기포지션',
+};
+
+function translateEconEvent(event: string): string {
+  // Exact match
+  if (ECON_EVENT_KR[event]) return ECON_EVENT_KR[event];
+  // Partial match
+  for (const [key, kr] of Object.entries(ECON_EVENT_KR)) {
+    if (event.includes(key)) return kr;
+  }
+  // CFTC pattern
+  if (event.startsWith('CFTC ')) {
+    const asset = event.replace('CFTC ', '').replace(' speculative net positions', '').replace(' Speculative net positions', '');
+    return `CFTC ${asset} 투기포지션`;
+  }
+  return '';
+}
+
 function formatKRW(usd: number, rate: number): string {
   return `${(usd * rate).toLocaleString('ko-KR', { maximumFractionDigits: 0 })}`;
 }
@@ -434,7 +491,7 @@ export default function DashboardPage() {
                     </p>
                     <p className={`text-xs font-mono ${
                       change != null
-                        ? isUp ? 'text-emerald-400' : 'text-red-400'
+                        ? isUp ? 'text-red-400' : 'text-blue-400'
                         : 'text-gray-600'
                     }`}>
                       {change != null
@@ -466,7 +523,7 @@ export default function DashboardPage() {
                 return (
                   <div key={s.sector} className="rounded-lg bg-zinc-800/50 border border-zinc-700/30 p-3 hover:border-zinc-600/50 transition-colors">
                     <p className="text-xs text-zinc-400 truncate">{s.sector}</p>
-                    <p className={`text-sm font-bold font-mono mt-1 ${isUp ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <p className={`text-sm font-bold font-mono mt-1 ${isUp ? 'text-red-400' : 'text-blue-400'}`}>
                       {isUp ? '+' : ''}{pct.toFixed(2)}%
                     </p>
                   </div>
@@ -490,18 +547,24 @@ export default function DashboardPage() {
                 경제 캘린더 (미국)
               </h2>
               <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
-                {econEvents.map((e, i) => (
-                  <div key={i} className="flex items-center gap-3 rounded-lg bg-zinc-800/30 px-3 py-2 text-xs">
-                    <span className="text-zinc-500 w-20 shrink-0">{e.date?.split(' ')[0]}</span>
-                    <span className="text-zinc-300 flex-1 truncate">{e.event}</span>
-                    <span className="text-zinc-400 w-14 text-right shrink-0">
-                      {e.estimate != null ? e.estimate : '-'}
-                    </span>
-                    <span className="text-zinc-500 w-14 text-right shrink-0">
-                      {e.previous != null ? `(${e.previous})` : ''}
-                    </span>
-                  </div>
-                ))}
+                {econEvents.map((e, i) => {
+                  const kr = translateEconEvent(e.event);
+                  return (
+                    <div key={i} className="flex items-center gap-3 rounded-lg bg-zinc-800/30 px-3 py-2 text-xs">
+                      <span className="text-zinc-500 w-20 shrink-0">{e.date?.split(' ')[0]}</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-zinc-300 truncate block">{e.event}</span>
+                        {kr && <span className="text-emerald-400/70 text-[10px] truncate block">{kr}</span>}
+                      </div>
+                      <span className="text-zinc-400 w-14 text-right shrink-0">
+                        {e.estimate != null ? e.estimate : '-'}
+                      </span>
+                      <span className="text-zinc-500 w-14 text-right shrink-0">
+                        {e.previous != null ? `(${e.previous})` : ''}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
               <p className="text-[10px] text-zinc-600 mt-2">예상 | (이전)</p>
             </section>
