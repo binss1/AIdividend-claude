@@ -773,15 +773,15 @@ export default function StockScreeningPage() {
                         {stock.roe === 0 ? (
                           <span className="text-zinc-600">N/A</span>
                         ) : (
-                          <span className={
-                            stock.roe >= 20 ? 'text-emerald-400 font-semibold' :
-                            stock.roe >= 15 ? 'text-emerald-400' :
-                            stock.roe >= 10 ? 'text-teal-400' :
-                            stock.roe >= 5 ? 'text-zinc-300' :
-                            stock.roe >= 0 ? 'text-zinc-500' :
-                            stock.roe >= -10 ? 'text-amber-400' :
-                            'text-red-400'
-                          }>
+                          <span className={`font-mono text-xs ${
+                            stock.roe >= 20 ? 'text-emerald-400 font-bold' :
+                            stock.roe >= 15 ? 'text-green-400' :
+                            stock.roe >= 10 ? 'text-cyan-400' :
+                            stock.roe >= 5 ? 'text-sky-300' :
+                            stock.roe >= 0 ? 'text-zinc-400' :
+                            stock.roe >= -10 ? 'text-orange-400' :
+                            'text-red-500 font-bold'
+                          }`}>
                             {stock.roe.toFixed(1)}%
                           </span>
                         )}
