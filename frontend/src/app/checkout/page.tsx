@@ -91,6 +91,17 @@ function CheckoutContent() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div className="max-w-2xl mx-auto px-4 py-12">
+        {/* Back Button */}
+        <button
+          onClick={() => window.history.length > 1 ? window.history.back() : window.location.href = '/pricing'}
+          className="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white transition-colors mb-6"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          요금제로 돌아가기
+        </button>
+
         {/* Header */}
         <h1 className="text-2xl font-bold text-center mb-2">결제하기</h1>
         <p className="text-sm text-zinc-400 text-center mb-8">AI Dividend 서비스 이용권 구매</p>
