@@ -558,7 +558,13 @@ router.get('/stock/:symbol/historical', optionalAuth, async (req: Request, res: 
 router.get('/stock/:symbol/dividend-history', optionalAuth, async (req: Request, res: Response) => {
   try {
     const symbol = req.params.symbol as string;
-    const dividends = await getDividendHistory(symbol.toUpperCase());
+    const allDividends = await getDividendHistory(symbol.toUpperCase());
+
+    // Limit to last 10 years
+    const tenYearsAgo = new Date();
+    tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
+    const cutoff = tenYearsAgo.toISOString().split('T')[0];
+    const dividends = allDividends.filter(d => d.date >= cutoff);
 
     res.json({
       symbol: symbol.toUpperCase(),
