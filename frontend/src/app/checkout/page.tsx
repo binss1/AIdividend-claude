@@ -26,8 +26,13 @@ function generateOrderId(): string {
 function CheckoutContent() {
   const searchParams = useSearchParams();
   const planId = searchParams.get('plan') || 'pro';
+  const customPrice = searchParams.get('price');
+  const period = searchParams.get('period') || '월간';
 
   const plan = PLANS.find(p => p.id === planId) || PLANS[1];
+  const planBasePrice = plan.price;
+  const finalPrice: number = customPrice ? Number(customPrice) : planBasePrice;
+  const isAnnual = period === '연간';
 
   const paymentWidgetRef = useRef<PaymentWidgetInstance | null>(null);
   const [ready, setReady] = useState(false);
@@ -47,7 +52,7 @@ function CheckoutContent() {
         paymentWidgetRef.current = widget;
 
         // renderPaymentMethods returns a promise-like that resolves when UI is ready
-        const paymentMethodsWidget = widget.renderPaymentMethods('#payment-widget', { value: plan.price }, { variantKey: 'DEFAULT' });
+        const paymentMethodsWidget = widget.renderPaymentMethods('#payment-widget', { value: finalPrice }, { variantKey: 'DEFAULT' });
         widget.renderAgreement('#agreement-widget', { variantKey: 'AGREEMENT' });
 
         // Wait for the widget to fully render
@@ -68,7 +73,7 @@ function CheckoutContent() {
         setLoading(false);
       }
     })();
-  }, [plan.price]);
+  }, [finalPrice]);
 
   const handlePayment = async () => {
     const widget = paymentWidgetRef.current;
@@ -77,7 +82,7 @@ function CheckoutContent() {
     try {
       await widget.requestPayment({
         orderId: generateOrderId(),
-        orderName: `AI Dividend ${plan.name} 플랜`,
+        orderName: `AI Dividend ${plan.name} 플랜 (${period})`,
         customerEmail: '',
         customerName: '',
         successUrl: `${window.location.origin}/checkout/success`,
@@ -111,13 +116,14 @@ function CheckoutContent() {
           <h2 className="text-sm font-semibold text-zinc-300 mb-3">주문 내역</h2>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-white font-bold">{plan.name} 플랜</p>
+              <p className="text-white font-bold">{plan.name} 플랜 ({period})</p>
               <p className="text-xs text-zinc-500 mt-0.5">
                 {plan.credits === -1 ? '무제한 크레딧' : `${plan.credits.toLocaleString()} 크레딧 / 월`}
+                {isAnnual && ' × 12개월 (20% 할인)'}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xl font-bold text-emerald-400">₩{plan.price.toLocaleString()}</p>
+              <p className="text-xl font-bold text-emerald-400">₩{finalPrice.toLocaleString()}</p>
               <p className="text-[10px] text-zinc-500">부가세 포함</p>
             </div>
           </div>
@@ -146,7 +152,7 @@ function CheckoutContent() {
             onClick={handlePayment}
             className="w-full py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 shadow-lg shadow-emerald-500/20 transition-all"
           >
-            ₩{plan.price.toLocaleString()} 결제하기
+            ₩{finalPrice.toLocaleString()} 결제하기
           </button>
         )}
 

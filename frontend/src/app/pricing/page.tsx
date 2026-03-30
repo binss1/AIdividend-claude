@@ -256,7 +256,12 @@ export default function PricingPage() {
                   ))}
                 </ul>
                 <button
-                  onClick={() => plan.price === 0 ? router.push('/screening') : router.push(`/checkout?plan=${plan.id}`)}
+                  onClick={() => {
+                    if (plan.price === 0) { router.push('/screening'); return; }
+                    const finalPrice = billingPeriod === 'annual' ? Math.round(plan.price * 0.8) * 12 : plan.price;
+                    const period = billingPeriod === 'annual' ? '연간' : '월간';
+                    router.push(`/checkout?plan=${plan.id}&price=${finalPrice}&period=${period}`);
+                  }}
                   className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   plan.popular
                     ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 shadow-lg shadow-emerald-500/20'
