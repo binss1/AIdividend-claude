@@ -695,6 +695,18 @@ export default function ETFScreeningPage() {
         )}
 
         {/* Results Section */}
+        {/* Filter Summary Bar */}
+        {results.length > 0 && (
+          <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-5 py-3 flex flex-wrap items-center gap-2 text-xs mb-4">
+            <span className="text-zinc-500 shrink-0">적용 필터:</span>
+            <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">수익률 ≥{minYield}%</span>
+            <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/50">AUM ≥{minAum >= 1e9 ? `$${(minAum / 1e9).toFixed(0)}B` : `$${(minAum / 1e6).toFixed(0)}M`}</span>
+            <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/50">보수 ≤{maxExpenseRatio.toFixed(2)}%</span>
+            <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/50">분석 {maxCount}종목</span>
+            <span className="text-zinc-600 ml-auto shrink-0">→ {results.length}개 선정</span>
+          </div>
+        )}
+
         {results.length > 0 && (
           <>
             <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 backdrop-blur-xl overflow-hidden shadow-xl shadow-black/20 mb-6 animate-in fade-in duration-500">
