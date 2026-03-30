@@ -37,6 +37,9 @@ export const API_ENDPOINTS = {
   ECONOMIC_CALENDAR: '/screening/economic-calendar',
   STOCK_NEWS: '/screening/stock-news',
 
+  // Payments
+  PAYMENT_CONFIRM: '/payments/confirm',
+
   // Exchange Rate
   EXCHANGE_RATE: '/exchange-rate',
 

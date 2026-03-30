@@ -22,5 +22,8 @@ export const env = {
   // Frontend
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
 
+  // Toss Payments
+  TOSS_SECRET_KEY: process.env.TOSS_SECRET_KEY || '',
+
   isDev: () => (process.env.NODE_ENV || 'development') === 'development',
 };

@@ -4,6 +4,7 @@ import { env } from './config/env';
 import logger from './utils/logger';
 import screeningRouter from './routes/screening';
 import exchangeRateRouter from './routes/exchangeRate';
+import paymentsRouter from './routes/payments';
 import { initDB } from './services/dbService';
 
 const app = express();
@@ -30,6 +31,7 @@ if (env.isDev()) {
 
 app.use('/api/screening', screeningRouter);
 app.use('/api/exchange-rate', exchangeRateRouter);
+app.use('/api/payments', paymentsRouter);
 
 // Health check
 app.get('/api/health', (_req: Request, res: Response) => {

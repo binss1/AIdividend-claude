@@ -2,6 +2,7 @@
 
 import { useState, Fragment } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 // ==========================================
 // Data
@@ -172,6 +173,7 @@ const FAQS = [
 // ==========================================
 
 export default function PricingPage() {
+  const router = useRouter();
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
@@ -253,14 +255,16 @@ export default function PricingPage() {
                     </li>
                   ))}
                 </ul>
-                <button className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                <button
+                  onClick={() => plan.price === 0 ? router.push('/screening') : router.push(`/checkout?plan=${plan.id}`)}
+                  className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   plan.popular
                     ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 shadow-lg shadow-emerald-500/20'
                     : plan.price === 0
                       ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
                       : 'bg-zinc-800 text-white hover:bg-zinc-700 border border-zinc-700'
                 }`}>
-                  {plan.price === 0 ? '무료로 시작' : 'Coming Soon'}
+                  {plan.price === 0 ? '무료로 시작' : '구매하기'}
                 </button>
               </div>
             );
@@ -321,8 +325,10 @@ export default function PricingPage() {
                 {pkg.discount && (
                   <p className="text-[10px] text-amber-400 mt-1">{pkg.discount}</p>
                 )}
-                <button className="w-full mt-3 py-2 rounded-lg text-xs font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors">
-                  Coming Soon
+                <button
+                  onClick={() => router.push(`/checkout?plan=credit-${pkg.amount}`)}
+                  className="w-full mt-3 py-2 rounded-lg text-xs font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors">
+                  구매하기
                 </button>
               </div>
             ))}
