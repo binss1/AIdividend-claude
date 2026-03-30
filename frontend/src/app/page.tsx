@@ -276,6 +276,99 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════
+          WHO NEEDS THIS - 이런 분께 꼭 필요합니다
+          ═══════════════════════════════════════ */}
+      <section className="relative px-4 py-20 border-t border-zinc-800/50">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-14 text-center">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-1.5 text-sm text-emerald-400">
+              🎯 이런 분께 꼭 필요합니다
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              당신의 <span className="text-gradient">재정 목표</span>에 맞는 배당 전략
+            </h2>
+            <p className="mt-3 text-zinc-400 text-sm max-w-2xl mx-auto">
+              단순히 주식을 사고 파는 것이 아닙니다. 매달 통장에 들어오는 현금흐름을 설계합니다.
+            </p>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                emoji: '🏖️',
+                title: '안정적인 월 생활비가 필요한 은퇴자',
+                desc: '연금만으로 부족한 생활비를 매달 배당금으로 보충합니다. 원금을 건드리지 않고 현금흐름만으로 생활하는 구조를 만들어 드립니다.',
+                highlight: '월 100만원 배당 = 약 3억 투자 (수익률 4% 기준)',
+                color: 'emerald',
+              },
+              {
+                emoji: '👨‍💼',
+                title: '월급 외 제2의 수입을 원하는 직장인',
+                desc: '매달 자동으로 들어오는 배당금으로 점심값, 통신비, 보험료를 충당합니다. 급여일 외에도 돈이 들어오는 경험을 시작하세요.',
+                highlight: '월 50만원 배당 시작 → 재투자로 10년 후 월 150만원',
+                color: 'blue',
+              },
+              {
+                emoji: '👶',
+                title: '자녀 학자금을 미리 준비하는 부모',
+                desc: '10~15년 후 필요한 학자금을 배당 재투자로 복리 성장시킵니다. 시장 등락에 흔들리지 않는 안정적인 자산 증식 전략입니다.',
+                highlight: '월 30만원 × 15년 재투자 = 약 1.2억 (배당성장 포함)',
+                color: 'purple',
+              },
+              {
+                emoji: '🏦',
+                title: '예금 금리에 실망한 저축가',
+                desc: '연 2~3% 예금 이자 vs 연 5~8% 배당수익률. 같은 돈을 넣어도 2~3배 더 많은 현금이 들어옵니다. 원금 손실 위험? AI가 안정적인 종목만 선별합니다.',
+                highlight: '1억 예금 이자 250만원 vs 배당 500~800만원/년',
+                color: 'amber',
+              },
+              {
+                emoji: '📈',
+                title: '투자는 하고 싶지만 주식이 어려운 초보',
+                desc: '어떤 종목을 사야 할지 모르겠다면, AI가 5축 분석으로 A+~D등급을 매겨드립니다. 점수 높은 종목에 분산투자하면 됩니다.',
+                highlight: '517개 종목 중 상위 A등급 10~20개만 자동 선별',
+                color: 'teal',
+              },
+              {
+                emoji: '🌍',
+                title: '달러 자산으로 환율 리스크를 분산하려는 투자자',
+                desc: '미국 배당주는 달러로 배당금을 지급합니다. 원화 가치 하락 시 오히려 배당금 가치가 올라가는 자연 헤지 효과를 얻습니다.',
+                highlight: '환율 1,300원 → 1,500원 시 배당금 자동 15% 증가',
+                color: 'cyan',
+              },
+            ].map((item, i) => {
+              const colors: Record<string, string> = {
+                emerald: 'border-emerald-500/20 hover:border-emerald-500/40',
+                blue: 'border-blue-500/20 hover:border-blue-500/40',
+                purple: 'border-purple-500/20 hover:border-purple-500/40',
+                amber: 'border-amber-500/20 hover:border-amber-500/40',
+                teal: 'border-teal-500/20 hover:border-teal-500/40',
+                cyan: 'border-cyan-500/20 hover:border-cyan-500/40',
+              };
+              const highlightColors: Record<string, string> = {
+                emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+                blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+                purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+                amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                teal: 'bg-teal-500/10 text-teal-400 border-teal-500/20',
+                cyan: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+              };
+              return (
+                <div key={i} className={`rounded-2xl border bg-zinc-900/60 p-6 transition-all duration-300 hover:bg-zinc-900/80 ${colors[item.color]}`}>
+                  <div className="text-3xl mb-3">{item.emoji}</div>
+                  <h3 className="text-base font-bold text-white mb-2">{item.title}</h3>
+                  <p className="text-sm text-zinc-400 leading-relaxed mb-4">{item.desc}</p>
+                  <div className={`rounded-lg border px-3 py-2 text-xs ${highlightColors[item.color]}`}>
+                    💰 {item.highlight}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════
           WHY DIVIDEND INVESTING - 배당 투자의 이유
           ═══════════════════════════════════════ */}
       <section className="relative px-4 py-20">
