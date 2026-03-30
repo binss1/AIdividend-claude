@@ -624,7 +624,7 @@ export default function StockScreeningPage() {
 
         {/* Results Section */}
         {/* Applied Filter Card (frozen at screening time, same format as history page) */}
-        {results.length > 0 && appliedFilters && (
+        {!isScreening && appliedFilters && (results.length > 0 || skipSummary) && (
           <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 backdrop-blur-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
