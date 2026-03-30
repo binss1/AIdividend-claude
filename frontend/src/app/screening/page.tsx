@@ -773,22 +773,34 @@ export default function StockScreeningPage() {
                         {stock.roe === 0 ? (
                           <span className="text-zinc-600">N/A</span>
                         ) : (
-                          <span className={stock.roe >= 15 ? 'text-emerald-400' : stock.roe >= 10 ? 'text-zinc-300' : stock.roe < 0 ? 'text-red-400' : 'text-zinc-500'}>
+                          <span className={
+                            stock.roe >= 20 ? 'text-emerald-400 font-semibold' :
+                            stock.roe >= 15 ? 'text-emerald-400' :
+                            stock.roe >= 10 ? 'text-teal-400' :
+                            stock.roe >= 5 ? 'text-zinc-300' :
+                            stock.roe >= 0 ? 'text-zinc-500' :
+                            stock.roe >= -10 ? 'text-amber-400' :
+                            'text-red-400'
+                          }>
                             {stock.roe.toFixed(1)}%
                           </span>
                         )}
                       </td>
-                      <td className="px-2 py-3 text-center text-xs">
-                        <span className={
-                          stock.dividendCycle === 'monthly' ? 'text-emerald-400 font-medium' :
-                          stock.dividendCycle === 'quarterly' ? 'text-zinc-300' :
-                          'text-zinc-500'
-                        }>
-                          {stock.dividendCycle === 'monthly' ? '월배당' :
-                           stock.dividendCycle === 'quarterly' ? '분기' :
-                           stock.dividendCycle === 'semi-annual' ? '반기' :
-                           stock.dividendCycle === 'annual' ? '연간' : '-'}
-                        </span>
+                      <td className="px-2 py-3 text-center">
+                        {stock.dividendCycle === 'monthly' ? (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/25 text-[10px] font-bold text-emerald-400" title="월배당">
+                            <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/></svg>
+                            월
+                          </span>
+                        ) : stock.dividendCycle === 'quarterly' ? (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-[10px] font-medium text-blue-400" title="분기배당">분기</span>
+                        ) : stock.dividendCycle === 'semi-annual' ? (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[10px] font-medium text-amber-400" title="반기배당">반기</span>
+                        ) : stock.dividendCycle === 'annual' ? (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-zinc-500/10 border border-zinc-500/20 text-[10px] font-medium text-zinc-400" title="연간배당">연간</span>
+                        ) : (
+                          <span className="text-[10px] text-zinc-600">-</span>
+                        )}
                       </td>
                       <td className="px-2 py-3">
                         <ScoreBar score={stock.overallScore} />
