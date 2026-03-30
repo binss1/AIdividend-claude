@@ -23,8 +23,8 @@ import {
 // Constants
 // ==========================================
 
-const REQUEST_DELAY_MS = 300;
-const BATCH_DELAY_MS = 2000;
+const REQUEST_DELAY_MS = 200;  // FMP 분당 300회 한도 → 초당 5회 (200ms)
+const BATCH_DELAY_MS = 500;   // 배치 간 대기 최소화 (429 시 자동 백오프)
 const MAX_RETRIES = 3;
 const INITIAL_BACKOFF_MS = 1000;
 
