@@ -662,17 +662,17 @@ export default function StockScreeningPage() {
             {skipSummary && Object.keys(skipSummary).length > 0 && (
               <div className="pt-3 border-t border-zinc-800/40">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[10px] text-zinc-500 uppercase tracking-wider">탈락 사유 요약</span>
-                  <span className="text-[10px] text-zinc-600">({Object.values(skipSummary).reduce((a, b) => a + b, 0)}건)</span>
+                  <span className="text-xs text-zinc-400 font-medium">탈락 사유 요약</span>
+                  <span className="text-xs text-zinc-600">({Object.values(skipSummary).reduce((a, b) => a + b, 0)}건)</span>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-2">
                   {Object.entries(skipSummary)
                     .sort((a, b) => b[1] - a[1])
                     .map(([reason, count]) => {
                       const total = Object.values(skipSummary).reduce((a, b) => a + b, 0);
                       const pct = ((count / total) * 100).toFixed(0);
                       return (
-                        <span key={reason} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-zinc-800/50 text-[10px]">
+                        <span key={reason} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
                           <span className="text-zinc-400">{reason}</span>
                           <span className="text-amber-400 font-mono">{count}</span>
                           <span className="text-zinc-600">({pct}%)</span>
