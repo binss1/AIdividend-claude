@@ -1001,7 +1001,7 @@ function calculateStockScore(
 export async function screenDividendStocks(
   criteria: StockScreeningCriteria,
   progressCallback?: (progress: ScreeningProgress) => void
-): Promise<ScreenedStock[]> {
+): Promise<{ results: ScreenedStock[]; skipSummary: Record<string, number> }> {
   const results: ScreenedStock[] = [];
 
   logger.info('═══════════════════════════════════════════════════════');
@@ -1070,6 +1070,7 @@ export async function screenDividendStocks(
 
   // Step 2: Batch process with ETA tracking
   const batchSize = criteria.batchSize || 10;
+  const skipReasons: Record<string, number> = {}; // 탈락 사유 집계
   let processedCount = 0;
   let skippedCount = 0;
   const startTime = Date.now();
@@ -1089,16 +1090,19 @@ export async function screenDividendStocks(
       const stockStart = Date.now();
 
       try {
-        const stock = await analyzeStock(symbol, criteria, krwRate);
-        if (stock) {
-          results.push(stock);
-          logger.info(`  ✅ [${processedCount}/${universe.length}] ${symbol.padEnd(6)} | 수익률: ${stock.dividendYield.toFixed(2)}% | 성향: ${stock.payoutRatio.toFixed(1)}% | 점수: ${stock.overallScore} (${stock.grade}) | ${stock.sector}`);
+        const result = await analyzeStock(symbol, criteria, krwRate);
+        if (result.stock) {
+          results.push(result.stock);
+          logger.info(`  ✅ [${processedCount}/${universe.length}] ${symbol.padEnd(6)} | 수익률: ${result.stock.dividendYield.toFixed(2)}% | 성향: ${result.stock.payoutRatio.toFixed(1)}% | 점수: ${result.stock.overallScore} (${result.stock.grade}) | ${result.stock.sector}`);
         } else {
           skippedCount++;
-          logger.info(`  ⏭️  [${processedCount}/${universe.length}] ${symbol.padEnd(6)} | 조건 미달 (SKIP)`);
+          const reason = result.skipReason || '기타';
+          skipReasons[reason] = (skipReasons[reason] || 0) + 1;
+          logger.info(`  ⏭️  [${processedCount}/${universe.length}] ${symbol.padEnd(6)} | ${reason}`);
         }
       } catch (err) {
         skippedCount++;
+        skipReasons['오류'] = (skipReasons['오류'] || 0) + 1;
         logger.error(`  ❌ [${processedCount}/${universe.length}] ${symbol.padEnd(6)} | ERROR: ${(err as Error).message}`);
       }
 
@@ -1156,13 +1160,19 @@ export async function screenDividendStocks(
   logger.info(`     • 스킵/필터링: ${skippedCount}개`);
   logger.info(`     • 총 소요시간: ${formatElapsed(totalElapsed)}`);
   logger.info(`     • 종목당 평균: ${(totalElapsed / processedCount).toFixed(1)}초`);
+  if (Object.keys(skipReasons).length > 0) {
+    logger.info('     • 탈락 사유:');
+    Object.entries(skipReasons).sort((a, b) => b[1] - a[1]).forEach(([reason, count]) => {
+      logger.info(`       - ${reason}: ${count}건`);
+    });
+  }
   if (results.length > 0) {
     logger.info(`     • 최고점수: ${results[0].symbol} (${results[0].overallScore}점, ${results[0].grade})`);
     logger.info(`     • 최고수익률: ${results.reduce((max, s) => s.dividendYield > max.dividendYield ? s : max).symbol} (${results.reduce((max, s) => s.dividendYield > max.dividendYield ? s : max).dividendYield.toFixed(2)}%)`);
   }
   logger.info('═══════════════════════════════════════════════════════');
 
-  return results;
+  return { results, skipSummary: skipReasons };
 }
 
 function formatElapsed(seconds: number): string {
@@ -1180,47 +1190,37 @@ async function analyzeStock(
   symbol: string,
   criteria: StockScreeningCriteria,
   krwRate: number
-): Promise<ScreenedStock | null> {
+): Promise<{ stock: ScreenedStock; skipReason?: undefined } | { stock?: undefined; skipReason: string }> {
   // Get profile first for quick filtering
   const profile = await getCompanyProfile(symbol);
-  if (!profile) { logger.info(`    [${symbol}] SKIP: 프로필 없음`); return null; }
+  if (!profile) { logger.info(`    [${symbol}] SKIP: 프로필 없음`); return { skipReason: '프로필 없음' }; }
 
-  // Must be actively trading
-  if (!profile.isActivelyTrading) { logger.info(`    [${symbol}] SKIP: 비활성 종목`); return null; }
+  if (!profile.isActivelyTrading) { logger.info(`    [${symbol}] SKIP: 비활성 종목`); return { skipReason: '비활성 종목' }; }
 
-  // Must be on NYSE or NASDAQ (strict match)
   const exchange = (profile.exchangeShortName || '').toUpperCase();
-  if (exchange !== 'NYSE' && exchange !== 'NASDAQ') { logger.info(`    [${symbol}] SKIP: 거래소 ${exchange} (NYSE/NASDAQ 아님)`); return null; }
+  if (exchange !== 'NYSE' && exchange !== 'NASDAQ') { logger.info(`    [${symbol}] SKIP: 거래소 ${exchange}`); return { skipReason: '거래소 불일치' }; }
 
-  // Skip ETFs
-  if (profile.isEtf) { logger.info(`    [${symbol}] SKIP: ETF`); return null; }
+  if (profile.isEtf) { logger.info(`    [${symbol}] SKIP: ETF`); return { skipReason: 'ETF 제외' }; }
 
-  // Market cap filter (always in USD)
-  if (profile.mktCap < criteria.minMarketCapUSD) { logger.info(`    [${symbol}] SKIP: 시총 $${(profile.mktCap / 1e9).toFixed(1)}B < $${(criteria.minMarketCapUSD / 1e9).toFixed(1)}B`); return null; }
+  if (profile.mktCap < criteria.minMarketCapUSD) { logger.info(`    [${symbol}] SKIP: 시총 미달`); return { skipReason: '시가총액 미달' }; }
 
-  // Get quote for more data
   const quote = await getQuote(symbol);
-  if (!quote) { logger.info(`    [${symbol}] SKIP: 시세 없음`); return null; }
+  if (!quote) { logger.info(`    [${symbol}] SKIP: 시세 없음`); return { skipReason: '시세 없음' }; }
 
-  // Get dividend history
   const dividends = await getDividendHistory(symbol);
-  if (dividends.length === 0) { logger.info(`    [${symbol}] SKIP: 배당이력 없음`); return null; }
+  if (dividends.length === 0) { logger.info(`    [${symbol}] SKIP: 배당이력 없음`); return { skipReason: '배당이력 없음' }; }
 
-  // Dividend consistency check (3 of last 4 payments)
-  if (!checkDividendConsistency(dividends)) { logger.info(`    [${symbol}] SKIP: 배당 일관성 미달`); return null; }
+  if (!checkDividendConsistency(dividends)) { logger.info(`    [${symbol}] SKIP: 배당 일관성 미달`); return { skipReason: '배당 일관성 미달' }; }
 
-  // Determine cycle and annual dividend
   const cycle = determineDividendCycle(dividends);
   const annualDividend = calculateAnnualDividend(cycle, dividends);
-  if (annualDividend <= 0) { logger.info(`    [${symbol}] SKIP: 연간배당 ≤0`); return null; }
+  if (annualDividend <= 0) { logger.info(`    [${symbol}] SKIP: 연간배당 ≤0`); return { skipReason: '연간배당 없음' }; }
 
-  // Calculate dividend yield
   const price = quote.price || profile.price;
-  if (!price || price <= 0) { logger.info(`    [${symbol}] SKIP: 주가 없음`); return null; }
+  if (!price || price <= 0) { logger.info(`    [${symbol}] SKIP: 주가 없음`); return { skipReason: '주가 없음' }; }
   const dividendYield = (annualDividend / price) * 100;
 
-  // Yield filter
-  if (dividendYield < criteria.minDividendYield) { logger.info(`    [${symbol}] SKIP: 수익률 ${dividendYield.toFixed(2)}% < ${criteria.minDividendYield}%`); return null; }
+  if (dividendYield < criteria.minDividendYield) { logger.info(`    [${symbol}] SKIP: 수익률 ${dividendYield.toFixed(2)}% < ${criteria.minDividendYield}%`); return { skipReason: '수익률 미달' }; }
 
   // Detect REIT
   const stockIsREIT = isREIT(symbol, profile.sector, profile.industry);
@@ -1246,17 +1246,17 @@ async function analyzeStock(
 
   // Reject unprofitable companies
   if (!payoutResult.isValid && payoutResult.method === 'unprofitable') {
-    logger.debug(`${symbol}: rejected - unprofitable (EPS: ${eps}, NetIncome: ${netIncome})`);
-    return null;
+    logger.debug(`${symbol}: rejected - unprofitable`);
+    return { skipReason: '적자 기업' };
   }
 
   // Payout ratio filter
   const payoutRatio = payoutResult.ratio;
   const maxPayout = criteria.maxPayoutRatio || 85;
   if (stockIsREIT) {
-    if (payoutRatio < 10 || payoutRatio > 100) return null;
+    if (payoutRatio < 10 || payoutRatio > 100) return { skipReason: '배당성향 범위 초과 (REIT)' };
   } else {
-    if (payoutRatio < 10 || payoutRatio > maxPayout) return null;
+    if (payoutRatio < 10 || payoutRatio > maxPayout) return { skipReason: '배당성향 초과' };
   }
 
   // Calculate additional metrics
@@ -1399,7 +1399,7 @@ async function analyzeStock(
     lastUpdated: new Date().toISOString(),
   };
 
-  return screenedStock;
+  return { stock: screenedStock };
 }
 
 function calculateConsistencyScore(dividends: FMPDividendHistorical[]): number {

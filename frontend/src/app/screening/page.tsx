@@ -114,6 +114,7 @@ export default function StockScreeningPage() {
     minYield: number; minMarketCap: number; maxPayoutRatio: number;
     indexOnly: boolean; maxStocks: number;
   } | null>(null);
+  const [skipSummary, setSkipSummary] = useState<Record<string, number> | null>(null);
 
   // Table state
   const [sortField, setSortField] = useState<SortField>('overallScore');
@@ -156,6 +157,7 @@ export default function StockScreeningPage() {
                   localStorage.setItem(CACHE_KEY, JSON.stringify(d.results));
                   localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
                 }
+                if (d.skipSummary) setSkipSummary(d.skipSummary);
               } else if (d.status === 'error') {
                 clearInterval(interval);
                 setIsScreening(false);
@@ -191,6 +193,7 @@ export default function StockScreeningPage() {
           localStorage.setItem(CACHE_KEY, JSON.stringify(data.results));
           localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
         }
+        if (data.skipSummary) setSkipSummary(data.skipSummary);
       } else if (data.status === 'error') {
         stopPolling();
         setIsScreening(false);
@@ -654,6 +657,31 @@ export default function StockScreeningPage() {
                 <div className="text-sm text-white font-medium mt-0.5">{appliedFilters.indexOnly ? 'S&P500 + NASDAQ100' : '전체 미국 배당주'}</div>
               </div>
             </div>
+
+            {/* Skip Summary */}
+            {skipSummary && Object.keys(skipSummary).length > 0 && (
+              <div className="pt-3 border-t border-zinc-800/40">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[10px] text-zinc-500 uppercase tracking-wider">탈락 사유 요약</span>
+                  <span className="text-[10px] text-zinc-600">({Object.values(skipSummary).reduce((a, b) => a + b, 0)}건)</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.entries(skipSummary)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([reason, count]) => {
+                      const total = Object.values(skipSummary).reduce((a, b) => a + b, 0);
+                      const pct = ((count / total) * 100).toFixed(0);
+                      return (
+                        <span key={reason} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-zinc-800/50 text-[10px]">
+                          <span className="text-zinc-400">{reason}</span>
+                          <span className="text-amber-400 font-mono">{count}</span>
+                          <span className="text-zinc-600">({pct}%)</span>
+                        </span>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

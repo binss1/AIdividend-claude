@@ -196,7 +196,7 @@ export default function HistoryPage() {
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                 {Object.entries(detail.session.criteria)
-                  .filter(([key]) => !['batchSize', 'sortBy', 'limit'].includes(key))
+                  .filter(([key]) => !['batchSize', 'sortBy', 'limit', 'skipSummary'].includes(key))
                   .map(([key, value]) => (
                     <div key={key} className="rounded-lg bg-zinc-800/40 px-3 py-2">
                       <div className="text-[10px] text-zinc-500">{formatCriteriaLabel(key)}</div>
@@ -204,6 +204,32 @@ export default function HistoryPage() {
                     </div>
                   ))}
               </div>
+
+              {/* Skip Summary */}
+              {(() => {
+                const ss = detail.session.criteria.skipSummary as Record<string, number> | undefined;
+                if (!ss || Object.keys(ss).length === 0) return null;
+                const total = Object.values(ss).reduce((a, b) => a + (b as number), 0);
+                return (
+                  <div className="pt-3 border-t border-zinc-800/40">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[10px] text-zinc-500 uppercase tracking-wider">탈락 사유 요약</span>
+                      <span className="text-[10px] text-zinc-600">({total}건)</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {Object.entries(ss)
+                        .sort((a, b) => (b[1] as number) - (a[1] as number))
+                        .map(([reason, count]) => (
+                          <span key={reason} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-zinc-800/50 text-[10px]">
+                            <span className="text-zinc-400">{reason}</span>
+                            <span className="text-amber-400 font-mono">{count as number}</span>
+                            <span className="text-zinc-600">({((count as number) / total * 100).toFixed(0)}%)</span>
+                          </span>
+                        ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Results Table */}

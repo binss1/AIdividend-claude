@@ -95,6 +95,7 @@ export interface ScreeningProgress {
   screeningOrder?: string;          // 종목 검색 순서 설명
   error?: string;
   results?: ScreenedStock[];
+  skipSummary?: Record<string, number>;
 }
 
 export interface ETFScreeningProgress {

@@ -167,7 +167,7 @@ router.get('/stock-screening', optionalAuth, async (req: Request, res: Response)
     // Start screening in background
     (async () => {
       try {
-        const results = await screenDividendStocks(criteria, (progress) => {
+        const { results, skipSummary } = await screenDividendStocks(criteria, (progress) => {
           stockScreeningProgress = {
             ...stockScreeningProgress,
             ...progress,
@@ -183,6 +183,7 @@ router.get('/stock-screening', optionalAuth, async (req: Request, res: Response)
           startedAt: stockScreeningProgress.startedAt,
           completedAt: new Date().toISOString(),
           results,
+          skipSummary,
         };
 
         // Save to Google Sheets (non-blocking)
@@ -190,9 +191,9 @@ router.get('/stock-screening', optionalAuth, async (req: Request, res: Response)
           logger.error('Background sheets save failed', (err as Error).message);
         });
 
-        // Save to SQLite (non-blocking)
+        // Save to SQLite (non-blocking, include skipSummary in criteria)
         try {
-          saveScreeningSession('stock', criteria, results);
+          saveScreeningSession('stock', { ...criteria, skipSummary }, results);
           logger.info(`[DB] 배당주 스크리닝 결과 저장 완료: ${results.length}종목`);
         } catch (dbErr) {
           logger.error('[DB] 배당주 결과 저장 실패', (dbErr as Error).message);
