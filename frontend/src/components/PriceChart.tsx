@@ -25,13 +25,16 @@ interface PriceChartProps {
   data: PriceDataPoint[];
 }
 
-type Period = '1M' | '3M' | '6M' | '1Y' | '5Y';
+type Period = '1M' | '3M' | '6M' | '1Y' | '2Y' | '3Y' | '4Y' | '5Y';
 
 const PERIOD_LABELS: Record<Period, string> = {
   '1M': '1개월',
   '3M': '3개월',
   '6M': '6개월',
   '1Y': '1년',
+  '2Y': '2년',
+  '3Y': '3년',
+  '4Y': '4년',
   '5Y': '5년',
 };
 
@@ -40,6 +43,9 @@ const PERIOD_DAYS: Record<Period, number> = {
   '3M': 90,
   '6M': 180,
   '1Y': 365,
+  '2Y': 730,
+  '3Y': 1095,
+  '4Y': 1460,
   '5Y': 1825,
 };
 
