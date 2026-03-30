@@ -620,16 +620,40 @@ export default function StockScreeningPage() {
         )}
 
         {/* Results Section */}
-        {/* Filter Summary Bar (shows filters at time of screening) */}
+        {/* Applied Filter Card (frozen at screening time, same format as history page) */}
         {results.length > 0 && appliedFilters && (
-          <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-5 py-3 flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-zinc-500 shrink-0">적용 필터:</span>
-            <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">수익률 ≥{appliedFilters.minYield}%</span>
-            <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/50">시총 ≥{appliedFilters.minMarketCap >= 1e9 ? `$${(appliedFilters.minMarketCap / 1e9).toFixed(0)}B` : `$${(appliedFilters.minMarketCap / 1e6).toFixed(0)}M`}</span>
-            <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/50">배당성향 ≤{appliedFilters.maxPayoutRatio}%</span>
-            <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/50">{appliedFilters.indexOnly ? 'S&P500+NASDAQ100' : '전체 미국 배당주'}</span>
-            <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/50">분석 {appliedFilters.maxStocks}종목</span>
-            <span className="text-zinc-600 ml-auto shrink-0">→ {results.length}개 선정</span>
+          <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 backdrop-blur-xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                </svg>
+                스크리닝 조건
+              </h3>
+              <span className="text-xs text-zinc-500">→ {results.length}개 선정</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+              <div className="rounded-lg bg-zinc-800/40 px-3 py-2">
+                <div className="text-[10px] text-zinc-500">최소 배당수익률</div>
+                <div className="text-sm text-white font-medium mt-0.5">{appliedFilters.minYield}%</div>
+              </div>
+              <div className="rounded-lg bg-zinc-800/40 px-3 py-2">
+                <div className="text-[10px] text-zinc-500">최소 시가총액</div>
+                <div className="text-sm text-white font-medium mt-0.5">{appliedFilters.minMarketCap >= 1e9 ? `$${(appliedFilters.minMarketCap / 1e9).toFixed(1)}B` : `$${(appliedFilters.minMarketCap / 1e6).toFixed(0)}M`}</div>
+              </div>
+              <div className="rounded-lg bg-zinc-800/40 px-3 py-2">
+                <div className="text-[10px] text-zinc-500">최대 배당성향</div>
+                <div className="text-sm text-white font-medium mt-0.5">{appliedFilters.maxPayoutRatio}%</div>
+              </div>
+              <div className="rounded-lg bg-zinc-800/40 px-3 py-2">
+                <div className="text-[10px] text-zinc-500">최대 분석 종목수</div>
+                <div className="text-sm text-white font-medium mt-0.5">{appliedFilters.maxStocks.toLocaleString()}</div>
+              </div>
+              <div className="rounded-lg bg-zinc-800/40 px-3 py-2">
+                <div className="text-[10px] text-zinc-500">유니버스</div>
+                <div className="text-sm text-white font-medium mt-0.5">{appliedFilters.indexOnly ? 'S&P500 + NASDAQ100' : '전체 미국 배당주'}</div>
+              </div>
+            </div>
           </div>
         )}
 
