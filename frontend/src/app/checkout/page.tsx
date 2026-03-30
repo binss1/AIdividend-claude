@@ -46,14 +46,25 @@ function CheckoutContent() {
         const widget = await loadPaymentWidget(CLIENT_KEY, ANONYMOUS);
         paymentWidgetRef.current = widget;
 
-        widget.renderPaymentMethods('#payment-widget', { value: plan.price }, { variantKey: 'DEFAULT' });
+        // renderPaymentMethods returns a promise-like that resolves when UI is ready
+        const paymentMethodsWidget = widget.renderPaymentMethods('#payment-widget', { value: plan.price }, { variantKey: 'DEFAULT' });
         widget.renderAgreement('#agreement-widget', { variantKey: 'AGREEMENT' });
 
-        setReady(true);
+        // Wait for the widget to fully render
+        if (paymentMethodsWidget && typeof (paymentMethodsWidget as unknown as { on?: Function }).on === 'function') {
+          (paymentMethodsWidget as unknown as { on: Function }).on('ready', () => {
+            setReady(true);
+            setLoading(false);
+          });
+        } else {
+          // Fallback: wait a moment for rendering
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          setReady(true);
+          setLoading(false);
+        }
       } catch (err) {
         setError('결제 위젯을 불러오는데 실패했습니다.');
         console.error(err);
-      } finally {
         setLoading(false);
       }
     })();
