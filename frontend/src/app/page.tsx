@@ -369,6 +369,72 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════
+          WHY US DIVIDENDS - 왜 미국 배당주인가?
+          ═══════════════════════════════════════ */}
+      <section className="relative px-4 py-20 border-t border-zinc-800/50">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-14 text-center">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-1.5 text-sm text-blue-400">
+              🇺🇸 왜 미국 배당주인가?
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              세계 최대 시장,{' '}
+              <span className="text-gradient">가장 검증된 배당 역사</span>
+            </h2>
+            <p className="mt-3 text-zinc-400 text-sm max-w-2xl mx-auto">
+              한국 주식시장과 비교할 수 없는 구조적 장점이 있습니다.
+            </p>
+          </div>
+
+          {/* Comparison Table */}
+          <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 overflow-hidden mb-10">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-800/80 bg-zinc-900/90">
+                  <th className="px-5 py-3 text-left text-xs text-zinc-500">비교 항목</th>
+                  <th className="px-5 py-3 text-center text-xs text-blue-400">🇺🇸 미국</th>
+                  <th className="px-5 py-3 text-center text-xs text-zinc-500">🇰🇷 한국</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/40">
+                {[
+                  { item: '배당 문화', us: '주주환원 최우선 (50년+ 연속 증가 기업 다수)', kr: '배당 인색, 경영권 방어 우선' },
+                  { item: '배당 빈도', us: '분기배당 기본, 월배당 ETF 풍부', kr: '연 1회 배당이 대부분' },
+                  { item: '배당 성장', us: '매년 배당금 인상 (배당왕/귀족)', kr: '배당 삭감·중단 빈번' },
+                  { item: '시장 규모', us: 'GDP 대비 시총 150%+, 글로벌 1위', kr: 'GDP 대비 시총 80%, 유동성 제한' },
+                  { item: '통화 가치', us: '기축통화 달러, 인플레이션 헤지', kr: '원화 약세 추세, 구매력 하락' },
+                  { item: '배당 과세', us: '15% 원천징수 (조세조약)', kr: '15.4% (종합소득세 합산 가능)' },
+                  { item: '종목 수', us: '5,000+ 배당주, 500+ 배당 ETF', kr: '배당주 200개 미만' },
+                ].map((row, i) => (
+                  <tr key={i} className="hover:bg-zinc-800/20">
+                    <td className="px-5 py-3 text-white font-medium">{row.item}</td>
+                    <td className="px-5 py-3 text-center text-emerald-400 text-xs">{row.us}</td>
+                    <td className="px-5 py-3 text-center text-zinc-500 text-xs">{row.kr}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Key Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[
+              { value: '65+년', label: '최장 연속 배당 증가', sub: 'American States Water (AWR)', color: 'text-emerald-400' },
+              { value: '500+개', label: '배당 귀족 후보 종목', sub: 'S&P500 중 25년+ 연속 증가', color: 'text-blue-400' },
+              { value: '$1.7조', label: '2025 미국 배당금 총액', sub: '전 세계 배당금의 40% 차지', color: 'text-amber-400' },
+              { value: '9.8%', label: '배당 재투자 연평균 수익률', sub: 'S&P500 배당 재투자 50년 기준', color: 'text-purple-400' },
+            ].map((stat, i) => (
+              <div key={i} className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5 text-center">
+                <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                <p className="text-xs text-white font-medium mt-1">{stat.label}</p>
+                <p className="text-[10px] text-zinc-500 mt-1">{stat.sub}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════
           WHY DIVIDEND INVESTING - 배당 투자의 이유
           ═══════════════════════════════════════ */}
       <section className="relative px-4 py-20">
