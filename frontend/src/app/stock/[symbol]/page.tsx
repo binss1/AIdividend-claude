@@ -342,8 +342,12 @@ export default function StockDetailPage() {
               {[
                 {
                   label: '최근 배당금',
-                  value: stock.annualDividend != null ? `$${stock.annualDividend.toFixed(4)}` : '-',
-                  sub: '주당',
+                  value: dividendHistory.length > 0
+                    ? `$${[...dividendHistory].sort((a, b) => b.date.localeCompare(a.date))[0].amount.toFixed(4)}`
+                    : stock.annualDividend != null ? `$${stock.annualDividend.toFixed(4)}` : '-',
+                  sub: dividendHistory.length > 0
+                    ? `${[...dividendHistory].sort((a, b) => b.date.localeCompare(a.date))[0].date} 지급`
+                    : '주당',
                 },
                 {
                   label: '연간 배당금 (추정)',
