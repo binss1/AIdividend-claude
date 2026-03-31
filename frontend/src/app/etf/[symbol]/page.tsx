@@ -90,6 +90,7 @@ export default function ETFDetailPage() {
   const [etf, setEtf] = useState<ETFDetailData | null>(null);
   const [holdings, setHoldings] = useState<ETFHolding[]>([]);
   const [priceHistory, setPriceHistory] = useState<PriceDataPoint[]>([]);
+  const [lastDividend, setLastDividend] = useState<{ amount: number; date: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,7 +101,7 @@ export default function ETFDetailPage() {
     const base = getApiBaseUrl();
 
     try {
-      const [detailRes, holdingsRes, priceRes] = await Promise.allSettled([
+      const [detailRes, holdingsRes, priceRes, divRes] = await Promise.allSettled([
         fetch(`${base}/screening/etf/${symbol}`),
         fetch(`${base}/screening/etf/${symbol}/holdings`),
         fetch(
@@ -108,6 +109,7 @@ export default function ETFDetailPage() {
             new Date(Date.now() - 5 * 365 * 86400000).toISOString().slice(0, 10)
           }&to=${new Date().toISOString().slice(0, 10)}`
         ),
+        fetch(`${base}/screening/stock/${symbol}/dividend-history`),
       ]);
 
       if (detailRes.status === 'fulfilled' && detailRes.value.ok) {
@@ -124,6 +126,16 @@ export default function ETFDetailPage() {
       if (priceRes.status === 'fulfilled' && priceRes.value.ok) {
         const data = await priceRes.value.json();
         setPriceHistory(Array.isArray(data) ? data : data.prices ?? data.data ?? []);
+      }
+
+      if (divRes.status === 'fulfilled' && divRes.value.ok) {
+        const data = await divRes.value.json();
+        const divs = Array.isArray(data) ? data : data.dividends ?? [];
+        if (divs.length > 0) {
+          const sorted = [...divs].sort((a: { date: string }) => 0).sort((a: { date: string }, b: { date: string }) => b.date.localeCompare(a.date));
+          const latest = sorted[0];
+          setLastDividend({ amount: latest.dividend ?? latest.amount ?? 0, date: latest.date });
+        }
       }
     } catch {
       setError('데이터를 불러오는 중 오류가 발생했습니다.');
@@ -251,16 +263,18 @@ export default function ETFDetailPage() {
         </section>
 
         {/* Key Metrics */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <section className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
-            { label: 'AUM (자산규모)', value: formatAum(etf.aum), color: 'text-white' },
-            { label: '배당수익률', value: formatPercent(etf.dividendYield), color: 'text-emerald-400' },
-            { label: '운용보수', value: formatPercent(etf.expenseRatio), color: etf.expenseRatio <= 0.001 ? 'text-emerald-400' : etf.expenseRatio <= 0.005 ? 'text-yellow-400' : 'text-red-400' },
-            { label: 'Beta', value: etf.beta != null ? etf.beta.toFixed(2) : '-', color: 'text-zinc-300' },
+            { label: 'AUM (자산규모)', value: formatAum(etf.aum), color: 'text-white', sub: '' },
+            { label: '배당수익률', value: formatPercent(etf.dividendYield), color: 'text-emerald-400', sub: '' },
+            { label: '최근 배당금', value: lastDividend ? `$${lastDividend.amount.toFixed(4)}` : '-', color: 'text-teal-400', sub: lastDividend ? lastDividend.date : '' },
+            { label: '운용보수', value: formatPercent(etf.expenseRatio), color: etf.expenseRatio <= 0.001 ? 'text-emerald-400' : etf.expenseRatio <= 0.005 ? 'text-yellow-400' : 'text-red-400', sub: '' },
+            { label: 'Beta', value: etf.beta != null ? etf.beta.toFixed(2) : '-', color: 'text-zinc-300', sub: '' },
           ].map((m, i) => (
             <div key={i} className="bg-gray-900/60 border border-gray-800/60 rounded-xl p-5 text-center">
               <p className="text-xs text-gray-400 mb-2">{m.label}</p>
               <p className={`text-xl font-bold font-mono ${m.color}`}>{m.value}</p>
+              {m.sub && <p className="text-[10px] text-zinc-500 mt-1">{m.sub}</p>}
             </div>
           ))}
         </section>
