@@ -490,7 +490,61 @@ export default function SimulatorPage() {
             )}
           </div>
         </div>
+
+        {/* Dividend Tax Calculator */}
+        <DividendTaxCalc exchangeRate={exchangeRate} />
       </div>
+    </div>
+  );
+}
+
+function DividendTaxCalc({ exchangeRate }: { exchangeRate: number }) {
+  const [annualDivUSD, setAnnualDivUSD] = useState(1000);
+
+  const usTax = annualDivUSD * 0.15;
+  const afterUSTax = annualDivUSD - usTax;
+  const krTaxBase = afterUSTax; // 한국 추가 과세는 종합소득세 합산 시 발생
+  const monthlyAfterTax = afterUSTax / 12;
+
+  return (
+    <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 backdrop-blur-xl p-5 space-y-4">
+      <h3 className="text-base font-bold text-white flex items-center gap-2">
+        <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007v-.008zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z" />
+        </svg>
+        배당금 세금 계산기
+      </h3>
+      <p className="text-xs text-zinc-500">미국 배당소득세 15% 원천징수 기준 실수령액을 계산합니다.</p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-zinc-400 block mb-1">연간 배당금 (USD)</label>
+          <input type="number" value={annualDivUSD} onChange={e => setAnnualDivUSD(Number(e.target.value))}
+            className="w-full bg-zinc-800/60 border border-zinc-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
+          <p className="text-[10px] text-emerald-400/60 mt-0.5">
+            {exchangeRate > 0 ? `약 ${Math.round(annualDivUSD * exchangeRate).toLocaleString()}원` : ''}
+          </p>
+        </div>
+        <div className="space-y-2">
+          <div className="rounded-lg bg-zinc-800/40 px-3 py-2 flex justify-between">
+            <span className="text-xs text-zinc-500">세전 배당금</span>
+            <span className="text-xs text-white font-mono">${annualDivUSD.toLocaleString()}</span>
+          </div>
+          <div className="rounded-lg bg-red-500/5 border border-red-500/10 px-3 py-2 flex justify-between">
+            <span className="text-xs text-red-400">미국 원천징수 (15%)</span>
+            <span className="text-xs text-red-400 font-mono">-${usTax.toFixed(0)}</span>
+          </div>
+          <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/10 px-3 py-2 flex justify-between">
+            <span className="text-xs text-emerald-400 font-bold">세후 실수령액</span>
+            <span className="text-xs text-emerald-400 font-mono font-bold">${afterUSTax.toFixed(0)} (약 {Math.round(afterUSTax * exchangeRate).toLocaleString()}원)</span>
+          </div>
+          <div className="rounded-lg bg-zinc-800/40 px-3 py-2 flex justify-between">
+            <span className="text-xs text-zinc-500">월 실수령액</span>
+            <span className="text-xs text-white font-mono">${monthlyAfterTax.toFixed(0)} (약 {Math.round(monthlyAfterTax * exchangeRate).toLocaleString()}원)</span>
+          </div>
+        </div>
+      </div>
+      <p className="text-[10px] text-zinc-600">※ 한·미 조세조약에 의한 15% 원천징수. 연 2,000만원 초과 시 종합소득세 합산 과세 대상 (별도 신고 필요)</p>
     </div>
   );
 }
