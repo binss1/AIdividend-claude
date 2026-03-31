@@ -646,6 +646,96 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════
+          WHY REGULAR SCREENING - 정기 스크리닝이 수익을 만듭니다
+          ═══════════════════════════════════════ */}
+      <section className="relative px-4 py-20 border-t border-zinc-800/50">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-14 text-center">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/10 px-4 py-1.5 text-sm text-red-400">
+              ⚠️ 한 번 사고 끝? 배당주도 관리가 필요합니다
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              정기 스크리닝이{' '}
+              <span className="text-gradient">수익을 지킵니다</span>
+            </h2>
+            <p className="mt-3 text-zinc-400 text-sm max-w-2xl mx-auto">
+              배당주는 &quot;사고 잊어버리는&quot; 투자가 아닙니다. 시장은 매일 변하고, 어제의 우량주가 내일의 배당 삭감 종목이 될 수 있습니다.
+            </p>
+          </div>
+
+          {/* Timeline: What changes and why */}
+          <div className="grid gap-6 lg:grid-cols-2 mb-10">
+            {/* Left: 변화하는 것들 */}
+            <div className="rounded-2xl border border-red-500/15 bg-zinc-900/60 p-6">
+              <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                <span className="w-7 h-7 rounded-lg bg-red-500/15 flex items-center justify-center text-sm">📉</span>
+                방치하면 일어나는 일
+              </h3>
+              <div className="space-y-3">
+                {[
+                  { period: '매 분기', event: '실적 발표 후 배당 삭감/중단 가능', example: '2024년 인텔(INTC) 배당 66% 삭감' },
+                  { period: '매 반기', event: '재무 건전성 변화 (부채 증가, 이익 감소)', example: 'AT&T(T) 2022년 배당 47% 삭감' },
+                  { period: '매년', event: '섹터 로테이션으로 유망 섹터 변경', example: '금리 인상기: 리츠 약세 → 금융주 강세' },
+                  { period: '수시', event: '경영진 변경, M&A, 규제 변화', example: '3M(MMM) 소송 이슈로 배당 성장 둔화' },
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-3 rounded-lg bg-zinc-800/30 p-3">
+                    <span className="shrink-0 px-2 py-0.5 rounded bg-red-500/10 text-red-400 text-[10px] font-bold h-fit">{item.period}</span>
+                    <div>
+                      <p className="text-sm text-white">{item.event}</p>
+                      <p className="text-[11px] text-zinc-500 mt-0.5">사례: {item.example}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: 정기 스크리닝 효과 */}
+            <div className="rounded-2xl border border-emerald-500/15 bg-zinc-900/60 p-6">
+              <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                <span className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center text-sm">📈</span>
+                정기 스크리닝으로 지키는 수익
+              </h3>
+              <div className="space-y-3">
+                {[
+                  { action: '분기 1회 스크리닝', result: '배당 삭감 징후 사전 감지 → 손실 회피', benefit: '배당성향 85%↑ 종목 자동 경고' },
+                  { action: '점수 변동 모니터링', result: '등급 하락 종목 교체 → 포트폴리오 품질 유지', benefit: 'A등급 → B등급 하락 시 대체 종목 추천' },
+                  { action: '신규 고배당주 발굴', result: '새로운 기회 포착 → 수익률 개선', benefit: '매 분기 새로운 A+등급 종목 진입' },
+                  { action: '섹터 리밸런싱', result: '시장 환경 변화에 적응 → 안정적 수익', benefit: '금리/경기 사이클에 맞는 섹터 비중 조절' },
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-3 rounded-lg bg-zinc-800/30 p-3">
+                    <span className="shrink-0 px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-bold h-fit">{item.action}</span>
+                    <div>
+                      <p className="text-sm text-white">{item.result}</p>
+                      <p className="text-[11px] text-zinc-500 mt-0.5">{item.benefit}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom: 권장 스크리닝 주기 */}
+          <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-6">
+            <h3 className="text-sm font-bold text-white mb-4 text-center">권장 스크리닝 주기</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { freq: '매주', target: '보유 종목 시세/뉴스 체크', icon: '📋', color: 'text-zinc-400' },
+                { freq: '매월', target: '배당 캘린더 확인 + 배당락일 관리', icon: '📅', color: 'text-blue-400' },
+                { freq: '매 분기', target: '전체 스크리닝 + 포트폴리오 리밸런싱', icon: '🔄', color: 'text-emerald-400' },
+                { freq: '매 반기', target: '투자 전략 재검토 + 신규 ETF 탐색', icon: '🎯', color: 'text-amber-400' },
+              ].map((item, i) => (
+                <div key={i} className="rounded-xl bg-zinc-800/40 p-4 text-center">
+                  <div className="text-2xl mb-2">{item.icon}</div>
+                  <p className={`text-sm font-bold ${item.color}`}>{item.freq}</p>
+                  <p className="text-[11px] text-zinc-500 mt-1">{item.target}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════
           FEATURES SECTION
           ═══════════════════════════════════════ */}
       <section className="relative px-4 py-20">
