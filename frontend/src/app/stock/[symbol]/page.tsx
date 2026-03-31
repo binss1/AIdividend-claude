@@ -741,6 +741,17 @@ export default function StockDetailPage() {
                 const allTwSentiments = [...dailyMap.values()].flatMap(v => v.twSentiment);
                 const stAvg = allStSentiments.length > 0 ? allStSentiments.reduce((a, b) => a + b, 0) / allStSentiments.length : 0.5;
                 const twAvg = allTwSentiments.length > 0 ? allTwSentiments.reduce((a, b) => a + b, 0) / allTwSentiments.length : 0.5;
+                const totalPosts = totalStPosts + totalTwPosts;
+
+                if (totalPosts === 0) {
+                  return (
+                    <div className="rounded-lg bg-zinc-800/30 p-4 text-center">
+                      <p className="text-xs text-zinc-500">최근 7일간 소셜 미디어에서 이 종목에 대한 언급이 없습니다.</p>
+                      <p className="text-[10px] text-zinc-600 mt-1">Stocktwits, X (Twitter) 기준</p>
+                    </div>
+                  );
+                }
+
                 return (
                   <div className="space-y-3">
                     {/* Summary: 3 cards */}
