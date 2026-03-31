@@ -167,7 +167,7 @@ export default function HomePage() {
               {/* Subtitle */}
               <p className="animate-fade-in stagger-2 mt-6 max-w-lg text-lg leading-relaxed text-gray-400">
                 500개 이상의 미국 배당주와 ETF를 AI가 <strong className="text-gray-300">5축 정밀 분석</strong>합니다.
-                매 분기 배당금이 계좌에 들어오는 경험, 데이터로 시작하세요.
+                매월, 매 분기 배당금이 꾸준히 계좌에 들어오는 경험, 데이터로 시작하세요.
               </p>
 
               {/* Mini yield indicator */}
