@@ -673,41 +673,68 @@ export default function StockDetailPage() {
                 소셜 감성 분석
               </h2>
               {(() => {
-                // Aggregate hourly data into daily
-                const dailyMap = new Map<string, { sentiment: number[]; posts: number }>();
+                // Aggregate hourly data into daily (platform-separated)
+                const dailyMap = new Map<string, { stSentiment: number[]; twSentiment: number[]; stPosts: number; twPosts: number }>();
                 for (const d of stock.socialSentiment!) {
                   const day = d.date?.slice(0, 10) || '';
-                  if (!dailyMap.has(day)) dailyMap.set(day, { sentiment: [], posts: 0 });
+                  if (!dailyMap.has(day)) dailyMap.set(day, { stSentiment: [], twSentiment: [], stPosts: 0, twPosts: 0 });
                   const entry = dailyMap.get(day)!;
-                  if (d.stocktwitsSentiment > 0) entry.sentiment.push(d.stocktwitsSentiment);
-                  entry.posts += (d.stocktwitsPosts || 0) + (d.twitterPosts || 0);
+                  if (d.stocktwitsSentiment > 0) entry.stSentiment.push(d.stocktwitsSentiment);
+                  if (d.twitterSentiment > 0) entry.twSentiment.push(d.twitterSentiment);
+                  entry.stPosts += d.stocktwitsPosts || 0;
+                  entry.twPosts += d.twitterPosts || 0;
                 }
                 const daily = [...dailyMap.entries()]
-                  .map(([date, v]) => ({
-                    date,
-                    sentiment: v.sentiment.length > 0 ? v.sentiment.reduce((a, b) => a + b, 0) / v.sentiment.length : 0.5,
-                    posts: v.posts,
-                  }))
+                  .map(([date, v]) => {
+                    const allSentiments = [...v.stSentiment, ...v.twSentiment];
+                    return {
+                      date,
+                      sentiment: allSentiments.length > 0 ? allSentiments.reduce((a, b) => a + b, 0) / allSentiments.length : 0.5,
+                      posts: v.stPosts + v.twPosts,
+                      stPosts: v.stPosts,
+                      twPosts: v.twPosts,
+                    };
+                  })
                   .sort((a, b) => a.date.localeCompare(b.date))
                   .slice(-7);
                 const avgSentiment = daily.length > 0
                   ? daily.reduce((s, d) => s + d.sentiment, 0) / daily.length
                   : 0.5;
-                const totalPosts = daily.reduce((s, d) => s + d.posts, 0);
+                const totalStPosts = daily.reduce((s, d) => s + d.stPosts, 0);
+                const totalTwPosts = daily.reduce((s, d) => s + d.twPosts, 0);
+                // Platform-level sentiment
+                const allStSentiments = [...dailyMap.values()].flatMap(v => v.stSentiment);
+                const allTwSentiments = [...dailyMap.values()].flatMap(v => v.twSentiment);
+                const stAvg = allStSentiments.length > 0 ? allStSentiments.reduce((a, b) => a + b, 0) / allStSentiments.length : 0.5;
+                const twAvg = allTwSentiments.length > 0 ? allTwSentiments.reduce((a, b) => a + b, 0) / allTwSentiments.length : 0.5;
                 return (
                   <div className="space-y-3">
-                    <div className="flex gap-3">
-                      <div className="flex-1 rounded-lg bg-gray-800/30 p-3 text-center">
-                        <p className="text-[10px] text-zinc-500">7일 평균 감성</p>
-                        <p className={`text-lg font-bold ${avgSentiment > 0.6 ? 'text-emerald-400' : avgSentiment > 0.4 ? 'text-yellow-400' : 'text-red-400'}`}>
+                    {/* Summary: 3 cards */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="rounded-lg bg-gray-800/30 p-3 text-center">
+                        <p className="text-[10px] text-zinc-500">7일 종합 감성</p>
+                        <p className={`text-base font-bold ${avgSentiment > 0.6 ? 'text-emerald-400' : avgSentiment > 0.4 ? 'text-yellow-400' : 'text-red-400'}`}>
                           {avgSentiment > 0.6 ? '긍정적' : avgSentiment > 0.4 ? '중립' : '부정적'}
                         </p>
-                        <p className="text-xs text-zinc-500">{(avgSentiment * 100).toFixed(0)}%</p>
+                        <p className="text-[10px] text-zinc-500">{(avgSentiment * 100).toFixed(0)}%</p>
                       </div>
-                      <div className="flex-1 rounded-lg bg-gray-800/30 p-3 text-center">
-                        <p className="text-[10px] text-zinc-500">7일 총 게시물</p>
-                        <p className="text-lg font-bold text-white">{totalPosts.toLocaleString()}</p>
-                        <p className="text-xs text-zinc-500">Stocktwits + X</p>
+                      <div className="rounded-lg bg-gray-800/30 p-2.5 text-center">
+                        <p className="text-[10px] text-zinc-500 flex items-center justify-center gap-1">
+                          <span className="text-emerald-400">●</span> Stocktwits
+                        </p>
+                        <p className="text-sm font-bold text-white">{totalStPosts}건</p>
+                        <p className={`text-[10px] ${stAvg > 0.6 ? 'text-emerald-400' : stAvg > 0.4 ? 'text-yellow-400' : 'text-red-400'}`}>
+                          감성 {(stAvg * 100).toFixed(0)}%
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-gray-800/30 p-2.5 text-center">
+                        <p className="text-[10px] text-zinc-500 flex items-center justify-center gap-1">
+                          <span className="text-blue-400">●</span> X (Twitter)
+                        </p>
+                        <p className="text-sm font-bold text-white">{totalTwPosts}건</p>
+                        <p className={`text-[10px] ${twAvg > 0.6 ? 'text-emerald-400' : twAvg > 0.4 ? 'text-yellow-400' : 'text-red-400'}`}>
+                          감성 {(twAvg * 100).toFixed(0)}%
+                        </p>
                       </div>
                     </div>
                     <div className="flex gap-1">
