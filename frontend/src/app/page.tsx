@@ -745,7 +745,7 @@ export default function HomePage() {
             <p className="mt-3 text-gray-400">데이터 기반 배당 투자의 모든 것을 한 곳에서</p>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {[
               {
                 title: '배당주 스크리닝',
@@ -758,6 +758,12 @@ export default function HomePage() {
                 description: 'Q-LEAD 모델로 배당 ETF를 품질·유동성·노출도·배당 4개 축으로 정밀 평가합니다.',
                 href: '/demo/etf-screening',
                 icon: '🧩',
+              },
+              {
+                title: '종목 상세 분석',
+                description: 'DCF 적정가, 애널리스트 목표가, 내부자 거래, 기관 보유현황, 소셜 감성까지 한 페이지에서 확인합니다.',
+                href: '/stock/TROW',
+                icon: '🔍',
               },
               {
                 title: '포트폴리오 대시보드',
