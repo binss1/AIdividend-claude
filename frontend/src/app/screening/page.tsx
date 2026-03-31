@@ -435,6 +435,7 @@ export default function StockScreeningPage() {
                   </select>
                   <p className="mt-1.5 text-[11px] text-zinc-500">
                     ≈ <span className="text-amber-400/80">{formatKRW(minMarketCap)}</span>
+                    <span className="text-zinc-600 ml-1">(환율 {krwRate.toFixed(0)}원, exchangerate-api)</span>
                   </p>
                 </div>
 
