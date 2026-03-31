@@ -51,6 +51,9 @@ let stockScreeningProgress: ScreeningProgress = {
   progress: 0,
 };
 
+let stockScreeningCancelled = false;
+let etfScreeningCancelled = false;
+
 let etfScreeningProgress: ETFScreeningProgress = {
   status: 'idle',
   processedETFs: 0,
@@ -164,10 +167,15 @@ router.get('/stock-screening', optionalAuth, async (req: Request, res: Response)
 
     logger.info(`[API] 배당주 스크리닝 요청 - 조건: 수익률≥${criteria.minDividendYield}%, 시총≥$${(criteria.minMarketCapUSD / 1e9).toFixed(1)}B, 성향≤${criteria.maxPayoutRatio}%, 최대${criteria.maxStocksToCheck}종목`);
 
+    stockScreeningCancelled = false;
     // Start screening in background
     (async () => {
       try {
         const { results, skipSummary } = await screenDividendStocks(criteria, (progress) => {
+          // Check cancellation
+          if (stockScreeningCancelled) {
+            throw new Error('CANCELLED');
+          }
           stockScreeningProgress = {
             ...stockScreeningProgress,
             ...progress,
@@ -204,13 +212,23 @@ router.get('/stock-screening', optionalAuth, async (req: Request, res: Response)
           : '?';
         logger.info(`[API] 스크리닝 완료: ${results.length}개 종목 발견, 총 ${elapsed}초 소요`);
       } catch (err) {
-        logger.error('[API] 스크리닝 실패:', (err as Error).message);
-        stockScreeningProgress = {
-          ...stockScreeningProgress,
-          status: 'error',
-          error: (err as Error).message,
-          completedAt: new Date().toISOString(),
-        };
+        const errMsg = (err as Error).message;
+        if (errMsg === 'CANCELLED') {
+          logger.info('[API] 배당주 스크리닝 중단됨 (사용자 요청)');
+          stockScreeningProgress = {
+            ...stockScreeningProgress,
+            status: 'idle',
+            completedAt: new Date().toISOString(),
+          };
+        } else {
+          logger.error('[API] 스크리닝 실패:', errMsg);
+          stockScreeningProgress = {
+            ...stockScreeningProgress,
+            status: 'error',
+            error: errMsg,
+            completedAt: new Date().toISOString(),
+          };
+        }
       }
     })();
 
@@ -231,6 +249,34 @@ router.get('/stock-screening', optionalAuth, async (req: Request, res: Response)
  */
 router.get('/stock-screening-progress', optionalAuth, (_req: Request, res: Response) => {
   res.json(stockScreeningProgress);
+});
+
+/**
+ * POST /stock-screening-cancel
+ * Cancel running stock screening
+ */
+router.post('/stock-screening-cancel', optionalAuth, (_req: Request, res: Response) => {
+  if (stockScreeningProgress.status !== 'running') {
+    res.json({ success: false, message: 'No screening in progress' });
+    return;
+  }
+  stockScreeningCancelled = true;
+  logger.info('[API] 배당주 스크리닝 중단 요청');
+  res.json({ success: true });
+});
+
+/**
+ * POST /etf-screening-cancel
+ * Cancel running ETF screening
+ */
+router.post('/etf-screening-cancel', optionalAuth, (_req: Request, res: Response) => {
+  if (etfScreeningProgress.status !== 'running') {
+    res.json({ success: false, message: 'No ETF screening in progress' });
+    return;
+  }
+  etfScreeningCancelled = true;
+  logger.info('[API] ETF 스크리닝 중단 요청');
+  res.json({ success: true });
 });
 
 // ==========================================

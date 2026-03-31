@@ -675,6 +675,21 @@ export default function ETFScreeningPage() {
               total={progress.totalETFs}
               found={progress.foundETFs}
             />
+            {isScreening && (
+              <button
+                onClick={async () => {
+                  try {
+                    await apiFetch(API_ENDPOINTS.ETFS_CANCEL, { method: 'POST' });
+                    stopPolling();
+                    setIsScreening(false);
+                    setProgress(p => ({ ...p, status: 'idle' }));
+                  } catch { /* ignore */ }
+                }}
+                className="mt-3 px-4 py-2 rounded-lg text-xs font-medium text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors"
+              >
+                스크리닝 중단
+              </button>
+            )}
           </div>
         )}
 

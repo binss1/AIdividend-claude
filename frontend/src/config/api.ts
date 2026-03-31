@@ -8,6 +8,8 @@ export const API_ENDPOINTS = {
   // Stock Screening
   STOCKS_SCREEN: '/screening/stock-screening',
   STOCKS_PROGRESS: '/screening/stock-screening-progress',
+  STOCKS_CANCEL: '/screening/stock-screening-cancel',
+  ETFS_CANCEL: '/screening/etf-screening-cancel',
   STOCKS_DETAIL: (symbol: string) => `/screening/stock/${symbol}`,
   STOCKS_HISTORICAL: (symbol: string) => `/screening/stock/${symbol}/historical`,
   STOCKS_DIVIDEND_HISTORY: (symbol: string) => `/screening/stock/${symbol}/dividend-history`,
