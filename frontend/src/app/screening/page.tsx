@@ -120,6 +120,14 @@ export default function StockScreeningPage() {
   const [sortField, setSortField] = useState<SortField>('overallScore');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [searchQuery, setSearchQuery] = useState('');
+  const [compareSymbols, setCompareSymbols] = useState<string[]>([]);
+
+  const toggleCompare = (symbol: string) => {
+    setCompareSymbols(prev =>
+      prev.includes(symbol) ? prev.filter(s => s !== symbol) : prev.length < 3 ? [...prev, symbol] : prev
+    );
+  };
+  const comparedStocks = results.filter(s => compareSymbols.includes(s.symbol));
 
   // Load cached results on mount + check if screening is already running on backend
   useEffect(() => {
@@ -747,7 +755,10 @@ export default function StockScreeningPage() {
               <table className="w-full text-sm" style={{tableLayout:'fixed'}}>
                 <thead>
                   <tr className="border-b border-zinc-800/80 bg-zinc-900/90">
-                    <th style={{width:'3%'}} className="px-2 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                    <th style={{width:'2.5%'}} className="px-1 py-3 text-center text-xs font-medium text-zinc-500" title="최대 3개 선택하여 비교">
+                      비교
+                    </th>
+                    <th style={{width:'2.5%'}} className="px-2 py-3 text-center text-xs font-medium text-zinc-500 uppercase tracking-wider">
                       #
                     </th>
                     <th style={{width:'6%'}}
@@ -819,6 +830,12 @@ export default function StockScreeningPage() {
                       onClick={() => router.push(`/stock/${stock.symbol}`)}
                       className="hover:bg-emerald-500/[0.03] cursor-pointer transition-colors duration-150"
                     >
+                      <td className="px-1 py-3 text-center" onClick={e => e.stopPropagation()}>
+                        <input type="checkbox" checked={compareSymbols.includes(stock.symbol)}
+                          onChange={() => toggleCompare(stock.symbol)}
+                          disabled={!compareSymbols.includes(stock.symbol) && compareSymbols.length >= 3}
+                          className="h-3.5 w-3.5 rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-emerald-500/30 cursor-pointer disabled:opacity-30" />
+                      </td>
                       <td className="px-2 py-3 text-center text-zinc-600 font-mono text-xs">
                         {idx + 1}
                       </td>
@@ -910,6 +927,54 @@ export default function StockScreeningPage() {
                 </span>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Stock Comparison Panel */}
+        {comparedStocks.length >= 2 && (
+          <div className="rounded-2xl border border-emerald-500/20 bg-zinc-900/60 backdrop-blur-xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>
+                종목 비교 ({comparedStocks.length}/3)
+              </h3>
+              <button onClick={() => setCompareSymbols([])} className="text-xs text-zinc-500 hover:text-zinc-300 border border-zinc-700 rounded-lg px-3 py-1">초기화</button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-zinc-500 border-b border-zinc-700/40">
+                    <th className="px-3 py-2 text-left w-28">항목</th>
+                    {comparedStocks.map(s => (
+                      <th key={s.symbol} className="px-3 py-2 text-center text-white font-bold">{s.symbol}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/30">
+                  {[
+                    { label: '현재가', render: (s: ScreenedStock) => `$${s.currentPrice.toFixed(2)}` },
+                    { label: '배당수익률', render: (s: ScreenedStock) => <span className="text-emerald-400">{s.dividendYield.toFixed(2)}%</span> },
+                    { label: '연간배당', render: (s: ScreenedStock) => `$${s.annualDividend.toFixed(2)}` },
+                    { label: '배당주기', render: (s: ScreenedStock) => s.dividendCycle === 'monthly' ? '월배당' : s.dividendCycle === 'quarterly' ? '분기' : s.dividendCycle === 'semi-annual' ? '반기' : '연간' },
+                    { label: '배당성향', render: (s: ScreenedStock) => `${s.payoutRatio.toFixed(1)}%` },
+                    { label: '연속배당', render: (s: ScreenedStock) => `${s.consecutiveDividendYears}년` },
+                    { label: 'P/E', render: (s: ScreenedStock) => s.pe?.toFixed(1) || '-' },
+                    { label: 'ROE', render: (s: ScreenedStock) => s.roe ? `${s.roe.toFixed(1)}%` : 'N/A' },
+                    { label: 'Beta', render: (s: ScreenedStock) => s.beta?.toFixed(2) || '-' },
+                    { label: '시가총액', render: (s: ScreenedStock) => s.marketCap >= 1e9 ? `$${(s.marketCap/1e9).toFixed(1)}B` : `$${(s.marketCap/1e6).toFixed(0)}M` },
+                    { label: '종합점수', render: (s: ScreenedStock) => <span className="text-emerald-400 font-bold">{s.overallScore}</span> },
+                    { label: '등급', render: (s: ScreenedStock) => <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${s.grade === 'A+' ? 'bg-emerald-500/20 text-emerald-400' : s.grade === 'A' ? 'bg-green-500/20 text-green-400' : 'bg-zinc-500/20 text-zinc-400'}`}>{s.grade}</span> },
+                  ].map(row => (
+                    <tr key={row.label} className="hover:bg-zinc-800/20">
+                      <td className="px-3 py-2 text-zinc-400 font-medium">{row.label}</td>
+                      {comparedStocks.map(s => (
+                        <td key={s.symbol} className="px-3 py-2 text-center text-zinc-300">{row.render(s)}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
