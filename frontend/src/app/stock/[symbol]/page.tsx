@@ -385,10 +385,44 @@ export default function StockDetailPage() {
               ))}
             </div>
 
-            {/* Right: dividend chart */}
+            {/* Right: dividend chart + anomaly detection */}
             <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-5">
               <h3 className="text-sm font-semibold text-gray-300 mb-3">배당금 히스토리</h3>
               <DividendChart data={dividendHistory} />
+              {/* Anomaly Detection */}
+              {(() => {
+                if (dividendHistory.length < 4) return null;
+                const sorted = [...dividendHistory].sort((a, b) => a.date.localeCompare(b.date));
+                const anomalies: { date: string; change: number; type: 'surge' | 'drop' }[] = [];
+                for (let i = 1; i < sorted.length; i++) {
+                  const prev = sorted[i - 1].amount;
+                  const curr = sorted[i].amount;
+                  if (prev > 0 && curr > 0) {
+                    const change = ((curr - prev) / prev) * 100;
+                    if (change > 50) anomalies.push({ date: sorted[i].date, change, type: 'surge' });
+                    else if (change < -30) anomalies.push({ date: sorted[i].date, change, type: 'drop' });
+                  }
+                }
+                if (anomalies.length === 0) return null;
+                return (
+                  <div className="mt-3 rounded-lg bg-amber-500/5 border border-amber-500/15 p-3">
+                    <p className="text-xs text-amber-400 font-medium mb-1.5">⚠️ 배당금 이상 변동 감지</p>
+                    <div className="space-y-1">
+                      {anomalies.slice(-3).map((a, i) => (
+                        <p key={i} className="text-[11px] text-zinc-400">
+                          {a.date}: {a.type === 'surge' ? (
+                            <span className="text-red-400">+{a.change.toFixed(0)}% 급등</span>
+                          ) : (
+                            <span className="text-blue-400">{a.change.toFixed(0)}% 급락</span>
+                          )}
+                          {a.type === 'drop' && <span className="text-zinc-500"> (배당 삭감 가능성)</span>}
+                          {a.type === 'surge' && <span className="text-zinc-500"> (특별배당 또는 정책 변경)</span>}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </section>
