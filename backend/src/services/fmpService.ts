@@ -226,7 +226,7 @@ export async function getAllUSDividendStocks(filter?: StockUniverseFilter): Prom
 
   try {
     const startTime = Date.now();
-    const exchanges = ['NYSE', 'NASDAQ', 'AMEX'];
+    const exchanges = ['NYSE', 'NASDAQ']; // AMEX 제외: 시총$1B+ 배당 일반주식 사실상 0개 (99% ETF)
 
     // Build FMP API params with pre-filtering
     const apiParams: Record<string, unknown> = {
@@ -1049,7 +1049,7 @@ export async function screenDividendStocks(
 
     const allStocks = await getAllUSDividendStocks(preFilter);
     allSymbols = allStocks.map(s => s.symbol);
-    screeningOrder = `NYSE+NASDAQ+AMEX 배당주 (시총≥$${(criteria.minMarketCapUSD / 1e9).toFixed(1)}B 사전필터) → ${allSymbols.length}개`;
+    screeningOrder = `NYSE+NASDAQ 배당주 (시총≥$${(criteria.minMarketCapUSD / 1e9).toFixed(1)}B 사전필터) → ${allSymbols.length}개`;
 
     logger.info(`  📈 유니버스 구성 (전체 + 사전필터 모드):`);
     logger.info(`     • 사전 필터 적용 후: ${allSymbols.length}개`);
