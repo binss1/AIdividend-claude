@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { getApiBaseUrl } from '@/config/api';
 import ScoreBar from '@/components/ScoreBar';
 import PriceChart from '@/components/PriceChart';
+import DividendChart from '@/components/DividendChart';
 
 // -------------------------------------------------------------------
 // Types
@@ -91,6 +92,7 @@ export default function ETFDetailPage() {
   const [holdings, setHoldings] = useState<ETFHolding[]>([]);
   const [priceHistory, setPriceHistory] = useState<PriceDataPoint[]>([]);
   const [lastDividend, setLastDividend] = useState<{ amount: number; date: string } | null>(null);
+  const [dividendHistory, setDividendHistory] = useState<{ date: string; amount: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,10 +133,14 @@ export default function ETFDetailPage() {
       if (divRes.status === 'fulfilled' && divRes.value.ok) {
         const data = await divRes.value.json();
         const divs = Array.isArray(data) ? data : data.dividends ?? [];
-        if (divs.length > 0) {
-          const sorted = [...divs].sort((a: { date: string }) => 0).sort((a: { date: string }, b: { date: string }) => b.date.localeCompare(a.date));
-          const latest = sorted[0];
-          setLastDividend({ amount: latest.dividend ?? latest.amount ?? 0, date: latest.date });
+        const normalized = divs.map((d: { date: string; dividend?: number; amount?: number }) => ({
+          date: d.date,
+          amount: d.amount ?? d.dividend ?? 0,
+        }));
+        setDividendHistory(normalized);
+        if (normalized.length > 0) {
+          const sorted = [...normalized].sort((a, b) => b.date.localeCompare(a.date));
+          setLastDividend({ amount: sorted[0].amount, date: sorted[0].date });
         }
       }
     } catch {
@@ -277,6 +283,66 @@ export default function ETFDetailPage() {
               {m.sub && <p className="text-[10px] text-zinc-500 mt-1">{m.sub}</p>}
             </div>
           ))}
+        </section>
+
+        {/* Dividend Analysis */}
+        <section className="bg-gray-900/60 border border-gray-800/60 rounded-2xl p-6 backdrop-blur-sm">
+          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <span className="text-emerald-400">💰</span>
+            배당 분석
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: '최근 배당금', value: lastDividend ? `$${lastDividend.amount.toFixed(4)}` : '-', sub: lastDividend?.date || '', highlight: false },
+                { label: '배당수익률', value: formatPercent(etf.dividendYield), sub: '', highlight: true },
+                { label: '운용보수', value: formatPercent(etf.expenseRatio), sub: '연간', highlight: false },
+                { label: '배당 빈도', value: dividendHistory.length >= 12 ? '월배당' : dividendHistory.length >= 4 ? '분기배당' : dividendHistory.length >= 2 ? '반기배당' : '연간', sub: `최근 10년 ${dividendHistory.length}회 지급`, highlight: false },
+              ].map((m, i) => (
+                <div key={i} className="bg-gray-800/50 border border-gray-700/40 rounded-xl p-4">
+                  <p className="text-xs text-gray-400 mb-2">{m.label}</p>
+                  <p className={`text-xl font-bold ${m.highlight ? 'text-emerald-400' : 'text-white'}`}>{m.value}</p>
+                  {m.sub && <p className="text-xs text-gray-500 mt-1">{m.sub}</p>}
+                </div>
+              ))}
+            </div>
+            <div className="bg-gray-800/50 border border-gray-700/40 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3">배당금 히스토리</h3>
+              <DividendChart data={dividendHistory} />
+              {/* Anomaly Detection */}
+              {(() => {
+                if (dividendHistory.length < 4) return null;
+                const sorted = [...dividendHistory].sort((a, b) => a.date.localeCompare(b.date));
+                const anomalies: { date: string; change: number; type: 'surge' | 'drop' }[] = [];
+                for (let i = 1; i < sorted.length; i++) {
+                  const prev = sorted[i - 1].amount;
+                  const curr = sorted[i].amount;
+                  if (prev > 0 && curr > 0) {
+                    const change = ((curr - prev) / prev) * 100;
+                    if (change > 50) anomalies.push({ date: sorted[i].date, change, type: 'surge' });
+                    else if (change < -30) anomalies.push({ date: sorted[i].date, change, type: 'drop' });
+                  }
+                }
+                if (anomalies.length === 0) return null;
+                return (
+                  <div className="mt-3 rounded-lg bg-amber-500/5 border border-amber-500/15 p-3">
+                    <p className="text-xs text-amber-400 font-medium mb-1.5">⚠️ 배당금 이상 변동 감지</p>
+                    <div className="space-y-1">
+                      {anomalies.slice(-3).map((a, i) => (
+                        <p key={i} className="text-[11px] text-zinc-400">
+                          {a.date}: {a.type === 'surge' ? (
+                            <span className="text-red-400">+{a.change.toFixed(0)}% 급등</span>
+                          ) : (
+                            <span className="text-blue-400">{a.change.toFixed(0)}% 급락</span>
+                          )}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
         </section>
 
         {/* Q-LEAD Score Breakdown */}
