@@ -190,13 +190,17 @@ export default function DashboardPage() {
       .catch(() => {})
       .finally(() => setRateLoading(false));
 
-    // Fetch market indices
-    fetch(`${base}/screening/market-overview`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data && Array.isArray(data)) setMarketIndices(data);
-      })
-      .catch(() => {});
+    // Fetch market indices (+ auto refresh every 5 min)
+    const fetchMarket = () => {
+      fetch(`${base}/screening/market-overview`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data && Array.isArray(data)) setMarketIndices(data);
+        })
+        .catch(() => {});
+    };
+    fetchMarket();
+    const marketInterval = setInterval(fetchMarket, 5 * 60 * 1000);
 
     // Sector performance
     fetch(`${base}/screening/sector-performance`)
@@ -219,6 +223,8 @@ export default function DashboardPage() {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => { if (data?.news) setStockNews(data.news); })
       .catch(() => {});
+
+    return () => clearInterval(marketInterval);
   }, []);
 
   // Load cached screening results from localStorage
@@ -501,6 +507,7 @@ export default function DashboardPage() {
           <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
             <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             시장 개요
+            <span className="text-[10px] text-zinc-600 font-normal ml-2">5분마다 자동 갱신</span>
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {(() => {
