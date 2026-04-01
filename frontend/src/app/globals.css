@@ -7,28 +7,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Light Mode */
-:root.light {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-}
 
-:root.light body {
-  background: var(--background);
-  color: var(--foreground);
-}
-
-:root.light ::-webkit-scrollbar-track {
-  background: #e2e8f0;
-}
-
-:root.light ::-webkit-scrollbar-thumb {
-  background: #94a3b8;
-}
-
-:root.light * {
-  scrollbar-color: #94a3b8 #e2e8f0;
-}
 
 @theme inline {
   --color-background: var(--background);
