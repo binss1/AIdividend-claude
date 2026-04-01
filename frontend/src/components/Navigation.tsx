@@ -93,7 +93,7 @@ export default function Navigation() {
       </div>
 
       {/* Mobile Menu */}
-      <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${mobileOpen ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0'}`}>
+      <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${mobileOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
         <div className="bg-gray-950/95 backdrop-blur-xl border-t border-gray-800/40 px-4 py-2 space-y-0.5">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
