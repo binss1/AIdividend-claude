@@ -514,6 +514,38 @@ export async function getAnalystEstimates(symbol: string, limit = 4): Promise<Ar
 }
 
 // ==========================================
+// ==========================================
+// Market Drawdown (S&P500 기준, 상대 Drawdown용)
+// ==========================================
+
+let _marketDrawdownCache: { value: number; fetchedAt: number } | null = null;
+
+export async function getMarketDrawdown(): Promise<number> {
+  // 캐시: 1시간 유효
+  if (_marketDrawdownCache && Date.now() - _marketDrawdownCache.fetchedAt < 3600_000) {
+    return _marketDrawdownCache.value;
+  }
+
+  try {
+    const quote = await getQuote('^GSPC'); // S&P500
+    if (quote) {
+      const yearHigh = (quote as unknown as { yearHigh?: number }).yearHigh;
+      const price = quote.price;
+      if (yearHigh && yearHigh > 0 && price > 0) {
+        const dd = ((price - yearHigh) / yearHigh) * 100;
+        _marketDrawdownCache = { value: dd, fetchedAt: Date.now() };
+        logger.info(`[Market] S&P500 Drawdown: ${dd.toFixed(1)}% (최고: $${yearHigh.toFixed(0)}, 현재: $${price.toFixed(0)})`);
+        return dd;
+      }
+    }
+  } catch (err) {
+    logger.error('Failed to get market drawdown', (err as Error).message);
+  }
+
+  return 0; // 조회 실패 시 감점 없음 (안전)
+}
+
+// ==========================================
 // REIT Detection
 // ==========================================
 
@@ -728,6 +760,7 @@ function calculateStockScore(
   cashFlows: FMPCashFlow[],
   balanceSheets: FMPBalanceSheet[],
   drawdownPercent?: number, // 52주 최고 대비 하락률 (음수, e.g. -50)
+  marketDrawdown?: number,  // S&P500 52주 Drawdown (음수, e.g. -15)
   financialGrowth?: Array<{ revenueGrowth: number; netIncomeGrowth: number; epsgrowth: number; freeCashFlowGrowth: number; [key: string]: unknown }>,
   keyMetricsTTM?: { pegRatioTTM: number; enterpriseValueOverEBITDATTM: number; pfcfRatioTTM: number; freeCashFlowYieldTTM: number; [key: string]: unknown } | null,
 ): { score: number; grade: StockGrade; breakdown: ScoreBreakdown } {
@@ -976,11 +1009,19 @@ function calculateStockScore(
 
   let penalty = 0;
 
-  // 🔴 52주 Drawdown 감점: -40% 이상 하락 시 안정성에서 감점
-  if (drawdownPercent != null && drawdownPercent < -40) {
-    const ddPenalty = Math.min(20, Math.abs(drawdownPercent + 40) * 0.4); // -40%부터 감점 시작, 최대 -20점
-    penalty += ddPenalty;
-    stabilityScore = Math.max(0, stabilityScore - ddPenalty * 2); // 안정성 직접 감점
+  // 🔴 52주 상대 Drawdown 감점: 시장(S&P500) 대비 초과 하락분만 감점
+  // 예: S&P500 -15%, 종목 -50% → 초과 하락 = -35% → -35%에서 감점
+  // 시장 전반 하락은 허용하고, 개별 종목 고유 리스크만 감점
+  if (drawdownPercent != null) {
+    const mktDD = marketDrawdown ?? 0; // 시장 Drawdown (음수)
+    const relativeDD = drawdownPercent - mktDD; // 시장 대비 초과 하락 (음수일수록 나쁨)
+    const threshold = -20; // 시장 대비 -20% 초과 하락부터 감점
+
+    if (relativeDD < threshold) {
+      const ddPenalty = Math.min(15, Math.abs(relativeDD - threshold) * 0.3); // 최대 -15점
+      penalty += ddPenalty;
+      stabilityScore = Math.max(0, stabilityScore - ddPenalty * 1.5); // 안정성 감점
+    }
   }
 
   // 🔴 비정상 고배당률 감점: 수익률 > 12% 시 배당 점수 감점 (주가 폭락으로 인한 거품)
@@ -1095,6 +1136,10 @@ export async function screenDividendStocks(
   const exchangeRateData = await getExchangeRate();
   const krwRate = exchangeRateData.rate;
   logger.info(`  💱 환율: 1 USD = ${krwRate.toLocaleString()} KRW`);
+
+  // Get market (S&P500) drawdown for relative comparison
+  const mktDrawdown = await getMarketDrawdown();
+  logger.info(`  📉 시장 Drawdown (S&P500): ${mktDrawdown.toFixed(1)}% (상대 감점 기준)`);
   logger.info('───────────────────────────────────────────────────────');
 
   // Step 2: Batch process with ETA tracking
@@ -1119,7 +1164,7 @@ export async function screenDividendStocks(
       const stockStart = Date.now();
 
       try {
-        const result = await analyzeStock(symbol, criteria, krwRate);
+        const result = await analyzeStock(symbol, criteria, krwRate, mktDrawdown);
         if (result.stock) {
           results.push(result.stock);
           logger.info(`  ✅ [${processedCount}/${universe.length}] ${symbol.padEnd(6)} | 수익률: ${result.stock.dividendYield.toFixed(2)}% | 성향: ${result.stock.payoutRatio.toFixed(1)}% | 점수: ${result.stock.overallScore} (${result.stock.grade}) | ${result.stock.sector}`);
@@ -1218,7 +1263,8 @@ function formatElapsed(seconds: number): string {
 async function analyzeStock(
   symbol: string,
   criteria: StockScreeningCriteria,
-  krwRate: number
+  krwRate: number,
+  marketDrawdown?: number
 ): Promise<{ stock: ScreenedStock; skipReason?: undefined } | { stock?: undefined; skipReason: string }> {
   // Get profile first for quick filtering
   const profile = await getCompanyProfile(symbol);
@@ -1399,6 +1445,7 @@ async function analyzeStock(
   const { score, grade, breakdown } = calculateStockScore(
     partialStock, incomeStatements, cashFlows, balanceSheets,
     drawdownPercent,
+    marketDrawdown,
     finGrowth.length > 0 ? finGrowth : undefined,
     keyMetrics,
   );
