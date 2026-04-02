@@ -736,6 +736,43 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════
+          SAFETY FILTERS - 안전 필터 시스템
+          ═══════════════════════════════════════ */}
+      <section className="relative px-4 py-16 border-t border-zinc-800/50">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-10 text-center">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/10 px-4 py-1.5 text-sm text-red-400">
+              🛡️ 안전 필터 시스템
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              위험한 종목은{' '}
+              <span className="text-gradient">AI가 걸러냅니다</span>
+            </h2>
+            <p className="mt-3 text-zinc-400 text-sm max-w-2xl mx-auto">
+              높은 점수만 추구하지 않습니다. 다층 안전 필터로 위험 종목을 사전에 차단합니다.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { icon: '🇺🇸', title: '미국 기업만 선별', desc: '중국 ADR, 유럽 ADR 등 외국 기업 완전 제외. 이중과세, VIE 리스크, 회계기준 차이를 원천 차단합니다.', color: 'border-blue-500/20' },
+              { icon: '📉', title: '주가 폭락 종목 감점', desc: '52주 최고가 대비 -40% 이상 하락 종목은 안정성 점수를 자동 차감합니다. 하락률이 클수록 강하게 감점됩니다.', color: 'border-red-500/20' },
+              { icon: '⚠️', title: '비정상 고수익률 감점', desc: '배당수익률 12% 초과는 주가 폭락의 결과일 수 있습니다. 거품 수익률을 걸러내어 배당 삭감 위험을 예방합니다.', color: 'border-amber-500/20' },
+              { icon: '🪤', title: '밸류트랩 방지', desc: 'P/E 3 미만의 극단적 저평가는 "싸다"가 아니라 시장이 가치를 부정하는 신호입니다. 가치 점수를 제한합니다.', color: 'border-purple-500/20' },
+              { icon: '🔍', title: '배당 이상치 감지', desc: '배당금 50% 이상 급등 또는 30% 이상 급락을 자동 감지하여 경고합니다. 특별배당과 배당 삭감을 구분합니다.', color: 'border-teal-500/20' },
+              { icon: '🏦', title: '재무 건전성 필수', desc: '적자 기업, 배당 일관성 미달, 배당성향 85% 초과 종목은 사전 필터에서 자동 탈락합니다.', color: 'border-emerald-500/20' },
+            ].map((f, i) => (
+              <div key={i} className={`rounded-xl border ${f.color} bg-zinc-900/60 p-5`}>
+                <div className="text-2xl mb-2">{f.icon}</div>
+                <h3 className="text-sm font-bold text-white mb-1.5">{f.title}</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════
           FEATURES SECTION
           ═══════════════════════════════════════ */}
       <section className="relative px-4 py-20">

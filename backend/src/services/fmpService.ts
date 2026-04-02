@@ -539,8 +539,9 @@ function determineDividendCycle(dividends: FMPDividendHistorical[]): DividendCyc
   if (sorted.length < 2) return 'unknown';
 
   // Calculate gaps between consecutive dividends (in days)
+  // 🟡 개선: 최근 6건만 사용하여 현재 배당 주기를 정확히 감지 (과거 변경 무시)
   const gaps: number[] = [];
-  const recentDivs = sorted.slice(0, Math.min(12, sorted.length));
+  const recentDivs = sorted.slice(0, Math.min(6, sorted.length));
   for (let i = 0; i < recentDivs.length - 1; i++) {
     const d1 = new Date(recentDivs[i].date).getTime();
     const d2 = new Date(recentDivs[i + 1].date).getTime();
@@ -726,6 +727,7 @@ function calculateStockScore(
   incomeStatements: FMPIncomeStatement[],
   cashFlows: FMPCashFlow[],
   balanceSheets: FMPBalanceSheet[],
+  drawdownPercent?: number, // 52주 최고 대비 하락률 (음수, e.g. -50)
   financialGrowth?: Array<{ revenueGrowth: number; netIncomeGrowth: number; epsgrowth: number; freeCashFlowGrowth: number; [key: string]: unknown }>,
   keyMetricsTTM?: { pegRatioTTM: number; enterpriseValueOverEBITDATTM: number; pfcfRatioTTM: number; freeCashFlowYieldTTM: number; [key: string]: unknown } | null,
 ): { score: number; grade: StockGrade; breakdown: ScoreBreakdown } {
@@ -970,7 +972,34 @@ function calculateStockScore(
     dividendScore * 0.20
   );
 
-  const clampedScore = Math.max(0, Math.min(100, score));
+  // ═══ 감점 로직 (리스크 필터) ═══
+
+  let penalty = 0;
+
+  // 🔴 52주 Drawdown 감점: -40% 이상 하락 시 안정성에서 감점
+  if (drawdownPercent != null && drawdownPercent < -40) {
+    const ddPenalty = Math.min(20, Math.abs(drawdownPercent + 40) * 0.4); // -40%부터 감점 시작, 최대 -20점
+    penalty += ddPenalty;
+    stabilityScore = Math.max(0, stabilityScore - ddPenalty * 2); // 안정성 직접 감점
+  }
+
+  // 🔴 비정상 고배당률 감점: 수익률 > 12% 시 배당 점수 감점 (주가 폭락으로 인한 거품)
+  const yld = stock.dividendYield ?? 0;
+  if (yld > 12) {
+    const yieldPenalty = Math.min(15, (yld - 12) * 1.5); // 12% 초과분 × 1.5, 최대 -15점
+    penalty += yieldPenalty;
+    dividendScore = Math.max(0, dividendScore - yieldPenalty * 2);
+  }
+
+  // 🔴 극단적 저PER 밸류트랩 감점: PER < 3 시 가치 점수 제한
+  const pe = stock.pe ?? 0;
+  if (pe > 0 && pe < 3) {
+    valuationScore = Math.min(valuationScore, 60); // 가치 최대 60점으로 제한
+    penalty += 5;
+  }
+
+  const adjustedScore = score - penalty;
+  const clampedScore = Math.max(0, Math.min(100, adjustedScore));
 
   // Grade assignment
   let grade: StockGrade;
@@ -1202,6 +1231,10 @@ async function analyzeStock(
 
   if (profile.isEtf) { logger.info(`    [${symbol}] SKIP: ETF`); return { skipReason: 'ETF 제외' }; }
 
+  // 🔴 외국 기업(ADR) 제외 — 미국 기업만 허용
+  const country = (profile.country || '').toUpperCase();
+  if (country && country !== 'US') { logger.info(`    [${symbol}] SKIP: 외국기업 (${profile.country})`); return { skipReason: `외국기업 (${profile.country})` }; }
+
   if (profile.mktCap < criteria.minMarketCapUSD) { logger.info(`    [${symbol}] SKIP: 시총 미달`); return { skipReason: '시가총액 미달' }; }
 
   const quote = await getQuote(symbol);
@@ -1356,9 +1389,16 @@ async function analyzeStock(
     isREIT: stockIsREIT,
   };
 
-  // Calculate score (enhanced with financial growth + key metrics)
+  // 52주 Drawdown 계산 (quote.yearHigh 활용, 추가 API 호출 없음)
+  const yearHigh = (quote as unknown as { yearHigh?: number }).yearHigh;
+  const drawdownPercent = yearHigh && yearHigh > 0 && price > 0
+    ? ((price - yearHigh) / yearHigh) * 100
+    : undefined;
+
+  // Calculate score (enhanced with financial growth + key metrics + risk penalties)
   const { score, grade, breakdown } = calculateStockScore(
     partialStock, incomeStatements, cashFlows, balanceSheets,
+    drawdownPercent,
     finGrowth.length > 0 ? finGrowth : undefined,
     keyMetrics,
   );
