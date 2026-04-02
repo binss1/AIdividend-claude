@@ -246,9 +246,46 @@ export default function HistoryPage() {
                     총 <span className="text-emerald-400 font-semibold">{detail.results.length}</span>개 종목
                   </span>
                 </div>
-                <span className="text-xs text-zinc-500">
-                  {detail.session.session_date} {isETF ? 'ETF' : '배당주'} {detail.session.session_number}회차
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-zinc-500">
+                    {detail.session.session_date} {isETF ? 'ETF' : '배당주'} {detail.session.session_number}회차
+                  </span>
+                  <button
+                    onClick={async () => {
+                      const XLSX = await import('xlsx');
+                      const rows = detail.results.map((item: any, idx: number) => {
+                        if (isETF) {
+                          return {
+                            '순위': idx + 1, '티커': item.symbol, 'ETF명': item.name,
+                            '가격($)': item.price?.toFixed(2), 'AUM': item.aum,
+                            '배당수익률(%)': ((item.dividendYield || 0) * 100).toFixed(2),
+                            '운용보수(%)': ((item.expenseRatio || 0) * 100).toFixed(3),
+                            'Q-LEAD': item.totalScore?.toFixed(1),
+                          };
+                        }
+                        return {
+                          '순위': idx + 1, '티커': item.symbol, '종목명': item.name,
+                          '현재가($)': item.currentPrice?.toFixed(2),
+                          '배당수익률(%)': item.dividendYield?.toFixed(2),
+                          '배당성향(%)': item.payoutRatio?.toFixed(1),
+                          '시가총액': item.marketCap, 'P/E': item.pe?.toFixed(1),
+                          'ROE(%)': item.roe?.toFixed(1), '배당주기': item.dividendCycle,
+                          '점수': item.overallScore, '등급': item.grade,
+                        };
+                      });
+                      const ws = XLSX.utils.json_to_sheet(rows);
+                      const wb = XLSX.utils.book_new();
+                      XLSX.utils.book_append_sheet(wb, ws, '스크리닝 이력');
+                      XLSX.writeFile(wb, `${detail.session.session_date}_${isETF ? 'ETF' : '배당주'}_${detail.session.session_number}회차.xlsx`);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 transition-all"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    Excel
+                  </button>
+                </div>
               </div>
 
               {/* Table */}
