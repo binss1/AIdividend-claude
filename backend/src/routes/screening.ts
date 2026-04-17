@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { optionalAuth } from '../middleware/auth';
+import { requireCredits } from '../middleware/creditGuard';
 import {
   screenDividendStocks,
   getStockDetail,
@@ -25,6 +26,7 @@ import {
 import { screenDividendETFs, getETFList } from '../services/etfScreeningService';
 import { getExchangeRate } from '../services/exchangeRateService';
 import { recommendPortfolio } from '../services/portfolioRecommendService';
+import { analyzeRebalance } from '../services/rebalanceService';
 import { saveScreeningSession, getSessionList, getSessionDetail, deleteSession } from '../services/dbService';
 import { saveScreeningResults, saveETFResults } from '../services/googleSheetsService';
 import logger from '../utils/logger';
@@ -133,7 +135,7 @@ router.get('/universe-info', async (req: Request, res: Response) => {
  * GET /stock-screening
  * Start stock screening (runs async, poll progress with /stock-screening-progress)
  */
-router.get('/stock-screening', optionalAuth, async (req: Request, res: Response) => {
+router.get('/stock-screening', optionalAuth, requireCredits('stock_screening', { deductAfter: true }), async (req: Request, res: Response) => {
   try {
     // Don't start if already running
     if (stockScreeningProgress.status === 'running') {
@@ -287,7 +289,7 @@ router.post('/etf-screening-cancel', optionalAuth, (_req: Request, res: Response
  * POST /etf-screening
  * Start ETF screening
  */
-router.post('/etf-screening', optionalAuth, async (req: Request, res: Response) => {
+router.post('/etf-screening', optionalAuth, requireCredits('etf_screening', { deductAfter: true }), async (req: Request, res: Response) => {
   try {
     if (etfScreeningProgress.status === 'running') {
       res.status(409).json({
@@ -318,7 +320,7 @@ router.post('/etf-screening', optionalAuth, async (req: Request, res: Response) 
 
     (async () => {
       try {
-        const results = await screenDividendETFs(criteria, (progress) => {
+        const { results, skipSummary } = await screenDividendETFs(criteria, (progress) => {
           etfScreeningProgress = {
             ...etfScreeningProgress,
             ...progress,
@@ -334,15 +336,16 @@ router.post('/etf-screening', optionalAuth, async (req: Request, res: Response) 
           startedAt: etfScreeningProgress.startedAt,
           completedAt: new Date().toISOString(),
           results,
+          skipSummary,
         };
 
         saveETFResults(results).catch(err => {
           logger.error('Background ETF sheets save failed', (err as Error).message);
         });
 
-        // Save to SQLite (non-blocking)
+        // Save to SQLite (non-blocking, include skipSummary)
         try {
-          saveScreeningSession('etf', criteria, results);
+          saveScreeningSession('etf', { ...criteria, skipSummary }, results);
           logger.info(`[DB] ETF 스크리닝 결과 저장 완료: ${results.length}종목`);
         } catch (dbErr) {
           logger.error('[DB] ETF 결과 저장 실패', (dbErr as Error).message);
@@ -704,7 +707,7 @@ router.get('/dividend-calendar', optionalAuth, async (req: Request, res: Respons
 // Portfolio Simulator
 // ==========================================
 
-router.post('/portfolio-simulate', optionalAuth, async (req: Request, res: Response) => {
+router.post('/portfolio-simulate', optionalAuth, requireCredits('portfolio_simulate'), async (req: Request, res: Response) => {
   try {
     const {
       stocks,           // [{symbol, shares, avgPrice?}]
@@ -965,13 +968,43 @@ router.delete('/history/:id', optionalAuth, async (req: Request, res: Response) 
 // Portfolio Recommendation
 // ==========================================
 
-router.post('/portfolio-recommend', optionalAuth, async (req: Request, res: Response) => {
+router.post('/portfolio-recommend', optionalAuth, requireCredits('portfolio_recommend'), async (req: Request, res: Response) => {
   try {
     const result = await recommendPortfolio(req.body);
     res.json(result);
   } catch (err) {
     logger.error('Portfolio recommendation failed', (err as Error).message);
     res.status(500).json({ error: 'Portfolio recommendation failed' });
+  }
+});
+
+// ==========================================
+// Portfolio Rebalancing
+// ==========================================
+
+router.post('/portfolio-rebalance', optionalAuth, requireCredits('portfolio_rebalance'), async (req: Request, res: Response) => {
+  try {
+    const { holdings, sessionId, sessionIds, preferences, exchangeRate } = req.body;
+
+    if (!holdings || !Array.isArray(holdings) || holdings.length === 0) {
+      res.status(400).json({ error: '보유 종목 정보가 필요합니다.' });
+      return;
+    }
+    const hasSession = sessionId || (sessionIds && Array.isArray(sessionIds) && sessionIds.length > 0);
+    if (!hasSession) {
+      res.status(400).json({ error: '기준 스크리닝 세션 ID가 필요합니다.' });
+      return;
+    }
+
+    const ids = sessionIds && sessionIds.length > 0 ? sessionIds : [sessionId];
+    logger.info(`[API] 포트폴리오 리밸런싱 요청: ${holdings.length}종목, 세션 [${ids.join(',')}]`);
+
+    const result = await analyzeRebalance(req.body);
+    res.json(result);
+  } catch (err) {
+    const errMsg = (err as Error).message;
+    logger.error(`[API] 리밸런싱 실패: ${errMsg}`);
+    res.status(500).json({ error: errMsg || 'Portfolio rebalancing failed' });
   }
 });
 
