@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.100.0",
     "@tosspayments/payment-widget-sdk": "^0.12.1",
     "next": "16.2.1",
