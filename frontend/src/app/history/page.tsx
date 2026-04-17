@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { apiFetch, API_ENDPOINTS } from '@/config/api';
 import PortfolioRecommendation from '@/components/PortfolioRecommendation';
 import ScoreBar from '@/components/ScoreBar';
@@ -74,12 +74,31 @@ function formatCriteriaValue(key: string, value: unknown): string {
 // ==========================================
 
 export default function HistoryPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-zinc-500">로딩 중...</div>}>
+      <HistoryPageContent />
+    </Suspense>
+  );
+}
+
+function HistoryPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [sessions, setSessions] = useState<SessionItem[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [exchangeRate, setExchangeRate] = useState(1400);
+
+  // URL 쿼리에서 선택된 이력 ID 관리 (뒤로가기 시 유지됨)
+  const selectedId = searchParams.get('id') ? Number(searchParams.get('id')) : null;
+  const setSelectedId = useCallback((id: number | null) => {
+    if (id === null) {
+      router.push('/history', { scroll: false });
+    } else {
+      router.push(`/history?id=${id}`, { scroll: false });
+    }
+  }, [router]);
 
   // Load session list + exchange rate on mount
   useEffect(() => {

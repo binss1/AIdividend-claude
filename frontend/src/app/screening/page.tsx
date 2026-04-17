@@ -382,7 +382,7 @@ export default function StockScreeningPage() {
 
           <div
             className={`border-t border-zinc-800 transition-all duration-300 ease-in-out ${
-              filtersOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden border-t-0'
+              filtersOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden border-t-0'
             }`}
           >
             <div className="px-6 py-6">
@@ -400,7 +400,9 @@ export default function StockScreeningPage() {
                       step={0.5}
                       value={minYield}
                       onChange={(e) => setMinYield(parseFloat(e.target.value))}
+                      onInput={(e) => setMinYield(parseFloat((e.target as HTMLInputElement).value))}
                       className="flex-1 h-2 rounded-full appearance-none bg-zinc-700 accent-emerald-500 cursor-pointer"
+                      style={{ touchAction: 'manipulation' }}
                     />
                     <div className="flex items-center rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-1.5 min-w-[72px]">
                       <input
@@ -452,7 +454,9 @@ export default function StockScreeningPage() {
                       step={5}
                       value={maxPayoutRatio}
                       onChange={(e) => setMaxPayoutRatio(parseFloat(e.target.value))}
+                      onInput={(e) => setMaxPayoutRatio(parseFloat((e.target as HTMLInputElement).value))}
                       className="flex-1 h-2 rounded-full appearance-none bg-zinc-700 accent-emerald-500 cursor-pointer"
+                      style={{ touchAction: 'manipulation' }}
                     />
                     <span className="text-sm font-mono text-emerald-400 min-w-[44px] text-right">
                       {maxPayoutRatio}%
@@ -553,45 +557,47 @@ export default function StockScreeningPage() {
                 </label>
               </div>
 
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex items-center gap-4 text-xs text-zinc-500">
-                  <span>배당률 {minYield}%+</span>
-                  <span className="text-zinc-700">|</span>
-                  <span>시총 {formatMarketCap(minMarketCap)}+</span>
-                  <span className="text-zinc-700">|</span>
-                  <span>배당성향 ~{maxPayoutRatio}%</span>
-                  <span className="text-zinc-700">|</span>
-                  <span>{maxStocks}종목</span>
-                  <span className="text-zinc-700">|</span>
-                  <span className={indexOnly ? 'text-emerald-400/70' : 'text-amber-400/70'}>
-                    {indexOnly ? '지수' : '전체'}
-                  </span>
-                </div>
-                <button
-                  onClick={startScreening}
-                  disabled={isScreening}
-                  className="relative inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:from-emerald-500 hover:to-teal-400 hover:shadow-emerald-500/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                >
-                  {isScreening ? (
-                    <>
-                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      스크리닝 중...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                      </svg>
-                      스크리닝 시작
-                    </>
-                  )}
-                </button>
-              </div>
             </div>
           </div>
+        </div>
+
+        {/* Screening Start - 필터 카드 바깥에 위치하여 항상 보임 */}
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-zinc-800/60 bg-zinc-900/40 px-5 py-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-500">
+            <span>배당률 {minYield}%+</span>
+            <span className="hidden sm:inline text-zinc-700">|</span>
+            <span>시총 {formatMarketCap(minMarketCap)}+</span>
+            <span className="hidden sm:inline text-zinc-700">|</span>
+            <span>배당성향 ~{maxPayoutRatio}%</span>
+            <span className="hidden sm:inline text-zinc-700">|</span>
+            <span>{maxStocks}종목</span>
+            <span className="hidden sm:inline text-zinc-700">|</span>
+            <span className={indexOnly ? 'text-emerald-400/70' : 'text-amber-400/70'}>
+              {indexOnly ? '지수' : '전체'}
+            </span>
+          </div>
+          <button
+            onClick={startScreening}
+            disabled={isScreening}
+            className="w-full sm:w-auto relative inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-6 py-3 sm:py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:from-emerald-500 hover:to-teal-400 hover:shadow-emerald-500/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 active:scale-95"
+          >
+            {isScreening ? (
+              <>
+                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                스크리닝 중...
+              </>
+            ) : (
+              <>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                스크리닝 시작
+              </>
+            )}
+          </button>
         </div>
 
         {/* Progress */}

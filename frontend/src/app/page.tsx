@@ -646,6 +646,133 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════
+          SAFETY FILTER - 안전 필터링 시스템
+          ═══════════════════════════════════════ */}
+      <section className="relative px-4 py-20 border-t border-zinc-800/50">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-14 text-center">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-4 py-1.5 text-sm text-orange-400">
+              🛡️ 안전 필터링 시스템
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              걸러야 할 종목을{' '}
+              <span className="text-gradient">정확히 걸러냅니다</span>
+            </h2>
+            <p className="mt-3 text-zinc-400 text-sm max-w-2xl mx-auto">
+              배당 투자에 부적합한 종목이 결과에 포함되면 치명적인 손실로 이어질 수 있습니다. AI 배당연구소는 다층 안전 필터로 위험 종목을 사전에 제거합니다.
+            </p>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* 배당주 필터링 */}
+            <div className="rounded-2xl border border-emerald-500/15 bg-zinc-900/60 p-6 backdrop-blur-sm">
+              <h3 className="text-base font-bold text-white mb-5 flex items-center gap-2">
+                <span className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center text-sm">📊</span>
+                배당주 안전 필터
+              </h3>
+              <div className="space-y-3">
+                {[
+                  {
+                    label: 'CEF (폐쇄형 펀드)',
+                    desc: '개별 주식이 아닌 투자 펀드로, NAV 괴리·레버리지·운용보수 등 별도의 분석 프레임워크가 필요합니다.',
+                    color: 'red',
+                  },
+                  {
+                    label: '우선주 / 채권형 증권',
+                    desc: '고정 이자를 지급하는 상품으로 일반 배당주와 리스크 특성이 완전히 다릅니다. 금리 변동에 극도로 민감합니다.',
+                    color: 'red',
+                  },
+                  {
+                    label: '적자 기업 (EPS/Net Income 음수)',
+                    desc: '수익을 내지 못하는 기업의 배당은 자본 잠식으로 이어질 수 있어, 배당 지속성이 보장되지 않습니다.',
+                    color: 'amber',
+                  },
+                  {
+                    label: '외국 기업 (ADR)',
+                    desc: '미국 외 기업은 과세·환율·규제 리스크가 추가되며, 재무 데이터 신뢰도에 차이가 있습니다.',
+                    color: 'amber',
+                  },
+                  {
+                    label: '연속배당 미달 / 동일기업 중복',
+                    desc: '배당 지속성이 검증되지 않은 종목과 같은 모회사의 시리즈 채권 중복을 제거합니다.',
+                    color: 'yellow',
+                  },
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-3 rounded-lg bg-zinc-800/30 p-3">
+                    <span className={`shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full ${
+                      item.color === 'red' ? 'bg-red-400' :
+                      item.color === 'amber' ? 'bg-amber-400' : 'bg-yellow-400'
+                    }`} style={{ marginTop: '7px' }} />
+                    <div>
+                      <p className="text-sm font-medium text-white">{item.label}</p>
+                      <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ETF 필터링 */}
+            <div className="rounded-2xl border border-teal-500/15 bg-zinc-900/60 p-6 backdrop-blur-sm">
+              <h3 className="text-base font-bold text-white mb-5 flex items-center gap-2">
+                <span className="w-7 h-7 rounded-lg bg-teal-500/15 flex items-center justify-center text-sm">🧩</span>
+                ETF 안전 필터
+              </h3>
+              <div className="space-y-3">
+                {[
+                  {
+                    label: '원자재 / 대체투자 ETF',
+                    desc: '금·원유·곡물 등 원자재 ETF의 분배금은 실제 배당이 아닌 선물 롤오버 수익이며, 장기 보유 시 자본이 잠식됩니다.',
+                    color: 'red',
+                  },
+                  {
+                    label: '레버리지 / 인버스 ETF',
+                    desc: '2배·3배 레버리지 및 인버스 ETF는 일일 수익률 추종 구조로, 장기 배당 투자에 구조적으로 부적합합니다.',
+                    color: 'red',
+                  },
+                  {
+                    label: '암호화폐 / 변동성 ETF',
+                    desc: '비트코인·이더리움 선물 ETF와 VIX 관련 ETF는 배당 투자 목적과 근본적으로 다른 투기성 상품입니다.',
+                    color: 'red',
+                  },
+                  {
+                    label: '커버드콜 수익률 보정',
+                    desc: '옵션 프리미엄이 포함된 분배금은 실제 배당 대비 과대평가됩니다. 커버드콜 ETF는 수익률을 30% 할인하여 점수를 산정합니다.',
+                    color: 'amber',
+                  },
+                  {
+                    label: '극단적 집중 ETF 페널티',
+                    desc: '보유 종목이 극소수이거나 상위 10개 종목 비중이 과도한 ETF는 분산 투자 효과가 없어 Exposure 페널티를 적용합니다.',
+                    color: 'yellow',
+                  },
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-3 rounded-lg bg-zinc-800/30 p-3">
+                    <span className={`shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full ${
+                      item.color === 'red' ? 'bg-red-400' :
+                      item.color === 'amber' ? 'bg-amber-400' : 'bg-yellow-400'
+                    }`} style={{ marginTop: '7px' }} />
+                    <div>
+                      <p className="text-sm font-medium text-white">{item.label}</p>
+                      <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 하단 요약 */}
+          <div className="mt-8 rounded-xl border border-zinc-800/50 bg-zinc-900/40 p-5 text-center">
+            <p className="text-sm text-zinc-400">
+              FMP API의 <span className="text-zinc-300 font-medium">isFund</span>, <span className="text-zinc-300 font-medium">assetClass</span> 등 구조화된 데이터를 1차 기준으로 사용하여{' '}
+              <span className="text-emerald-400 font-medium">신규 상장 종목도 자동으로 정확히 분류</span>합니다.
+              키워드 의존도를 최소화한 다층 필터 설계로 오분류 위험을 원천 차단합니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════
           WHY REGULAR SCREENING - 정기 스크리닝이 수익을 만듭니다
           ═══════════════════════════════════════ */}
       <section className="relative px-4 py-20 border-t border-zinc-800/50">

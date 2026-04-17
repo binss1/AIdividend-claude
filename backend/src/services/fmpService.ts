@@ -43,6 +43,78 @@ const REIT_KEYWORDS = [
 ];
 
 // ==========================================
+// CEF (Closed-End Fund) Detection
+// ==========================================
+
+// FMP API의 isFund 플래그가 CEF를 정확히 감지 (isEtf=false, isFund=true)
+// 신규 상장 CEF도 자동으로 필터링됨
+function isCEF(isFund?: boolean): boolean {
+  return isFund === true;
+}
+
+// ==========================================
+// Preferred Stock / Bond-like Security Detection
+// ==========================================
+
+// 종목명 기반 우선주/채권 탐지 패턴
+const PREFERRED_BOND_NAME_PATTERNS = [
+  /\bpfd\b/i,              // PFD (Preferred)
+  /\bpreferred\b/i,        // Preferred
+  /\bnotes?\s+due\b/i,     // Notes due 20XX
+  /\bsubordinated\b/i,     // Junior/Senior Subordinated
+  /\bperpetual\b/i,        // Perpetual notes
+  /\bfixed[- ]?rate\b/i,   // Fixed-Rate
+  /\bcollateral\b/i,       // Collateral Trust
+  /\bjr\s*sub/i,           // Junior Subordinated (JRSUB)
+  /\bglb\s*nts?\b/i,       // Global Notes
+  /\d+\.\d+%/,             // 이름에 퍼센트 포함 (e.g. "5.625%")
+  /\bseries\s+[a-z0-9]/i,  // Series A/B/1/2
+  /\b\d{4}\s+series\b/i,   // "2020 Series", "2021 Series"
+];
+
+// 종목명 끝이 쿠폰율/숫자로 끝나는 패턴 (예: "Prudential Financial, Inc. 5.62")
+const NAME_ENDS_WITH_COUPON = /\b\d+\.?\d*\s*$/;
+
+function isPreferredOrBond(symbol: string, name: string): boolean {
+  // 1) 대시(-) 포함 티커: OAK-PA, OAK-PB, ETI-P, EFC-PC 등
+  if (symbol.includes('-')) return true;
+
+  // 2) 종목명 패턴 매칭
+  if (PREFERRED_BOND_NAME_PATTERNS.some(p => p.test(name))) return true;
+
+  // 3) 종목명이 쿠폰율/숫자로 끝남 (예: "Prudential Financial, Inc. 5.62")
+  if (NAME_ENDS_WITH_COUPON.test(name.trim())) return true;
+
+  return false;
+}
+
+// ==========================================
+// Duplicate Parent Company Detection
+// ==========================================
+
+function extractParentCompany(name: string, symbol: string): string | null {
+  // Common patterns: "Company Name X.XX% Notes/Series/PFD..."
+  // Extract base company name before the financial instrument description
+  const patterns = [
+    /^(.+?)\s+\d+\.\d+%/,           // "CMS Energy Corporation 5.875%..."
+    /^(.+?)\s+series\s+/i,           // "Southern Company Series 2"
+    /^(.+?)\s+(?:jr|junior|senior)\s+sub/i,  // "DTE Energy JR SUB..."
+    /^(.+?)\s+(?:pfd|preferred)/i,   // "... PFD GTD..."
+    /^(.+?)\s+collateral/i,          // "... Collateral Trust"
+  ];
+  for (const p of patterns) {
+    const m = name.match(p);
+    if (m) return m[1].trim().toLowerCase();
+  }
+  // For tickers like AFGB/AFGC/AFGD → base is first 3 chars if alpha
+  const baseTickerMatch = symbol.match(/^([A-Z]{2,5})[A-Z]$/);
+  if (baseTickerMatch && symbol.length > 3) {
+    return baseTickerMatch[1].toLowerCase();
+  }
+  return null;
+}
+
+// ==========================================
 // Axios Instance with Rate Limiting
 // ==========================================
 
@@ -689,8 +761,9 @@ function calculatePayoutRatio(
     return { ratio, method: 'TotalDiv/NetIncome', isValid: true };
   }
 
-  // Company is unprofitable - REJECT
-  if (eps <= 0 && netIncome <= 0) {
+  // Company is unprofitable - REJECT (EPS 음수 OR Net Income 음수)
+  // 이전: AND 조건이라 한쪽만 음수면 통과하는 허점 존재
+  if (eps <= 0 || netIncome <= 0) {
     return { ratio: 0, method: 'unprofitable', isValid: false };
   }
 
@@ -779,15 +852,16 @@ function calculateStockScore(
     else if (pr > 10 && pr < 20) payoutScore = 20;
     else payoutScore = 5;
 
-    // Debt/Equity (lower is better, <1 is good)
+    // Debt/Equity (lower is better, <1 is good) — 가중치 상향: 25→30점
     const de = stock.debtToEquity ?? 2;
     let debtScore = 0;
-    if (de < 0.3) debtScore = 25;
-    else if (de < 0.5) debtScore = 22;
-    else if (de < 1.0) debtScore = 18;
-    else if (de < 1.5) debtScore = 12;
-    else if (de < 2.0) debtScore = 8;
-    else debtScore = 3;
+    if (de < 0.3) debtScore = 30;
+    else if (de < 0.5) debtScore = 26;
+    else if (de < 1.0) debtScore = 22;
+    else if (de < 1.5) debtScore = 15;
+    else if (de < 2.0) debtScore = 10;
+    else if (de < 5.0) debtScore = 5;
+    else debtScore = 0; // 부채비율 5 이상 = 0점
 
     stabilityScore = yearScore + payoutScore + debtScore;
   }
@@ -1039,6 +1113,18 @@ function calculateStockScore(
     penalty += 5;
   }
 
+  // 🔴 P/E = 0 (데이터 없음) 시 밸류에이션 점수 보정: 중립값으로 제한
+  if (pe === 0) {
+    valuationScore = Math.min(valuationScore, 40); // 데이터 없으면 최대 40점
+  }
+
+  // 🔴 극단적 부채비율 감점: D/E > 10 시 추가 페널티
+  const de2 = stock.debtToEquity ?? 0;
+  if (de2 > 10) {
+    const debtPenalty = Math.min(10, (de2 - 10) * 0.5); // 최대 -10점
+    penalty += debtPenalty;
+  }
+
   const adjustedScore = score - penalty;
   const clampedScore = Math.max(0, Math.min(100, adjustedScore));
 
@@ -1226,11 +1312,34 @@ export async function screenDividendStocks(
     return b.dividendYield - a.dividendYield;
   });
 
+  // 🔴 동일 기업 중복 제거: 같은 모회사의 시리즈 채권/우선주 중 최고점수만 유지
+  const beforeDedup = results.length;
+  const parentMap = new Map<string, number>(); // parentKey → index in results
+  const toRemove = new Set<number>();
+  for (let i = 0; i < results.length; i++) {
+    const parent = extractParentCompany(results[i].name, results[i].symbol);
+    if (parent) {
+      if (parentMap.has(parent)) {
+        // 이미 같은 모회사가 있음 → 이 종목을 제거 (정렬됨, 먼저 나온게 고점수)
+        toRemove.add(i);
+        logger.info(`  🔄 중복 제거: ${results[i].symbol} (${results[i].name}) → 모회사: ${parent}`);
+      } else {
+        parentMap.set(parent, i);
+      }
+    }
+  }
+  if (toRemove.size > 0) {
+    const filtered = results.filter((_, idx) => !toRemove.has(idx));
+    results.length = 0;
+    results.push(...filtered);
+    logger.info(`  📊 동일 기업 중복 제거: ${beforeDedup}개 → ${results.length}개 (${toRemove.size}개 제거)`);
+  }
+
   const totalElapsed = (Date.now() - startTime) / 1000;
   logger.info('═══════════════════════════════════════════════════════');
   logger.info('  🏁 배당주 스크리닝 완료');
   logger.info(`     • 총 분석: ${processedCount}개`);
-  logger.info(`     • 통과: ${results.length}개`);
+  logger.info(`     • 통과: ${results.length}개 (중복 제거 후)`);
   logger.info(`     • 스킵/필터링: ${skippedCount}개`);
   logger.info(`     • 총 소요시간: ${formatElapsed(totalElapsed)}`);
   logger.info(`     • 종목당 평균: ${(totalElapsed / processedCount).toFixed(1)}초`);
@@ -1277,6 +1386,18 @@ async function analyzeStock(
 
   if (profile.isEtf) { logger.info(`    [${symbol}] SKIP: ETF`); return { skipReason: 'ETF 제외' }; }
 
+  // 🔴 CEF(폐쇄형 펀드) 제외 — FMP isFund 플래그 기반 (신규 CEF 자동 감지)
+  if (isCEF(profile.isFund)) {
+    logger.info(`    [${symbol}] SKIP: CEF(폐쇄형 펀드)`);
+    return { skipReason: 'CEF 제외' };
+  }
+
+  // 🔴 우선주/채권형 종목 제외
+  if (isPreferredOrBond(symbol, profile.companyName || '')) {
+    logger.info(`    [${symbol}] SKIP: 우선주/채권형 종목`);
+    return { skipReason: '우선주/채권 제외' };
+  }
+
   // 🔴 외국 기업(ADR) 제외 — 미국 기업만 허용
   const country = (profile.country || '').toUpperCase();
   if (country && country !== 'US') { logger.info(`    [${symbol}] SKIP: 외국기업 (${profile.country})`); return { skipReason: `외국기업 (${profile.country})` }; }
@@ -1285,6 +1406,14 @@ async function analyzeStock(
 
   const quote = await getQuote(symbol);
   if (!quote) { logger.info(`    [${symbol}] SKIP: 시세 없음`); return { skipReason: '시세 없음' }; }
+
+  // 🔴 우선주/채권형 보조 필터: P/E=0이고 EPS=0이면 고정수익 상품일 가능성 높음
+  // LADR(P/E=19,EPS=0.51), RITM(P/E=9,EPS=1.04) 같은 실제 주식은 통과
+  // AFGB(P/E=0,EPS=0), APOS(P/E=0,EPS=0), SREA(P/E=0,EPS=0) 등 고정수익 상품만 걸림
+  if ((quote.pe === 0 || quote.pe == null) && (quote.eps === 0 || quote.eps == null)) {
+    logger.info(`    [${symbol}] SKIP: P/E=0 & EPS=0 (고정수익 상품 의심)`);
+    return { skipReason: '고정수익 상품 의심 (P/E=0, EPS=0)' };
+  }
 
   const dividends = await getDividendHistory(symbol);
   if (dividends.length === 0) { logger.info(`    [${symbol}] SKIP: 배당이력 없음`); return { skipReason: '배당이력 없음' }; }
@@ -1341,6 +1470,13 @@ async function analyzeStock(
   // Calculate additional metrics
   const consecutiveYears = countConsecutiveDividendYears(dividends);
   const consistencyScore = calculateConsistencyScore(dividends);
+
+  // 🔴 연속배당 5년 미만 필터: 배당 지속성 미검증 종목 제외
+  const minConsecYears = criteria.minConsecutiveDividendYears || 5;
+  if (consecutiveYears < minConsecYears) {
+    logger.info(`    [${symbol}] SKIP: 연속배당 ${consecutiveYears}년 < ${minConsecYears}년`);
+    return { skipReason: `연속배당 미달 (${consecutiveYears}년)` };
+  }
 
   // Financial ratios
   const latestRatios = ratios.length > 0 ? ratios[0] : null;

@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { getApiBaseUrl } from '@/config/api';
+import { useAuth } from '@/components/AuthProvider';
 import { ScreenedStock, ScreenedETF, StockGrade } from '@/types';
 import GradeBadge from '@/components/GradeBadge';
 import ScoreBar from '@/components/ScoreBar';
@@ -167,8 +169,17 @@ function gradeColor(grade: StockGrade): string {
 // Component
 // -------------------------------------------------------------------
 
+interface UserCreditInfo {
+  balance: number;
+  plan_id: string;
+  plan_name: string;
+  total_used: number;
+  monthly_credits: number;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
+  const { user, session } = useAuth();
 
   const [exchangeRate, setExchangeRate] = useState<ExchangeRate | null>(null);
   const [rateLoading, setRateLoading] = useState(true);
@@ -178,6 +189,29 @@ export default function DashboardPage() {
   const [sectorPerf, setSectorPerf] = useState<Array<{ sector: string; changesPercentage: string }>>([]);
   const [econEvents, setEconEvents] = useState<Array<{ event: string; date: string; actual: number | null; previous: number | null; estimate: number | null; impact: string }>>([]);
   const [stockNews, setStockNews] = useState<Array<{ symbol: string; publishedDate: string; title: string; site: string; url: string }>>([]);
+  const [creditInfo, setCreditInfo] = useState<UserCreditInfo | null>(null);
+
+  // Fetch credit/profile info
+  useEffect(() => {
+    if (!session?.access_token) return;
+    const base = getApiBaseUrl();
+    fetch(`${base}/credits/profile`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.profile) {
+          setCreditInfo({
+            balance: data.profile.credit_balance,
+            plan_id: data.profile.plan_id,
+            plan_name: data.plan?.name || data.profile.plan_id,
+            total_used: data.profile.total_credits_used,
+            monthly_credits: data.plan?.monthly_credits || 0,
+          });
+        }
+      })
+      .catch(() => {});
+  }, [session?.access_token]);
 
   // Fetch exchange rate + market overview + market insights
   useEffect(() => {
@@ -270,10 +304,46 @@ export default function DashboardPage() {
       {/* Hero */}
       <div className="bg-gradient-to-b from-gray-900/80 to-gray-950 border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            AI Dividend <span className="text-emerald-400">대시보드</span>
-          </h1>
-          <p className="text-gray-400">미국 배당주 및 ETF 스크리닝 플랫폼에 오신 것을 환영합니다.</p>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">
+                AI Dividend <span className="text-emerald-400">대시보드</span>
+              </h1>
+              <p className="text-gray-400">
+                {user ? `${user.user_metadata?.name || user.email?.split('@')[0] || '사용자'}님, 환영합니다.` : '미국 배당주 및 ETF 스크리닝 플랫폼에 오신 것을 환영합니다.'}
+              </p>
+            </div>
+
+            {/* Credit & Plan Info Card */}
+            {creditInfo && (
+              <div className="flex items-center gap-4 bg-gray-800/40 border border-gray-700/40 rounded-2xl px-5 py-3">
+                <div className="text-center">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">플랜</p>
+                  <p className="text-sm font-bold text-emerald-400">{creditInfo.plan_name}</p>
+                </div>
+                <div className="w-px h-8 bg-gray-700/50" />
+                <div className="text-center">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">크레딧</p>
+                  <p className="text-sm font-bold text-white">
+                    {creditInfo.monthly_credits === -1 ? '무제한' : creditInfo.balance.toLocaleString()}
+                  </p>
+                </div>
+                <div className="w-px h-8 bg-gray-700/50" />
+                <div className="text-center">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">사용량</p>
+                  <p className="text-sm font-bold text-gray-300">{creditInfo.total_used.toLocaleString()}</p>
+                </div>
+                {creditInfo.plan_id === 'free' && (
+                  <Link
+                    href="/pricing"
+                    className="ml-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 transition-colors"
+                  >
+                    업그레이드
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

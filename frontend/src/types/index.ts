@@ -76,6 +76,7 @@ export interface ScreenedETF {
   dividendGrowth5Y?: number;
   beta?: number;
   isCoveredCall?: boolean;
+  assetType?: string;  // equity | bond | preferred | covered_call | reit | mixed
 
   lastUpdated: string;
 }
@@ -109,6 +110,7 @@ export interface ETFScreeningProgress {
   completedAt?: string;
   error?: string;
   results?: ScreenedETF[];
+  skipSummary?: Record<string, number>;
 }
 
 export interface ChartDataPoint {
@@ -131,4 +133,84 @@ export interface DividendHistoryPoint {
   adjDividend: number;
   dividend: number;
   paymentDate?: string;
+}
+
+// ==========================================
+// Portfolio Rebalancing
+// ==========================================
+
+export interface UserHolding {
+  symbol: string;
+  shares: number;
+  avgPrice?: number;
+  type?: 'stock' | 'etf';
+}
+
+export type RebalanceAction = 'keep' | 'increase' | 'reduce' | 'sell' | 'exclude' | 'new_buy';
+
+export interface RebalanceHoldingAnalysis {
+  symbol: string;
+  name: string;
+  shares: number;
+  currentPrice: number;
+  avgPrice?: number;
+  marketValue: number;
+  weight: number;
+  annualDividend: number;
+  dividendYield: number;
+
+  inScreeningResult: boolean;
+  score: number | null;
+  grade: string | null;
+
+  action: RebalanceAction;
+  reason: string;
+  targetWeight?: number;
+  targetShares?: number;
+  shareDelta?: number;
+  amountDelta?: number;
+}
+
+export interface NewBuyRecommendation {
+  symbol: string;
+  name: string;
+  currentPrice: number;
+  dividendYield: number;
+  score: number;
+  grade: string;
+  category: string;
+  reason: string;
+  suggestedWeight: number;
+  suggestedShares: number;
+  suggestedAmount: number;
+}
+
+export interface RebalanceScenario {
+  name: string;
+  description: string;
+  existingAnalysis: RebalanceHoldingAnalysis[];
+  newBuys: NewBuyRecommendation[];
+  beforeMetrics: RebalanceMetrics;
+  afterMetrics: RebalanceMetrics;
+}
+
+export interface RebalanceMetrics {
+  totalValue: number;
+  weightedYield: number;
+  expectedAnnualDividend: number;
+  expectedMonthlyDividendPostTax: number;
+  avgScore: number;
+  holdingsCount: number;
+  portfolioBeta?: number;
+}
+
+export interface RebalanceResponse {
+  scenarios: RebalanceScenario[];
+  unmatchedSymbols: string[];
+  sessionInfo: {
+    id: number;
+    assetType: string;
+    date: string;
+    resultCount: number;
+  }[];
 }

@@ -103,10 +103,11 @@ export interface ScreenedETF {
 
   // Additional
   holdingsCount?: number;
-  top10Concentration?: number; // %
-  dividendGrowth5Y?: number;   // %
+  top10Concentration?: number; // % (already percentage, e.g. 15.7 = 15.7%)
+  dividendGrowth5Y?: number;   // decimal (0.05 = 5%)
   beta?: number;
   isCoveredCall?: boolean;     // covered call ETF
+  assetType?: string;          // equity | bond | preferred | covered_call | reit | mixed
 
   lastUpdated: string;
 }
@@ -144,6 +145,7 @@ export interface ETFScreeningProgress {
   completedAt?: string;
   error?: string;
   results?: ScreenedETF[];
+  skipSummary?: Record<string, number>;
 }
 
 // ==========================================
@@ -162,6 +164,7 @@ export interface FMPCompanyProfile {
   beta: number;
   lastDiv: number;
   isEtf: boolean;
+  isFund: boolean;
   isActivelyTrading: boolean;
   description?: string;
   website?: string;
@@ -345,4 +348,102 @@ export interface Achievability {
 export interface PortfolioRecommendResponse {
   portfolios: PortfolioVariant[];
   achievability: Achievability;
+}
+
+// ==========================================
+// Portfolio Rebalancing
+// ==========================================
+
+export interface UserHolding {
+  symbol: string;
+  shares: number;
+  avgPrice?: number;   // USD, optional (will fetch current if missing)
+  type?: 'stock' | 'etf';  // optional, auto-detected
+}
+
+export interface RebalanceRequest {
+  holdings: UserHolding[];
+  sessionId?: number;           // single session (backward compat)
+  sessionIds?: number[];        // multiple sessions (stock + ETF combined)
+  preferences: {
+    additionalInvestment: number;    // USD, additional cash to invest
+    investmentTendency: InvestmentTendency;
+    targetMonthlyDividend?: number;  // USD, post-tax (optional goal)
+    maxNewHoldings: number;          // max new positions to add
+    sellThreshold: number;           // score below which we suggest selling (0-100)
+  };
+  exchangeRate: number;
+}
+
+export type RebalanceAction = 'keep' | 'increase' | 'reduce' | 'sell' | 'exclude' | 'new_buy';
+
+export interface RebalanceHoldingAnalysis {
+  symbol: string;
+  name: string;
+  shares: number;
+  currentPrice: number;
+  avgPrice?: number;
+  marketValue: number;
+  weight: number;             // % of total portfolio
+  annualDividend: number;     // per share
+  dividendYield: number;      // %
+
+  // Screening match
+  inScreeningResult: boolean;
+  score: number | null;       // null if not in screening
+  grade: string | null;
+
+  // Action
+  action: RebalanceAction;
+  reason: string;
+  targetWeight?: number;      // % recommended weight
+  targetShares?: number;      // shares after rebalancing
+  shareDelta?: number;        // + buy / - sell
+  amountDelta?: number;       // USD change
+}
+
+export interface NewBuyRecommendation {
+  symbol: string;
+  name: string;
+  currentPrice: number;
+  dividendYield: number;      // %
+  score: number;
+  grade: string;
+  category: string;
+  reason: string;
+  suggestedWeight: number;    // %
+  suggestedShares: number;
+  suggestedAmount: number;    // USD
+}
+
+export interface RebalanceScenario {
+  name: string;               // '최소 변경형', '균형 조정형', '적극 재구성형'
+  description: string;
+  existingAnalysis: RebalanceHoldingAnalysis[];
+  newBuys: NewBuyRecommendation[];
+
+  // Summary metrics
+  beforeMetrics: RebalanceMetrics;
+  afterMetrics: RebalanceMetrics;
+}
+
+export interface RebalanceMetrics {
+  totalValue: number;
+  weightedYield: number;      // %
+  expectedAnnualDividend: number;
+  expectedMonthlyDividendPostTax: number;
+  avgScore: number;
+  holdingsCount: number;
+  portfolioBeta?: number;
+}
+
+export interface RebalanceResponse {
+  scenarios: RebalanceScenario[];
+  unmatchedSymbols: string[];  // symbols not found via FMP
+  sessionInfo: {
+    id: number;
+    assetType: string;
+    date: string;
+    resultCount: number;
+  }[];  // array for multi-session support
 }

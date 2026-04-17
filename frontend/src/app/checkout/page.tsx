@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { loadPaymentWidget, PaymentWidgetInstance, ANONYMOUS } from '@tosspayments/payment-widget-sdk';
+import { useAuth } from '@/components/AuthProvider';
 
 const CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || '';
 
@@ -25,6 +26,7 @@ function generateOrderId(): string {
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const planId = searchParams.get('plan') || 'pro';
   const customPrice = searchParams.get('price');
   const period = searchParams.get('period') || '월간';
@@ -33,6 +35,11 @@ function CheckoutContent() {
   const planBasePrice = plan.price;
   const finalPrice: number = customPrice ? Number(customPrice) : planBasePrice;
   const isAnnual = period === '연간';
+
+  // 사용자 정보
+  const customerEmail = user?.email || '';
+  const customerName = user?.user_metadata?.name || user?.user_metadata?.full_name || '';
+  const customerId = user?.id || '';
 
   const paymentWidgetRef = useRef<PaymentWidgetInstance | null>(null);
   const [ready, setReady] = useState(false);
@@ -83,9 +90,9 @@ function CheckoutContent() {
       await widget.requestPayment({
         orderId: generateOrderId(),
         orderName: `AI Dividend ${plan.name} 플랜 (${period})`,
-        customerEmail: '',
-        customerName: '',
-        successUrl: `${window.location.origin}/checkout/success`,
+        customerEmail,
+        customerName,
+        successUrl: `${window.location.origin}/checkout/success?userId=${customerId}&planId=${planId}`,
         failUrl: `${window.location.origin}/checkout/fail`,
       });
     } catch (err) {
@@ -127,6 +134,17 @@ function CheckoutContent() {
               <p className="text-[10px] text-zinc-500">부가세 포함</p>
             </div>
           </div>
+          {customerEmail && (
+            <div className="mt-3 pt-3 border-t border-zinc-800/60">
+              <div className="flex items-center gap-2 text-xs text-zinc-400">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
+                </svg>
+                <span>{customerName || customerEmail}</span>
+                {customerName && <span className="text-zinc-600">({customerEmail})</span>}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Payment Widget */}

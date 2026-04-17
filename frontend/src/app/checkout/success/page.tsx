@@ -9,6 +9,8 @@ function SuccessContent() {
   const paymentKey = searchParams.get('paymentKey');
   const orderId = searchParams.get('orderId');
   const amount = searchParams.get('amount');
+  const userId = searchParams.get('userId');
+  const planId = searchParams.get('planId');
 
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [paymentData, setPaymentData] = useState<Record<string, unknown> | null>(null);
@@ -26,7 +28,7 @@ function SuccessContent() {
     fetch(`${apiBase}/payments/confirm`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paymentKey, orderId, amount: Number(amount) }),
+      body: JSON.stringify({ paymentKey, orderId, amount: Number(amount), userId, planId }),
     })
       .then(res => res.json())
       .then(data => {

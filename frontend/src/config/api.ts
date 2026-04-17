@@ -30,6 +30,9 @@ export const API_ENDPOINTS = {
   // Portfolio Recommendation
   PORTFOLIO_RECOMMEND: '/screening/portfolio-recommend',
 
+  // Portfolio Rebalancing
+  PORTFOLIO_REBALANCE: '/screening/portfolio-rebalance',
+
   // Screening History
   SCREENING_HISTORY: '/screening/history',
   SCREENING_HISTORY_DETAIL: (id: number) => `/screening/history/${id}`,

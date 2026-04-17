@@ -86,6 +86,7 @@ export default function ETFScreeningPage() {
   const [minAum, setMinAum] = useState(500_000_000);
   const [maxExpenseRatio, setMaxExpenseRatio] = useState(0.5);
   const [maxCount, setMaxCount] = useState(200);
+  const [assetTypeFilter, setAssetTypeFilter] = useState<string>('all');
   const [filtersOpen, setFiltersOpen] = useState(true);
 
   // Universe info - re-fetch when AUM filter changes (pre-filtering)
@@ -121,6 +122,7 @@ export default function ETFScreeningPage() {
   });
   const [results, setResults] = useState<ScreenedETF[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [skipSummary, setSkipSummary] = useState<Record<string, number> | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [appliedFilters, setAppliedFilters] = useState<{
     minYield: number; minAum: number; maxExpenseRatio: number; maxCount: number;
@@ -171,6 +173,7 @@ export default function ETFScreeningPage() {
                   localStorage.setItem(CACHE_KEY, JSON.stringify(d.results));
                   localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
                 }
+                if (d.skipSummary) setSkipSummary(d.skipSummary);
               } else if (d.status === 'error') {
                 clearInterval(interval);
                 setIsScreening(false);
@@ -200,12 +203,12 @@ export default function ETFScreeningPage() {
       if (data.status === 'completed') {
         stopPolling();
         setIsScreening(false);
-        // Results come directly from progress endpoint
         if (data.results && data.results.length > 0) {
           setResults(data.results);
           localStorage.setItem(CACHE_KEY, JSON.stringify(data.results));
           localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
         }
+        if (data.skipSummary) setSkipSummary(data.skipSummary);
       } else if (data.status === 'error') {
         stopPolling();
         setIsScreening(false);
@@ -260,6 +263,11 @@ export default function ETFScreeningPage() {
   const filteredResults = useMemo(() => {
     let data = [...results];
 
+    // 자산유형 필터
+    if (assetTypeFilter !== 'all') {
+      data = data.filter((e) => e.assetType === assetTypeFilter);
+    }
+
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       data = data.filter(
@@ -285,7 +293,7 @@ export default function ETFScreeningPage() {
     });
 
     return data;
-  }, [results, searchQuery, sortField, sortDir]);
+  }, [results, searchQuery, sortField, sortDir, assetTypeFilter]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -347,8 +355,10 @@ export default function ETFScreeningPage() {
       'Exposure 등급': e.exposureGrade,
       'Dividend 등급': e.dividendGrade,
       '보유종목수': e.holdingsCount ?? '-',
-      'Top10 비중(%)': e.top10Concentration != null ? (e.top10Concentration * 100).toFixed(1) : '-',
+      'Top10 비중(%)': e.top10Concentration != null ? e.top10Concentration.toFixed(1) : '-',
       '5Y 배당성장(%)': e.dividendGrowth5Y != null ? (e.dividendGrowth5Y * 100).toFixed(1) : '-',
+      '자산유형': e.assetType ?? '-',
+      '커버드콜': e.isCoveredCall ? 'Y' : 'N',
     }));
     const ws = XLSX.utils.json_to_sheet(exportData);
     const colWidths = Object.keys(exportData[0] || {}).map((key) => ({
@@ -490,7 +500,7 @@ export default function ETFScreeningPage() {
 
           <div
             className={`border-t border-zinc-800 transition-all duration-300 ease-in-out ${
-              filtersOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden border-t-0'
+              filtersOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden border-t-0'
             }`}
           >
             <div className="px-6 py-6">
@@ -508,7 +518,9 @@ export default function ETFScreeningPage() {
                       step={0.5}
                       value={minYield}
                       onChange={(e) => setMinYield(parseFloat(e.target.value))}
+                      onInput={(e) => setMinYield(parseFloat((e.target as HTMLInputElement).value))}
                       className="flex-1 h-2 rounded-full appearance-none bg-zinc-700 accent-emerald-500 cursor-pointer"
+                      style={{ touchAction: 'manipulation' }}
                     />
                     <div className="flex items-center rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-1.5 min-w-[72px]">
                       <input
@@ -559,7 +571,9 @@ export default function ETFScreeningPage() {
                       step={0.05}
                       value={maxExpenseRatio}
                       onChange={(e) => setMaxExpenseRatio(parseFloat(e.target.value))}
+                      onInput={(e) => setMaxExpenseRatio(parseFloat((e.target as HTMLInputElement).value))}
                       className="flex-1 h-2 rounded-full appearance-none bg-zinc-700 accent-emerald-500 cursor-pointer"
+                      style={{ touchAction: 'manipulation' }}
                     />
                     <span className="text-sm font-mono text-emerald-400 min-w-[52px] text-right">
                       {maxExpenseRatio.toFixed(2)}%
@@ -628,41 +642,43 @@ export default function ETFScreeningPage() {
                 </div>
               </div>
 
-              <div className="mt-6 flex items-center justify-between">
-                <div className="flex items-center gap-4 text-xs text-zinc-500">
-                  <span>배당률 {minYield}%+</span>
-                  <span className="text-zinc-700">|</span>
-                  <span>AUM {formatAum(minAum)}+</span>
-                  <span className="text-zinc-700">|</span>
-                  <span>보수 ~{maxExpenseRatio.toFixed(2)}%</span>
-                  <span className="text-zinc-700">|</span>
-                  <span>{maxCount}개</span>
-                </div>
-                <button
-                  onClick={startScreening}
-                  disabled={isScreening}
-                  className="relative inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:from-emerald-500 hover:to-teal-400 hover:shadow-emerald-500/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                >
-                  {isScreening ? (
-                    <>
-                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      스크리닝 중...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                      </svg>
-                      스크리닝 시작
-                    </>
-                  )}
-                </button>
-              </div>
             </div>
           </div>
+        </div>
+
+        {/* Screening Start - 필터 카드 바깥에 위치하여 항상 보임 */}
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-zinc-800/60 bg-zinc-900/40 px-5 py-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-500">
+            <span>배당률 {minYield}%+</span>
+            <span className="hidden sm:inline text-zinc-700">|</span>
+            <span>AUM {formatAum(minAum)}+</span>
+            <span className="hidden sm:inline text-zinc-700">|</span>
+            <span>보수 ~{maxExpenseRatio.toFixed(2)}%</span>
+            <span className="hidden sm:inline text-zinc-700">|</span>
+            <span>{maxCount}개</span>
+          </div>
+          <button
+            onClick={startScreening}
+            disabled={isScreening}
+            className="w-full sm:w-auto relative inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-6 py-3 sm:py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:from-emerald-500 hover:to-teal-400 hover:shadow-emerald-500/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 active:scale-95"
+          >
+            {isScreening ? (
+              <>
+                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                스크리닝 중...
+              </>
+            ) : (
+              <>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                스크리닝 시작
+              </>
+            )}
+          </button>
         </div>
 
         {/* Progress */}
@@ -714,8 +730,8 @@ export default function ETFScreeningPage() {
         )}
 
         {/* Results Section */}
-        {/* Applied Filter Card (frozen at screening time) */}
-        {results.length > 0 && appliedFilters && (
+        {/* Applied Filter Card + Skip Summary */}
+        {!isScreening && appliedFilters && (results.length > 0 || skipSummary) && (
           <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 backdrop-blur-xl p-5 space-y-4 mb-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
@@ -744,6 +760,31 @@ export default function ETFScreeningPage() {
                 <div className="text-sm text-white font-medium mt-0.5">{appliedFilters.maxCount.toLocaleString()}</div>
               </div>
             </div>
+
+            {/* 탈락 사유 요약 */}
+            {skipSummary && Object.keys(skipSummary).length > 0 && (
+              <div className="pt-3 border-t border-zinc-800/40">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs text-zinc-400 font-medium">탈락 사유 요약</span>
+                  <span className="text-xs text-zinc-600">({Object.values(skipSummary).reduce((a, b) => a + b, 0)}건)</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(skipSummary)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([reason, count]) => {
+                      const total = Object.values(skipSummary).reduce((a, b) => a + b, 0);
+                      const pct = ((count / total) * 100).toFixed(0);
+                      return (
+                        <span key={reason} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
+                          <span className="text-zinc-400">{reason}</span>
+                          <span className="text-amber-400 font-mono">{count}</span>
+                          <span className="text-zinc-600">({pct}%)</span>
+                        </span>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -780,6 +821,19 @@ export default function ETFScreeningPage() {
                       className="rounded-lg border border-zinc-700 bg-zinc-800/80 pl-9 pr-3 py-2 text-sm text-zinc-200 placeholder-zinc-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 w-48 transition-colors"
                     />
                   </div>
+                  <select
+                    value={assetTypeFilter}
+                    onChange={(e) => setAssetTypeFilter(e.target.value)}
+                    className="rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                  >
+                    <option value="all">전체 유형</option>
+                    <option value="equity">주식형</option>
+                    <option value="bond">채권형</option>
+                    <option value="covered_call">커버드콜</option>
+                    <option value="preferred">우선주형</option>
+                    <option value="reit">REIT형</option>
+                    <option value="mixed">혼합형</option>
+                  </select>
                   <button
                     onClick={exportToExcel}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/80 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100 hover:border-zinc-600 transition-all"
@@ -887,10 +941,28 @@ export default function ETFScreeningPage() {
                             </div>
                           </td>
                           <td
-                            className="px-4 py-3 text-zinc-300 max-w-[200px] truncate text-xs cursor-pointer hover:text-zinc-100 transition-colors"
+                            className="px-4 py-3 text-zinc-300 max-w-[240px] text-xs cursor-pointer hover:text-zinc-100 transition-colors"
                             onClick={() => router.push(`/etf/${etf.symbol}`)}
                           >
-                            {etf.name}
+                            <div className="flex items-center gap-1.5">
+                              <span className="truncate">{etf.name}</span>
+                              {etf.assetType && etf.assetType !== 'mixed' && (
+                                <span className={`shrink-0 inline-flex items-center rounded px-1 py-0.5 text-[9px] font-medium leading-none ${
+                                  etf.assetType === 'equity' ? 'bg-emerald-500/20 text-emerald-400' :
+                                  etf.assetType === 'bond' ? 'bg-blue-500/20 text-blue-400' :
+                                  etf.assetType === 'covered_call' ? 'bg-amber-500/20 text-amber-400' :
+                                  etf.assetType === 'preferred' ? 'bg-purple-500/20 text-purple-400' :
+                                  etf.assetType === 'reit' ? 'bg-cyan-500/20 text-cyan-400' :
+                                  'bg-zinc-500/20 text-zinc-400'
+                                }`}>
+                                  {etf.assetType === 'equity' ? '주식' :
+                                   etf.assetType === 'bond' ? '채권' :
+                                   etf.assetType === 'covered_call' ? 'CC' :
+                                   etf.assetType === 'preferred' ? '우선주' :
+                                   etf.assetType === 'reit' ? 'REIT' : etf.assetType}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-right font-mono text-zinc-300 text-xs">
                             {formatPrice(etf.price)}
