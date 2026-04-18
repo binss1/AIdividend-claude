@@ -264,11 +264,12 @@ export default function StockScreeningPage() {
     } catch (err) {
       setIsScreening(false);
       if (err instanceof ApiError && err.status === 402) {
+        // 크레딧 부족: 예상된 상황이므로 콘솔 에러 없이 인라인 안내만 표시
         setError('CREDIT_INSUFFICIENT');
       } else {
         setError('스크리닝을 시작할 수 없습니다. 서버 연결을 확인해 주세요.');
+        console.error(err);
       }
-      console.error(err);
     }
   };
 
