@@ -12,11 +12,13 @@ import {
   Legend,
   Tooltip,
 } from 'recharts';
-import { apiFetch, API_ENDPOINTS } from '@/config/api';
+import Link from 'next/link';
+import { apiFetch, API_ENDPOINTS, getApiBaseUrl } from '@/config/api';
 import { ScreenedETF, ETFScreeningProgress as ETFProgressType } from '@/types';
 import ScreeningProgress from '@/components/ScreeningProgress';
 import ScoreBar from '@/components/ScoreBar';
 import PortfolioRecommendation from '@/components/PortfolioRecommendation';
+import { useAuth } from '@/components/AuthProvider';
 
 type SortField = 'totalScore' | 'dividendYield' | 'expenseRatio' | 'aum' | 'price' | 'symbol' | 'name';
 type SortDir = 'asc' | 'desc';
@@ -78,8 +80,27 @@ function getOverallGrade(etf: ScreenedETF): string {
   return 'D';
 }
 
+const FREE_PLAN_LIMIT = 5;
+
 export default function ETFScreeningPage() {
   const router = useRouter();
+  const { user, session } = useAuth();
+
+  // Free plan detection
+  const [isFreePlan, setIsFreePlan] = useState(true);
+  useEffect(() => {
+    if (!session?.access_token) return;
+    const base = getApiBaseUrl();
+    fetch(`${base}/credits/profile`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        const planId = data?.profile?.plan_id;
+        setIsFreePlan(!planId || planId === 'free');
+      })
+      .catch(() => {});
+  }, [session?.access_token]);
 
   // Filter state
   const [minYield, setMinYield] = useState(2);
@@ -294,6 +315,10 @@ export default function ETFScreeningPage() {
 
     return data;
   }, [results, searchQuery, sortField, sortDir, assetTypeFilter]);
+
+  // Free 플랜: 상위 5개만 표시
+  const visibleResults = isFreePlan && user ? filteredResults.slice(0, FREE_PLAN_LIMIT) : filteredResults;
+  const hiddenCount = isFreePlan && user ? Math.max(0, filteredResults.length - FREE_PLAN_LIMIT) : 0;
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -908,7 +933,7 @@ export default function ETFScreeningPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/40">
-                    {filteredResults.map((etf, idx) => (
+                    {visibleResults.map((etf, idx) => (
                       <React.Fragment key={etf.symbol}>
                         <tr
                           className="hover:bg-emerald-500/[0.03] transition-colors duration-150"
@@ -1018,6 +1043,41 @@ export default function ETFScreeningPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Free 플랜 제한 배너 */}
+              {hiddenCount > 0 && (
+                <div className="relative">
+                  <div className="px-4 py-3 space-y-1.5 pointer-events-none select-none">
+                    {[...Array(Math.min(3, hiddenCount))].map((_, i) => (
+                      <div key={i} className="h-10 rounded-lg bg-zinc-800/40 blur-sm opacity-50" />
+                    ))}
+                  </div>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-zinc-950 via-zinc-950/90 to-transparent rounded-b-xl">
+                    <div className="text-center px-4">
+                      <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-2">
+                        <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-semibold text-white mb-1">
+                        {hiddenCount}개 ETF가 잠겨있습니다
+                      </p>
+                      <p className="text-xs text-zinc-400 mb-3">
+                        Free 플랜은 상위 {FREE_PLAN_LIMIT}개까지만 제공됩니다
+                      </p>
+                      <Link
+                        href="/pricing"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold transition-colors shadow-lg shadow-emerald-500/25"
+                      >
+                        플랜 업그레이드
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Footer Summary */}
               {filteredResults.length > 0 && (

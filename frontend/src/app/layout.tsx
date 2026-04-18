@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Navigation from "@/components/Navigation";
 import { AuthProvider } from "@/components/AuthProvider";
+import { CreditToastProvider } from "@/components/CreditToast";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -33,8 +34,10 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-gray-950 text-white">
         <AuthProvider>
-          <Navigation />
-          <main className="flex-1 pt-16">{children}</main>
+          <CreditToastProvider>
+            <Navigation />
+            <main className="flex-1 pt-16">{children}</main>
+          </CreditToastProvider>
         </AuthProvider>
       </body>
     </html>

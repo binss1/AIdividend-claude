@@ -1,5 +1,7 @@
 // API Configuration for AI Dividend Screener
 
+import { triggerCreditToast } from '@/components/CreditToast';
+
 export function getApiBaseUrl(): string {
   return process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
 }
@@ -89,6 +91,18 @@ export async function apiFetch<T>(
     } catch {
       errorData = await response.text();
     }
+
+    // 402: 크레딧 부족 처리
+    if (response.status === 402) {
+      const msg =
+        (errorData && typeof errorData === 'object' && 'message' in errorData
+          ? (errorData as { message?: string }).message
+          : undefined) || '크레딧이 부족합니다. 충전 후 다시 시도해주세요.';
+      if (typeof window !== 'undefined') {
+        triggerCreditToast(msg);
+      }
+    }
+
     throw new ApiError(
       `API request failed: ${response.statusText}`,
       response.status,
