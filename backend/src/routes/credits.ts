@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticateToken } from '../middleware/auth';
 import { getCreditBalance, getCreditHistory, FEATURE_COSTS } from '../services/creditService';
-import { getUserProfile } from '../services/supabaseService';
+import { getOrCreateUserProfile } from '../services/supabaseService';
 import { getActiveSubscription, getAllPlans } from '../services/supabaseService';
 import logger from '../utils/logger';
 
@@ -43,7 +43,7 @@ router.get('/history', authenticateToken, async (req: Request, res: Response) =>
 
     const history = await getCreditHistory(userId, limit);
 
-    res.json({ transactions: history });
+    res.json({ history });
   } catch (err) {
     logger.error(`[Credits] 이력 조회 실패: ${(err as Error).message}`);
     res.status(500).json({ error: '크레딧 이력 조회 실패' });
@@ -65,9 +65,10 @@ router.get('/costs', (_req: Request, res: Response) => {
 router.get('/profile', authenticateToken, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
+    const userEmail = req.user!.email;
 
     const [profile, subscription, plans] = await Promise.all([
-      getUserProfile(userId),
+      getOrCreateUserProfile(userId, userEmail),  // 없으면 Free 플랜으로 자동 생성
       getActiveSubscription(userId),
       getAllPlans(),
     ]);

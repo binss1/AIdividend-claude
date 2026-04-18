@@ -58,6 +58,42 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
   return data as UserProfile;
 }
 
+/**
+ * 프로필 조회 + 없으면 Free 플랜으로 자동 생성
+ * SQL 마이그레이션 전에 가입한 사용자 대응
+ */
+export async function getOrCreateUserProfile(
+  userId: string,
+  email?: string
+): Promise<UserProfile | null> {
+  const sb = getSupabaseAdmin();
+  if (!sb) return null;
+
+  // 기존 프로필 조회
+  const existing = await getUserProfile(userId);
+  if (existing) return existing;
+
+  // 없으면 Free 플랜으로 신규 생성
+  logger.info(`[Supabase] 프로필 없음 → 자동 생성: userId=${userId}`);
+  const { data, error } = await sb
+    .from('user_profiles')
+    .upsert({
+      id: userId,
+      email: email || null,
+      plan_id: 'free',
+      credit_balance: 50,
+      total_credits_used: 0,
+    }, { onConflict: 'id' })
+    .select()
+    .single();
+
+  if (error) {
+    logger.error(`[Supabase] getOrCreateUserProfile 실패: ${error.message}`);
+    return null;
+  }
+  return data as UserProfile;
+}
+
 export async function updateUserProfile(
   userId: string,
   updates: Partial<Pick<UserProfile, 'plan_id' | 'credit_balance' | 'total_credits_used' | 'display_name' | 'avatar_url'>>

@@ -123,11 +123,19 @@ export default function MyPage() {
     ? Math.min(100, Math.round((profile.total_credits_used / plan.monthly_credits) * 100))
     : 0;
 
-  const providerName =
-    user.app_metadata?.provider === 'google' ? 'Google' :
-    user.app_metadata?.provider === 'kakao' ? 'Kakao' :
-    user.app_metadata?.provider === 'naver' ? 'Naver' :
-    user.app_metadata?.provider || 'Email';
+  // identities 배열에서 실제 사용 중인 소셜 프로바이더 추출
+  const identityProviders: string[] = (user.identities || [])
+    .map((id: { provider: string }) => id.provider)
+    .filter((p: string) => p !== 'email');
+
+  const providerLabel = (p: string) =>
+    p === 'google' ? 'Google' :
+    p === 'kakao' ? 'Kakao' :
+    p === 'naver' ? 'Naver' :
+    p.charAt(0).toUpperCase() + p.slice(1);
+
+  const primaryProvider = identityProviders[0] || user.app_metadata?.provider || 'email';
+  const providerName = providerLabel(primaryProvider);
 
   return (
     <div className="min-h-screen bg-gray-950 py-8 px-4">
@@ -156,10 +164,19 @@ export default function MyPage() {
                 {user.user_metadata?.name || '사용자'}
               </p>
               <p className="text-sm text-gray-400 truncate">{user.email}</p>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className="inline-block px-2 py-0.5 text-xs rounded-lg bg-gray-800 text-gray-400 border border-gray-700/50">
-                  {providerName}
-                </span>
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                {/* 소셜 로그인 프로바이더 뱃지 */}
+                {identityProviders.length > 0 ? (
+                  identityProviders.map(p => (
+                    <span key={p} className="inline-block px-2 py-0.5 text-xs rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      {providerLabel(p)}
+                    </span>
+                  ))
+                ) : (
+                  <span className="inline-block px-2 py-0.5 text-xs rounded-lg bg-gray-800 text-gray-400 border border-gray-700/50">
+                    {providerName}
+                  </span>
+                )}
                 {user.created_at && (
                   <span className="text-xs text-gray-500">
                     가입일: {formatDate(user.created_at)}
