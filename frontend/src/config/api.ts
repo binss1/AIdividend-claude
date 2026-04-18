@@ -1,9 +1,25 @@
 // API Configuration for AI Dividend Screener
 
 import { triggerCreditToast } from '@/components/CreditToast';
+import { createClient } from '@/lib/supabase/client';
 
 export function getApiBaseUrl(): string {
   return process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
+}
+
+/**
+ * 현재 Supabase 세션의 access_token을 가져옵니다.
+ * 클라이언트 사이드에서만 동작합니다.
+ */
+async function getAccessToken(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+  try {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export const API_ENDPOINTS = {
@@ -72,8 +88,13 @@ export async function apiFetch<T>(
   const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}${endpoint}`;
 
+  // 자동으로 인증 토큰 포함 (호출자가 이미 Authorization을 넘긴 경우 덮어쓰지 않음)
+  const existingAuth = (options?.headers as Record<string, string>)?.['Authorization'];
+  const token = existingAuth ? null : await getAccessToken();
+
   const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
   const response = await fetch(url, {
