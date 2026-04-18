@@ -89,6 +89,7 @@ router.get('/profile', authenticateToken, async (req: Request, res: Response) =>
         plan_id: profile.plan_id,
         credit_balance: profile.credit_balance,
         total_credits_used: profile.total_credits_used,
+        is_admin: profile.is_admin ?? false,
         created_at: profile.created_at,
       },
       plan: currentPlan || null,

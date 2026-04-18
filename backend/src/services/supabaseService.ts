@@ -37,6 +37,7 @@ export interface UserProfile {
   plan_id: string;
   credit_balance: number;
   total_credits_used: number;
+  is_admin: boolean;
   created_at: string;
   updated_at: string;
 }

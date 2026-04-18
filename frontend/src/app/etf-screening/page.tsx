@@ -97,7 +97,9 @@ export default function ETFScreeningPage() {
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         const planId = data?.profile?.plan_id;
-        setIsFreePlan(!planId || planId === 'free');
+        const isAdmin = data?.profile?.is_admin === true;
+        // admin이거나 유료 플랜이면 제한 없음
+        setIsFreePlan(!isAdmin && (!planId || planId === 'free'));
       })
       .catch(() => {});
   }, [session?.access_token]);

@@ -10,6 +10,7 @@ interface CreditProfile {
   credit_balance: number;
   plan_id: string;
   total_credits_used: number;
+  is_admin: boolean;
 }
 
 interface Plan {
@@ -175,6 +176,11 @@ export default function MyPage() {
                 ) : (
                   <span className="inline-block px-2 py-0.5 text-xs rounded-lg bg-gray-800 text-gray-400 border border-gray-700/50">
                     {providerName}
+                  </span>
+                )}
+                {profile?.is_admin && (
+                  <span className="inline-block px-2 py-0.5 text-xs rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/20 font-semibold">
+                    ⚡ Admin
                   </span>
                 )}
                 {user.created_at && (

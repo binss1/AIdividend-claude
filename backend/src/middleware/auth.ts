@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import axios from 'axios';
 import { env } from '../config/env';
 import logger from '../utils/logger';
+import { getUserProfile } from '../services/supabaseService';
 
 // Extend Express Request to include user
 declare global {
@@ -51,10 +52,19 @@ export async function authenticateToken(
         return;
       }
 
+      // admin 여부 확인 (user_profiles.is_admin)
+      let role = 'user';
+      try {
+        const profile = await getUserProfile(userData.id);
+        if (profile?.is_admin) role = 'admin';
+      } catch {
+        // 프로필 조회 실패해도 인증은 유지
+      }
+
       req.user = {
         id: userData.id,
         email: userData.email,
-        role: userData.role || 'user',
+        role,
       };
 
       next();
@@ -99,10 +109,19 @@ export async function optionalAuth(
 
       const userData = response.data;
       if (userData?.id) {
+        // admin 여부 확인
+        let role = 'user';
+        try {
+          const profile = await getUserProfile(userData.id);
+          if (profile?.is_admin) role = 'admin';
+        } catch {
+          // 프로필 조회 실패해도 통과
+        }
+
         req.user = {
           id: userData.id,
           email: userData.email,
-          role: userData.role || 'user',
+          role,
         };
       }
     } catch (err) {

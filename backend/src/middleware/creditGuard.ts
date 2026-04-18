@@ -16,8 +16,8 @@ import logger from '../utils/logger';
  */
 export function requireCredits(feature: string, options?: { deductAfter?: boolean }) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    // 인증되지 않은 사용자는 통과 (게스트 모드 - optionalAuth와 호환)
-    if (!req.user?.id || req.user.id === 'dev-user-001') {
+    // 인증되지 않은 사용자 또는 admin은 크레딧 체크 없이 통과
+    if (!req.user?.id || req.user.id === 'dev-user-001' || req.user.role === 'admin') {
       next();
       return;
     }
