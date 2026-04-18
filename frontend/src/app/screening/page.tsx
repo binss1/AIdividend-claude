@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { apiFetch, API_ENDPOINTS, getApiBaseUrl } from '@/config/api';
+import { apiFetch, API_ENDPOINTS, getApiBaseUrl, ApiError } from '@/config/api';
 import { ScreenedStock, ScreeningProgress as ScreeningProgressType } from '@/types';
 import ScreeningProgress from '@/components/ScreeningProgress';
 import GradeBadge from '@/components/GradeBadge';
@@ -263,7 +263,11 @@ export default function StockScreeningPage() {
       pollingRef.current = setInterval(pollProgress, 2000);
     } catch (err) {
       setIsScreening(false);
-      setError('스크리닝을 시작할 수 없습니다. 서버 연결을 확인해 주세요.');
+      if (err instanceof ApiError && err.status === 402) {
+        setError('CREDIT_INSUFFICIENT');
+      } else {
+        setError('스크리닝을 시작할 수 없습니다. 서버 연결을 확인해 주세요.');
+      }
       console.error(err);
     }
   };
@@ -658,7 +662,45 @@ export default function StockScreeningPage() {
         )}
 
         {/* Error */}
-        {error && (
+        {error && error === 'CREDIT_INSUFFICIENT' ? (
+          // 크레딧 부족 전용 안내
+          <div className="mb-6 rounded-2xl border border-amber-700/40 bg-amber-950/20 backdrop-blur-sm p-5 animate-in fade-in duration-300">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-amber-300 mb-1">크레딧이 부족합니다</p>
+                <p className="text-xs text-amber-400/70 mb-3">
+                  배당주 스크리닝에는 <span className="font-bold text-amber-300">5 크레딧</span>이 필요합니다. 크레딧을 충전하거나 플랜을 업그레이드해주세요.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/pricing?tab=credits"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold transition-colors"
+                  >
+                    크레딧 충전
+                  </Link>
+                  <Link
+                    href="/pricing"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-600/40 text-amber-400 hover:bg-amber-500/10 text-xs font-medium transition-colors"
+                  >
+                    플랜 업그레이드
+                  </Link>
+                  <Link
+                    href="/mypage"
+                    className="text-xs text-amber-500/70 hover:text-amber-400 transition-colors ml-1"
+                  >
+                    내 크레딧 확인 →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : error ? (
+          // 일반 에러
           <div className="mb-6 rounded-2xl border border-red-800/50 bg-red-950/30 backdrop-blur-sm p-4 flex items-center justify-between animate-in fade-in duration-300">
             <div className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10">
@@ -675,7 +717,7 @@ export default function StockScreeningPage() {
               재시도
             </button>
           </div>
-        )}
+        ) : null}
 
         {/* Results Section */}
         {/* Applied Filter Card (frozen at screening time, same format as history page) */}
