@@ -31,28 +31,9 @@ function LoginContent() {
     }
   };
 
-  // 네이버는 Supabase 커스텀 OIDC Provider로 처리
-  const handleNaverLogin = async () => {
-    setLoading('naver');
-    setError(null);
-
-    const supabase = createClient();
-
-    // Supabase에서 네이버를 커스텀 OIDC provider로 설정한 경우
-    // Provider 이름은 Supabase Dashboard에서 설정한 이름과 동일해야 합니다
-    const { error: authError } = await supabase.auth.signInWithOAuth({
-      // @ts-expect-error: 네이버는 Supabase 커스텀 OIDC provider
-      provider: 'naver',
-      options: {
-        redirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(redirect)}`,
-      },
-    });
-
-    if (authError) {
-      setError(authError.message);
-      setLoading(null);
-    }
-  };
+  // 네이버: OIDC 미지원으로 현재 준비 중
+  // 네이버 OAuth 2.0은 OIDC discovery document가 없어 Supabase 기본 Provider 추가 불가
+  // 향후 백엔드 커스텀 OAuth 플로우로 구현 예정
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
@@ -116,21 +97,19 @@ function LoginContent() {
               카카오로 계속하기
             </button>
 
-            {/* Naver */}
-            <button
-              onClick={handleNaverLogin}
-              disabled={loading !== null}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-green-600/30 bg-[#03C75A] hover:bg-[#02b351] text-white font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading === 'naver' ? (
-                <Spinner />
-              ) : (
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="white">
+            {/* Naver - 준비 중 (네이버 OAuth는 OIDC 미지원으로 Supabase 직접 연동 불가) */}
+            <div className="relative">
+              <button
+                disabled
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-gray-700/30 bg-gray-800/40 text-gray-600 font-medium text-sm cursor-not-allowed opacity-60"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M16.27 3H20l-5.73 8.55L20 21h-3.73l-4.17-6.23L7.73 21H4l5.93-8.85L4 3h3.73l4.17 6.32L16.27 3z"/>
                 </svg>
-              )}
-              네이버로 계속하기
-            </button>
+                네이버로 계속하기
+                <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-500">준비 중</span>
+              </button>
+            </div>
           </div>
 
           {/* Divider */}
