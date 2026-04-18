@@ -6,6 +6,7 @@ import screeningRouter from './routes/screening';
 import exchangeRateRouter from './routes/exchangeRate';
 import paymentsRouter from './routes/payments';
 import creditsRouter from './routes/credits';
+import adminRouter from './routes/admin';
 import { initDB } from './services/dbService';
 
 const app = express();
@@ -34,6 +35,7 @@ app.use('/api/screening', screeningRouter);
 app.use('/api/exchange-rate', exchangeRateRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/credits', creditsRouter);
+app.use('/api/admin', adminRouter);
 
 // Health check
 app.get('/api/health', (_req: Request, res: Response) => {

@@ -97,7 +97,7 @@ export async function getOrCreateUserProfile(
 
 export async function updateUserProfile(
   userId: string,
-  updates: Partial<Pick<UserProfile, 'plan_id' | 'credit_balance' | 'total_credits_used' | 'display_name' | 'avatar_url'>>
+  updates: Partial<Pick<UserProfile, 'plan_id' | 'credit_balance' | 'total_credits_used' | 'display_name' | 'avatar_url' | 'is_admin'>>
 ): Promise<UserProfile | null> {
   const sb = getSupabaseAdmin();
   if (!sb) return null;
