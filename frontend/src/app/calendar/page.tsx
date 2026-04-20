@@ -983,7 +983,7 @@ function MyDividendCalendarTab({ year, month }: { year: number; month: number })
                         ₩{(monthTotal * exchangeRate).toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
                       </td>
                     )}
-                    <td colSpan={exchangeRate ? 2 : 2} />
+                    <td colSpan={2} />
                   </tr>
                 </tfoot>
               )}

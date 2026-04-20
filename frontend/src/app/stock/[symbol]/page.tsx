@@ -398,13 +398,16 @@ export default function StockDetailPage() {
                   label: '배당 CAGR (3년)',
                   value: `${stock.dividendCAGR.cagr3y > 0 ? '+' : ''}${stock.dividendCAGR.cagr3y.toFixed(1)}%`,
                   sub: '연평균 배당 성장률',
-                  color: stock.dividendCAGR.cagr3y >= 5 ? 'text-emerald-400' : stock.dividendCAGR.cagr3y >= 0 ? 'text-yellow-400' : 'text-red-400',
+                  // valueColor: 큰 숫자에 색상, color: sub 텍스트 색상 (동일 기준)
+                  valueColor: stock.dividendCAGR.cagr3y >= 5 ? 'text-emerald-400' : stock.dividendCAGR.cagr3y >= 0 ? 'text-yellow-400' : 'text-red-400',
+                  color:      stock.dividendCAGR.cagr3y >= 5 ? 'text-emerald-400' : stock.dividendCAGR.cagr3y >= 0 ? 'text-yellow-400' : 'text-red-400',
                 }] : []),
                 ...(stock.dividendCAGR?.cagr5y != null ? [{
                   label: '배당 CAGR (5년)',
                   value: `${stock.dividendCAGR.cagr5y > 0 ? '+' : ''}${stock.dividendCAGR.cagr5y.toFixed(1)}%`,
                   sub: '연평균 배당 성장률',
-                  color: stock.dividendCAGR.cagr5y >= 5 ? 'text-emerald-400' : stock.dividendCAGR.cagr5y >= 0 ? 'text-yellow-400' : 'text-red-400',
+                  valueColor: stock.dividendCAGR.cagr5y >= 5 ? 'text-emerald-400' : stock.dividendCAGR.cagr5y >= 0 ? 'text-yellow-400' : 'text-red-400',
+                  color:      stock.dividendCAGR.cagr5y >= 5 ? 'text-emerald-400' : stock.dividendCAGR.cagr5y >= 0 ? 'text-yellow-400' : 'text-red-400',
                 }] : []),
               ].map((m, i) => (
                 <div
@@ -412,7 +415,7 @@ export default function StockDetailPage() {
                   className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 hover:border-gray-700 transition-colors"
                 >
                   <p className="text-xs text-gray-400 mb-2">{m.label}</p>
-                  <p className={`text-xl font-bold ${m.highlight ? 'text-emerald-400' : 'text-white'}`}>{m.value}</p>
+                  <p className={`text-xl font-bold ${'valueColor' in m && m.valueColor ? m.valueColor : m.highlight ? 'text-emerald-400' : 'text-white'}`}>{m.value}</p>
                   {m.sub && <p className={`text-xs mt-1 ${m.color ?? 'text-gray-500'}`}>{m.sub}</p>}
                 </div>
               ))}

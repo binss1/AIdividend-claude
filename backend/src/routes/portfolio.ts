@@ -39,7 +39,7 @@ interface DividendFrequency {
 /** 배당 지급 주기 추정 */
 function inferFrequency(history: FMPDividendHistorical[]): DividendFrequency {
   const sorted = [...history]
-    .filter(d => d.adjDividend > 0)
+    .filter(d => (d.adjDividend ?? 0) > 0 || (d.dividend ?? 0) > 0)   // adjDividend=0이어도 dividend>0이면 포함
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   if (sorted.length < 2) return { type: 'unknown', intervalDays: 90 };
 
@@ -81,7 +81,7 @@ function buildDividendEvents(
   const freq = inferFrequency(history);
 
   const sorted = [...history]
-    .filter(d => d.adjDividend > 0)
+    .filter(d => (d.adjDividend ?? 0) > 0 || (d.dividend ?? 0) > 0)   // inferFrequency와 동일 기준
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   if (!sorted.length) return events;
@@ -106,8 +106,8 @@ function buildDividendEvents(
         ex_dividend_date: div.date,
         payment_date: payDate,
         payment_date_estimated: payDateEstimated,
-        dividend_per_share: div.adjDividend || div.dividend,
-        total_dividend: (div.adjDividend || div.dividend) * shares,
+        dividend_per_share: (div.adjDividend > 0 ? div.adjDividend : div.dividend) ?? 0,
+        total_dividend: ((div.adjDividend > 0 ? div.adjDividend : div.dividend) ?? 0) * shares,
       });
     }
   }
@@ -657,7 +657,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 // GET /api/portfolio/esg-score
 // 보유 종목 ESG 종합점수 (무료, 캐싱 없음)
 // ==========================================
-router.get('/esg-score', authenticateToken, async (req: Request, res: Response) => {
+router.get('/esg-score', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const sb = getSupabaseAdmin();
@@ -719,9 +719,10 @@ router.get('/esg-score', authenticateToken, async (req: Request, res: Response) 
     );
 
     let weightedScore = 0;
-    let weightedE = 0;
-    let weightedS = 0;
-    let weightedG = 0;
+    // 각 차원별 가중합 + 해당 차원 데이터가 있는 종목의 weight 합산 (정규화용)
+    let weightedE = 0, coveredWeightE = 0;
+    let weightedS = 0, coveredWeightS = 0;
+    let weightedG = 0, coveredWeightG = 0;
     let coveredValue = 0;
 
     esgResults.forEach((result) => {
@@ -744,9 +745,10 @@ router.get('/esg-score', authenticateToken, async (req: Request, res: Response) 
           weightedScore += item.total * weight;
           coveredValue += itemValue;
         }
-        if (item.environmental != null) weightedE += item.environmental * weight;
-        if (item.social != null) weightedS += item.social * weight;
-        if (item.governance != null) weightedG += item.governance * weight;
+        // 각 차원별로 데이터 있는 종목만 가중합 + 해당 weight 누적 (정규화 분모)
+        if (item.environmental != null) { weightedE += item.environmental * weight; coveredWeightE += weight; }
+        if (item.social != null)        { weightedS += item.social * weight;        coveredWeightS += weight; }
+        if (item.governance != null)    { weightedG += item.governance * weight;    coveredWeightG += weight; }
       }
     });
 
@@ -763,14 +765,23 @@ router.get('/esg-score', authenticateToken, async (req: Request, res: Response) 
       return 'CCC';
     };
 
-    const compositeScore = coverage > 0 ? Math.round(weightedScore * 10) / 10 : null;
+    // 종합 점수: 커버된 value 기준으로 정규화
+    const coveredWeight = totalValue > 0 ? coveredValue / totalValue : 0;
+    const compositeScore = coveredWeight > 0
+      ? Math.round((weightedScore / coveredWeight) * 10) / 10
+      : null;
+
+    // E/S/G 개별 점수: 각 차원별 데이터 있는 종목의 weight 합으로 정규화
+    const normalizedE = coveredWeightE > 0 ? Math.round((weightedE / coveredWeightE) * 10) / 10 : 0;
+    const normalizedS = coveredWeightS > 0 ? Math.round((weightedS / coveredWeightS) * 10) / 10 : 0;
+    const normalizedG = coveredWeightG > 0 ? Math.round((weightedG / coveredWeightG) * 10) / 10 : 0;
 
     res.json({
       compositeScore,
       compositeRating: compositeScore != null ? deriveRating(compositeScore) : null,
-      environmental: Math.round(weightedE * 10) / 10,
-      social: Math.round(weightedS * 10) / 10,
-      governance: Math.round(weightedG * 10) / 10,
+      environmental: normalizedE,
+      social: normalizedS,
+      governance: normalizedG,
       coverage,
       breakdown: breakdown.sort((a, b) => (b.total ?? 0) - (a.total ?? 0)),
       totalHoldings: holdings.length,

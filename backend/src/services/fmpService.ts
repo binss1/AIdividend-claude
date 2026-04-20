@@ -218,20 +218,25 @@ export function calculateDividendCAGR(history: FMPDividendHistorical[], years: n
   }
 
   const currentYear = now.getFullYear();
-  const startYear   = currentYear - years;
 
-  // 현재 연도 배당 (이미 지급된 것만, TTM 대용)
-  // 직전 완전 연도를 end, startYear+1 이전을 start 로 사용
-  const endYear = currentYear - 1; // 가장 최근 완전 연도
+  // 직전 완전 연도를 end, (end - years)를 base로 사용
+  const endYear  = currentYear - 1;
   const baseYear = endYear - years;
 
-  const endDiv  = annualDivs[endYear]  ?? annualDivs[endYear - 1]  ?? null;
-  const baseDiv = annualDivs[baseYear] ?? annualDivs[baseYear + 1] ?? null;
+  // fallback: 해당 연도 데이터 없으면 인접 연도 사용 (실제 span 추적)
+  const endDiv   = annualDivs[endYear]  != null ? annualDivs[endYear]  : (annualDivs[endYear - 1]  ?? null);
+  const baseDiv  = annualDivs[baseYear] != null ? annualDivs[baseYear] : (annualDivs[baseYear + 1] ?? null);
 
   if (!endDiv || !baseDiv || baseDiv <= 0 || endDiv <= 0) return null;
 
-  // CAGR = (endDiv / baseDiv)^(1/years) - 1
-  const cagr = (Math.pow(endDiv / baseDiv, 1 / years) - 1) * 100;
+  // 실제 사용된 연도 기준으로 span 재계산 (fallback 시 exponent 오차 보정)
+  const actualEndYear  = annualDivs[endYear]  != null ? endYear  : endYear - 1;
+  const actualBaseYear = annualDivs[baseYear] != null ? baseYear : baseYear + 1;
+  const actualYears = actualEndYear - actualBaseYear;
+  if (actualYears <= 0) return null;
+
+  // CAGR = (endDiv / baseDiv)^(1/actualYears) - 1
+  const cagr = (Math.pow(endDiv / baseDiv, 1 / actualYears) - 1) * 100;
 
   // 비정상 범위 제거 (-80% ~ +200%)
   if (cagr < -80 || cagr > 200) return null;
