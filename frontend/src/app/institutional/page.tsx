@@ -494,7 +494,7 @@ export default function InstitutionalPage() {
                 inst.data.some(v => v != null)
               );
               const allVals = instData.flatMap(i => i.data.filter((v): v is number => v != null));
-              const maxVal = allVals.length ? Math.max(...allVals) : 1;
+              const maxVal = Math.max(...allVals, 1); // 0 방지: 모든 값이 0인 경우 SVG 나눗셈 오류 방지
 
               const W = 500, H = 200, PL = 60, PR = 20, PT = 20, PB = 30;
               const chartW = W - PL - PR;

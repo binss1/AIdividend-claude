@@ -173,8 +173,8 @@ function calcAnnualDividend(history: FMPDividendHistorical[]): number {
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   return history
-    .filter(d => d.adjDividend > 0 && new Date(d.date) >= oneYearAgo)
-    .reduce((sum, d) => sum + d.adjDividend, 0);
+    .filter(d => ((d.adjDividend ?? 0) > 0 || (d.dividend ?? 0) > 0) && new Date(d.date) >= oneYearAgo)
+    .reduce((sum, d) => sum + ((d.adjDividend != null && d.adjDividend > 0 ? d.adjDividend : d.dividend) ?? 0), 0);
 }
 
 /** 최근 1년 배당 이력에서 지급 월 목록 추출 */
@@ -182,7 +182,7 @@ function calcDividendMonths(history: FMPDividendHistorical[]): number[] {
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   const months = history
-    .filter(d => d.adjDividend > 0 && new Date(d.date) >= oneYearAgo)
+    .filter(d => ((d.adjDividend ?? 0) > 0 || (d.dividend ?? 0) > 0) && new Date(d.date) >= oneYearAgo)
     .map(d => new Date(d.date).getMonth() + 1);
   return [...new Set(months)].sort((a, b) => a - b);
 }
