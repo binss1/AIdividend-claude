@@ -29,6 +29,7 @@ export const FEATURE_COSTS: Record<string, number> = {
   portfolio_simulate: 3, // 포트폴리오 시뮬레이션
   portfolio_recommend: 3, // 포트폴리오 추천
   portfolio_rebalance: 3, // 리밸런싱
+  portfolio_refresh: 2,  // 포트폴리오 실시간 가격 업데이트
 };
 
 /**

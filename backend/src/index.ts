@@ -1,5 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import cron from 'node-cron';
 import { env } from './config/env';
 import logger from './utils/logger';
 import screeningRouter from './routes/screening';
@@ -7,7 +8,9 @@ import exchangeRateRouter from './routes/exchangeRate';
 import paymentsRouter from './routes/payments';
 import creditsRouter from './routes/credits';
 import adminRouter from './routes/admin';
+import portfolioRouter from './routes/portfolio';
 import { initDB } from './services/dbService';
+import { runMonthlyReset } from './services/monthlyResetService';
 
 const app = express();
 
@@ -36,6 +39,7 @@ app.use('/api/exchange-rate', exchangeRateRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/credits', creditsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/portfolio', portfolioRouter);
 
 // Health check
 app.get('/api/health', (_req: Request, res: Response) => {
@@ -82,6 +86,28 @@ app.listen(PORT, () => {
   if (!env.FMP_API_KEY) {
     logger.warn('FMP_API_KEY is not set. Stock screening will not work.');
   }
+
+  // ==========================================
+  // Cron Jobs
+  // ==========================================
+
+  // 월간 크레딧 자동 리셋 - 매월 1일 00:00 KST (= UTC 15:00)
+  // cron 형식: 초(선택) 분 시 일 월 요일
+  cron.schedule('0 15 1 * *', async () => {
+    logger.info('[Cron] 월간 크레딧 리셋 Job 시작');
+    try {
+      const result = await runMonthlyReset();
+      logger.info(
+        `[Cron] 월간 크레딧 리셋 완료 - 성공: ${result.success}, 스킵: ${result.skipped}, 실패: ${result.failed}`
+      );
+    } catch (err) {
+      logger.error(`[Cron] 월간 크레딧 리셋 오류: ${(err as Error).message}`);
+    }
+  }, {
+    timezone: 'UTC',
+  });
+
+  logger.info('[Cron] 월간 크레딧 리셋 스케줄 등록 완료 (매월 1일 00:00 KST)');
 });
 
 export default app;

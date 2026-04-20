@@ -198,6 +198,47 @@ export async function getDividendHistory(symbol: string): Promise<FMPDividendHis
   }
 }
 
+/**
+ * 배당 이력으로부터 연간 배당 CAGR 계산
+ * @param history FMP 배당 이력 (최신순 정렬 기준)
+ * @param years 계산 기간 (3 또는 5)
+ * @returns CAGR (%) 또는 null (데이터 부족)
+ */
+export function calculateDividendCAGR(history: FMPDividendHistorical[], years: number): number | null {
+  if (!history || history.length === 0) return null;
+
+  const now = new Date();
+
+  // 각 연도별 배당 합산
+  const annualDivs: Record<number, number> = {};
+  for (const d of history) {
+    const y = new Date(d.date).getFullYear();
+    const val = d.adjDividend > 0 ? d.adjDividend : (d.dividend ?? 0);
+    if (val > 0) annualDivs[y] = (annualDivs[y] ?? 0) + val;
+  }
+
+  const currentYear = now.getFullYear();
+  const startYear   = currentYear - years;
+
+  // 현재 연도 배당 (이미 지급된 것만, TTM 대용)
+  // 직전 완전 연도를 end, startYear+1 이전을 start 로 사용
+  const endYear = currentYear - 1; // 가장 최근 완전 연도
+  const baseYear = endYear - years;
+
+  const endDiv  = annualDivs[endYear]  ?? annualDivs[endYear - 1]  ?? null;
+  const baseDiv = annualDivs[baseYear] ?? annualDivs[baseYear + 1] ?? null;
+
+  if (!endDiv || !baseDiv || baseDiv <= 0 || endDiv <= 0) return null;
+
+  // CAGR = (endDiv / baseDiv)^(1/years) - 1
+  const cagr = (Math.pow(endDiv / baseDiv, 1 / years) - 1) * 100;
+
+  // 비정상 범위 제거 (-80% ~ +200%)
+  if (cagr < -80 || cagr > 200) return null;
+
+  return Math.round(cagr * 100) / 100;
+}
+
 export async function getIncomeStatements(symbol: string, limit = 5): Promise<FMPIncomeStatement[]> {
   try {
     const { data } = await fmpClient.get<FMPIncomeStatement[]>(
@@ -479,6 +520,31 @@ export async function getEconomicCalendar(from: string, to: string): Promise<Arr
   }
 }
 
+// ==========================================
+// Earnings Calendar
+// ==========================================
+export interface FMPEarningsEvent {
+  date: string;
+  symbol: string;
+  eps: number | null;
+  epsEstimated: number | null;
+  time: string | null;         // 'bmo' | 'amc' | 'dmh'
+  revenue: number | null;
+  revenueEstimated: number | null;
+  fiscalDateEnding: string | null;
+  updatedFromDate: string | null;
+}
+
+export async function getEarningsCalendar(from: string, to: string): Promise<FMPEarningsEvent[]> {
+  try {
+    const { data } = await fmpClient.get('/v3/earning_calendar', { params: { from, to } });
+    return (data ?? []) as FMPEarningsEvent[];
+  } catch (err) {
+    logger.error('Failed to get earnings calendar', (err as Error).message);
+    return [];
+  }
+}
+
 export async function getStockNews(tickers: string, limit = 10): Promise<Array<{
   symbol: string; publishedDate: string; title: string; image: string;
   site: string; text: string; url: string;
@@ -555,6 +621,20 @@ export async function getInstitutionalHolders(symbol: string): Promise<Array<{
   }
 }
 
+/** 기관투자자 보유현황 (전용 페이지용 — 상위 25개 + 원시 데이터 전체 반환) */
+export async function getInstitutionalHoldersDetail(symbol: string): Promise<Array<{
+  holder: string; shares: number; dateReported: string;
+  change: number; weightPercent: number;
+}>> {
+  try {
+    const { data } = await fmpClient.get(`/v3/institutional-holder/${symbol}`);
+    return data ?? [];
+  } catch (err) {
+    logger.error(`Failed to get institutional holders detail for ${symbol}`, (err as Error).message);
+    return [];
+  }
+}
+
 export async function getSocialSentiment(symbol: string): Promise<Array<{
   date: string; symbol: string; stocktwitsPosts: number; twitterPosts: number;
   stocktwitsComments: number; twitterComments: number;
@@ -586,6 +666,65 @@ export async function getAnalystEstimates(symbol: string, limit = 4): Promise<Ar
 }
 
 // ==========================================
+// ESG Data
+// ==========================================
+
+export interface ESGData {
+  symbol: string;
+  companyName: string;
+  date: string;
+  environmentalScore: number | null;
+  socialScore: number | null;
+  governanceScore: number | null;
+  ESGScore: number | null;
+  industry: string | null;
+  rating: string | null;  // AAA ~ CCC
+  ratingYear: string | null;
+}
+
+export async function getESGData(symbol: string): Promise<ESGData | null> {
+  try {
+    // 점수 조회
+    const { data: scores } = await fmpClient.get(
+      '/v4/esg-environmental-social-governance-data',
+      { params: { symbol } }
+    );
+    const latest = Array.isArray(scores) && scores.length > 0 ? scores[0] : null;
+
+    // 등급 조회
+    let rating: string | null = null;
+    let ratingYear: string | null = null;
+    try {
+      const { data: ratings } = await fmpClient.get(
+        '/v4/esg-environmental-social-governance-data-ratings',
+        { params: { symbol } }
+      );
+      if (Array.isArray(ratings) && ratings.length > 0) {
+        rating = ratings[0].rating ?? null;
+        ratingYear = ratings[0].year ?? null;
+      }
+    } catch { /* 등급 실패는 무시 */ }
+
+    if (!latest) return null;
+
+    return {
+      symbol: latest.symbol ?? symbol,
+      companyName: latest.companyName ?? '',
+      date: latest.date ?? '',
+      environmentalScore: latest.environmentalScore ?? null,
+      socialScore: latest.socialScore ?? null,
+      governanceScore: latest.governanceScore ?? null,
+      ESGScore: latest.ESGScore ?? null,
+      industry: latest.industry ?? null,
+      rating,
+      ratingYear,
+    };
+  } catch (err) {
+    logger.error(`Failed to get ESG data for ${symbol}`, (err as Error).message);
+    return null;
+  }
+}
+
 // ==========================================
 // Market Drawdown (S&P500 기준, 상대 Drawdown용)
 // ==========================================

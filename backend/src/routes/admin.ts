@@ -10,6 +10,7 @@ import {
   createSubscription,
 } from '../services/supabaseService';
 import { chargeCredits } from '../services/creditService';
+import { runMonthlyReset } from '../services/monthlyResetService';
 import logger from '../utils/logger';
 
 const router = Router();
@@ -397,6 +398,46 @@ router.get('/stats', async (_req: Request, res: Response) => {
   } catch (err) {
     logger.error(`[Admin] 통계 조회 실패: ${(err as Error).message}`);
     res.status(500).json({ error: '통계 조회 실패' });
+  }
+});
+
+// ==========================================
+// POST /api/admin/cron/monthly-reset
+// 월간 크레딧 리셋 수동 실행 (테스트 / 긴급 재실행)
+// ==========================================
+router.post('/cron/monthly-reset', async (req: Request, res: Response) => {
+  try {
+    logger.info(`[Admin] 월간 크레딧 리셋 수동 실행: by=${req.user!.email}`);
+    const result = await runMonthlyReset();
+    res.json({ success: true, result });
+  } catch (err) {
+    logger.error(`[Admin] 월간 크레딧 리셋 수동 실행 실패: ${(err as Error).message}`);
+    res.status(500).json({ error: '월간 크레딧 리셋 실패' });
+  }
+});
+
+// ==========================================
+// GET /api/admin/cron/reset-history
+// 최근 월간 리셋 이력 조회 (credit_transactions)
+// ==========================================
+router.get('/cron/reset-history', async (_req: Request, res: Response) => {
+  try {
+    const sb = getSupabaseAdmin();
+    if (!sb) { res.status(503).json({ error: 'Supabase 미설정' }); return; }
+
+    const { data, error } = await sb
+      .from('credit_transactions')
+      .select('user_id, amount, balance_after, description, created_at')
+      .eq('type', 'monthly_reset')
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (error) throw new Error(error.message);
+
+    res.json({ history: data || [] });
+  } catch (err) {
+    logger.error(`[Admin] 리셋 이력 조회 실패: ${(err as Error).message}`);
+    res.status(500).json({ error: '리셋 이력 조회 실패' });
   }
 });
 

@@ -467,6 +467,7 @@ export default function AdminPage() {
   const [planFilter, setPlanFilter] = useState('');
   const [modal, setModal] = useState<ModalState>({ type: null, user: null });
   const [toast, setToast] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -587,6 +588,28 @@ export default function AdminPage() {
     showToast(`${u.email} 구독이 수정되었습니다.`);
   }
 
+  // ── 월간 크레딧 리셋 수동 실행 ──
+  async function handleMonthlyReset() {
+    if (!confirm('활성 구독 사용자의 크레딧을 플랜 기본값으로 초기화합니다.\n계속하시겠습니까?')) return;
+    setResetLoading(true);
+    try {
+      const base = getApiBaseUrl();
+      const res = await fetch(`${base}/admin/cron/monthly-reset`, {
+        method: 'POST',
+        headers: apiHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '리셋 실패');
+      const r = data.result;
+      showToast(`월간 리셋 완료 — 성공 ${r.success}명, 스킵 ${r.skipped}명, 실패 ${r.failed}명`);
+      fetchData();
+    } catch (e) {
+      showToast(`오류: ${(e as Error).message}`);
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
   // ── Admin 토글 ──
   async function handleToggleAdmin(u: AdminUser) {
     const base = getApiBaseUrl();
@@ -647,22 +670,38 @@ export default function AdminPage() {
 
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
               <span className="text-violet-400">⚡</span> 관리자 페이지
             </h1>
             <p className="text-sm text-gray-500 mt-1">회원 크레딧, 플랜, 구독 관리</p>
           </div>
-          <button
-            onClick={fetchData}
-            className="flex items-center gap-2 px-4 py-2 text-sm rounded-xl bg-gray-800 border border-gray-700 text-gray-400 hover:text-white hover:border-gray-600 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            새로고침
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleMonthlyReset}
+              disabled={resetLoading}
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {resetLoading ? (
+                <span className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin inline-block" />
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              )}
+              월간 크레딧 리셋
+            </button>
+            <button
+              onClick={fetchData}
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-xl bg-gray-800 border border-gray-700 text-gray-400 hover:text-white hover:border-gray-600 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              새로고침
+            </button>
+          </div>
         </div>
 
         {error && (

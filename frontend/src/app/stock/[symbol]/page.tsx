@@ -83,6 +83,23 @@ interface StockDetailData {
     estimatedEpsHigh: number; estimatedEpsLow: number;
     numberAnalystsEstimatedEps: number;
   }>;
+  esgData?: {
+    symbol: string;
+    companyName: string;
+    date: string;
+    environmentalScore: number | null;
+    socialScore: number | null;
+    governanceScore: number | null;
+    ESGScore: number | null;
+    industry: string | null;
+    rating: string | null;
+    ratingYear: string | null;
+  } | null;
+  dividendCAGR?: {
+    cagr3y: number | null;
+    cagr5y: number | null;
+    cagr10y: number | null;
+  } | null;
 }
 
 interface PriceDataPoint {
@@ -377,6 +394,18 @@ export default function StockDetailPage() {
                   sub: stock.consecutiveDividendYears >= 25 ? '배당 귀족' : stock.consecutiveDividendYears >= 10 ? '우수' : null,
                   color: stock.consecutiveDividendYears >= 25 ? 'text-emerald-400' : stock.consecutiveDividendYears >= 10 ? 'text-green-400' : 'text-gray-400',
                 },
+                ...(stock.dividendCAGR?.cagr3y != null ? [{
+                  label: '배당 CAGR (3년)',
+                  value: `${stock.dividendCAGR.cagr3y > 0 ? '+' : ''}${stock.dividendCAGR.cagr3y.toFixed(1)}%`,
+                  sub: '연평균 배당 성장률',
+                  color: stock.dividendCAGR.cagr3y >= 5 ? 'text-emerald-400' : stock.dividendCAGR.cagr3y >= 0 ? 'text-yellow-400' : 'text-red-400',
+                }] : []),
+                ...(stock.dividendCAGR?.cagr5y != null ? [{
+                  label: '배당 CAGR (5년)',
+                  value: `${stock.dividendCAGR.cagr5y > 0 ? '+' : ''}${stock.dividendCAGR.cagr5y.toFixed(1)}%`,
+                  sub: '연평균 배당 성장률',
+                  color: stock.dividendCAGR.cagr5y >= 5 ? 'text-emerald-400' : stock.dividendCAGR.cagr5y >= 0 ? 'text-yellow-400' : 'text-red-400',
+                }] : []),
               ].map((m, i) => (
                 <div
                   key={i}
@@ -651,6 +680,267 @@ export default function StockDetailPage() {
             <p className="text-sm text-gray-400 leading-relaxed">
               {GRADE_DESCRIPTIONS[stock.grade] ?? '등급 설명을 불러올 수 없습니다.'}
             </p>
+          </div>
+        </section>
+
+        {/* ============================================================ */}
+        {/* ESG 섹션                                                     */}
+        {/* ============================================================ */}
+        <section className="bg-gray-900/60 border border-gray-800/60 rounded-2xl p-6 backdrop-blur-sm">
+          {/* 섹션 헤더 */}
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+                </svg>
+                ESG 평가
+              </h2>
+              <p className="text-xs text-zinc-500 mt-1">환경(E) · 사회(S) · 지배구조(G) 기반 지속가능성 점수</p>
+            </div>
+            {/* ESG 등급 배지 — 공식 등급 or 점수 기반 추정 */}
+            {stock.esgData && (() => {
+              const officialRating = stock.esgData!.rating;
+              const score = stock.esgData!.ESGScore;
+              // 점수 기반 추정 등급 (공식 등급 없을 때)
+              const derivedRating = score == null ? null
+                : score >= 85 ? 'AAA'
+                : score >= 75 ? 'AA'
+                : score >= 65 ? 'A'
+                : score >= 55 ? 'BBB'
+                : score >= 45 ? 'BB'
+                : score >= 35 ? 'B'
+                : 'CCC';
+              const r = officialRating ?? derivedRating;
+              if (!r) return null;
+              const ratingCls: Record<string, string> = {
+                'AAA': 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+                'AA':  'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+                'A':   'bg-teal-500/15 text-teal-400 border-teal-500/30',
+                'BBB': 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
+                'BB':  'bg-orange-500/15 text-orange-400 border-orange-500/30',
+                'B':   'bg-red-500/15 text-red-400 border-red-500/30',
+                'CCC': 'bg-red-500/20 text-red-300 border-red-500/40',
+              };
+              const cls = ratingCls[r] ?? 'bg-zinc-700/50 text-zinc-400 border-zinc-600/40';
+              const isEstimated = !officialRating;
+              return (
+                <div className={`flex flex-col items-center px-4 py-2 rounded-xl border ${cls}`}>
+                  <span className="text-2xl font-black tracking-tight">{r}</span>
+                  <span className="text-[10px] opacity-70">ESG등급</span>
+                  <span className="text-[9px] opacity-50 mt-0.5">
+                    {isEstimated ? '점수 기반 추정' : `${stock.esgData!.ratingYear ?? ''}년 공식`}
+                  </span>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* ESG 데이터 없음 */}
+          {!stock.esgData && (
+            <div className="rounded-xl bg-zinc-800/40 border border-zinc-700/40 p-5">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-zinc-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                </svg>
+                <div>
+                  <p className="text-sm text-zinc-400 font-medium mb-1">이 종목의 ESG 데이터가 없습니다</p>
+                  <p className="text-xs text-zinc-500 leading-relaxed">
+                    ESG 평가는 주로 <span className="text-zinc-300">S&amp;P 500 대형주</span> 위주로 제공됩니다.
+                    소형주·중형주·신규 상장사는 데이터가 없거나 불완전할 수 있습니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ESG 데이터 있음 */}
+          {stock.esgData && (
+            <div className="space-y-5">
+              {/* 3개 점수 바 */}
+              {(() => {
+                const items = [
+                  {
+                    key: 'E',
+                    label: '환경 (Environmental)',
+                    score: stock.esgData!.environmentalScore,
+                    desc: '탄소 배출, 에너지 효율, 폐기물 관리, 물 사용, 생물다양성 등 환경 관련 경영 성과를 평가합니다.',
+                    barCls: 'from-emerald-600 to-emerald-400',
+                    textCls: 'text-emerald-400',
+                    bgCls: 'bg-emerald-500/10 border-emerald-500/20',
+                  },
+                  {
+                    key: 'S',
+                    label: '사회 (Social)',
+                    score: stock.esgData!.socialScore,
+                    desc: '임직원 처우, 공급망 인권, 소비자 보호, 지역사회 기여, 다양성·형평성·포용성(DEI) 등을 평가합니다.',
+                    barCls: 'from-sky-600 to-sky-400',
+                    textCls: 'text-sky-400',
+                    bgCls: 'bg-sky-500/10 border-sky-500/20',
+                  },
+                  {
+                    key: 'G',
+                    label: '지배구조 (Governance)',
+                    score: stock.esgData!.governanceScore,
+                    desc: '이사회 독립성, 경영진 보수 투명성, 주주권리, 내부통제, 반부패 정책 등 기업 거버넌스를 평가합니다.',
+                    barCls: 'from-violet-600 to-violet-400',
+                    textCls: 'text-violet-400',
+                    bgCls: 'bg-violet-500/10 border-violet-500/20',
+                  },
+                ];
+                return items.map(item => (
+                  <div key={item.key} className={`rounded-xl border p-4 ${item.bgCls}`}>
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-black ${item.textCls} w-5`}>{item.key}</span>
+                          <span className="text-sm font-semibold text-white">{item.label}</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">{item.desc}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        {item.score != null ? (
+                          <>
+                            <span className={`text-2xl font-black ${item.textCls}`}>{item.score.toFixed(1)}</span>
+                            <span className="text-xs text-zinc-600 ml-0.5">/100</span>
+                          </>
+                        ) : (
+                          <span className="text-sm text-zinc-600">-</span>
+                        )}
+                      </div>
+                    </div>
+                    {item.score != null && (
+                      <div className="w-full bg-zinc-800/60 rounded-full h-2 mt-2">
+                        <div
+                          className={`bg-gradient-to-r ${item.barCls} h-2 rounded-full transition-all duration-700`}
+                          style={{ width: `${Math.min(item.score, 100)}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ));
+              })()}
+
+              {/* 종합 ESG 점수 */}
+              {stock.esgData.ESGScore != null && (
+                <div className="rounded-xl bg-zinc-800/40 border border-zinc-700/40 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold text-white">종합 ESG 점수</span>
+                    <div>
+                      <span className={`text-2xl font-black ${
+                        stock.esgData.ESGScore >= 70 ? 'text-emerald-400' :
+                        stock.esgData.ESGScore >= 50 ? 'text-yellow-400' : 'text-red-400'
+                      }`}>{stock.esgData.ESGScore.toFixed(1)}</span>
+                      <span className="text-xs text-zinc-600 ml-0.5">/100</span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-zinc-700/40 rounded-full h-3">
+                    <div
+                      className={`h-3 rounded-full transition-all duration-700 ${
+                        stock.esgData.ESGScore >= 70 ? 'bg-gradient-to-r from-emerald-600 to-emerald-400' :
+                        stock.esgData.ESGScore >= 50 ? 'bg-gradient-to-r from-yellow-600 to-yellow-400' :
+                        'bg-gradient-to-r from-red-600 to-red-400'
+                      }`}
+                      style={{ width: `${Math.min(stock.esgData.ESGScore, 100)}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[10px] text-zinc-600 mt-1">
+                    <span>0 · 매우 낮음</span>
+                    <span>50 · 보통</span>
+                    <span>100 · 매우 높음</span>
+                  </div>
+                  {stock.esgData.date && (
+                    <p className="text-[10px] text-zinc-600 mt-2">기준일: {stock.esgData.date.slice(0, 10)}</p>
+                  )}
+                </div>
+              )}
+
+              {/* ESG 등급 기준 설명 */}
+              {(() => {
+                const officialRating = stock.esgData!.rating;
+                const score = stock.esgData!.ESGScore;
+                const derivedRating = score == null ? null
+                  : score >= 85 ? 'AAA'
+                  : score >= 75 ? 'AA'
+                  : score >= 65 ? 'A'
+                  : score >= 55 ? 'BBB'
+                  : score >= 45 ? 'BB'
+                  : score >= 35 ? 'B'
+                  : 'CCC';
+                const activeRating = officialRating ?? derivedRating;
+                const ratings = [
+                  { r: 'AAA', cls: 'bg-emerald-500/20 text-emerald-300', desc: '최우수' },
+                  { r: 'AA',  cls: 'bg-emerald-500/15 text-emerald-400', desc: '우수' },
+                  { r: 'A',   cls: 'bg-teal-500/15 text-teal-400', desc: '양호' },
+                  { r: 'BBB', cls: 'bg-yellow-500/15 text-yellow-400', desc: '보통' },
+                  { r: 'BB',  cls: 'bg-orange-500/15 text-orange-400', desc: '주의' },
+                  { r: 'B',   cls: 'bg-red-500/15 text-red-400', desc: '불량' },
+                  { r: 'CCC', cls: 'bg-red-500/20 text-red-300', desc: '최하' },
+                ];
+                return (
+                  <div className="rounded-xl bg-zinc-900/50 border border-zinc-800/40 p-4">
+                    <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                      <p className="text-xs font-semibold text-zinc-300">ESG 등급 기준 (AAA → CCC)</p>
+                      {activeRating && (
+                        <p className="text-xs text-zinc-400">
+                          이 종목:
+                          <span className={`ml-1.5 font-bold ${
+                            ['AAA','AA'].includes(activeRating) ? 'text-emerald-400' :
+                            activeRating === 'A'   ? 'text-teal-400' :
+                            activeRating === 'BBB' ? 'text-yellow-400' :
+                            activeRating === 'BB'  ? 'text-orange-400' : 'text-red-400'
+                          }`}>{activeRating}</span>
+                          {!officialRating && <span className="ml-1 text-[10px] text-zinc-600">(추정)</span>}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ratings.map(item => {
+                        const isActive = item.r === activeRating;
+                        return (
+                          <div
+                            key={item.r}
+                            className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-all ${item.cls} ${
+                              isActive
+                                ? 'ring-2 ring-white/40 scale-110 shadow-lg'
+                                : 'opacity-50'
+                            }`}
+                          >
+                            <span className="text-xs font-bold">{item.r}</span>
+                            <span className="text-[10px] opacity-80">{item.desc}</span>
+                            {isActive && <span className="text-[10px] ml-0.5">◀</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {!officialRating && activeRating && (
+                      <p className="text-[10px] text-zinc-600 mt-2">
+                        * FMP 공식 등급 데이터 미제공 — 종합 ESG 점수({score?.toFixed(1)})를 기준으로 추정한 등급입니다.
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* ⚠️ 데이터 한계 안내 — 항상 표시 */}
+          <div className="mt-4 rounded-xl bg-amber-500/5 border border-amber-500/20 p-4">
+            <div className="flex items-start gap-2.5">
+              <svg className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-amber-400">ESG 데이터 이용 시 유의사항</p>
+                <ul className="text-[11px] text-zinc-400 space-y-0.5 leading-relaxed">
+                  <li>• <span className="text-zinc-300">커버리지 한계</span> — S&amp;P 500 대형주 중심으로 제공되며, 중·소형주는 데이터가 없거나 불완전합니다.</li>
+                  <li>• <span className="text-zinc-300">업데이트 주기</span> — 기업의 연간 보고서(10-K) 기준으로 연 1회 업데이트됩니다. 최신 경영 변화를 즉시 반영하지 않습니다.</li>
+                  <li>• <span className="text-zinc-300">평가 주관성</span> — ESG 점수는 평가 기관마다 방법론이 달라 동일 기업이라도 점수 차이가 날 수 있습니다.</li>
+                  <li>• <span className="text-zinc-300">투자 참고용</span> — 본 데이터는 투자 결정의 유일한 근거로 사용해서는 안 되며, 반드시 다른 재무 지표와 함께 종합적으로 판단하세요.</li>
+                </ul>
+                <p className="text-[10px] text-zinc-600 mt-1">데이터 출처: FMP (Financial Modeling Prep) · SEC 공시 기반</p>
+              </div>
+            </div>
           </div>
         </section>
 

@@ -58,7 +58,20 @@ export const API_ENDPOINTS = {
   // Market Insights
   SECTOR_PERFORMANCE: '/screening/sector-performance',
   ECONOMIC_CALENDAR: '/screening/economic-calendar',
+  EARNINGS_CALENDAR: '/screening/earnings-calendar',
   STOCK_NEWS: '/screening/stock-news',
+
+  // Portfolio Dividend Calendar
+  PORTFOLIO_DIVIDEND_CALENDAR: '/portfolio/dividend-calendar',
+
+  // Portfolio Dividend Alerts
+  PORTFOLIO_DIVIDEND_ALERTS: '/portfolio/dividend-alerts',
+
+  // Portfolio ESG Score
+  PORTFOLIO_ESG_SCORE: '/portfolio/esg-score',
+
+  // Institutional Holders (13F)
+  INSTITUTIONAL_HOLDERS: '/screening/institutional-holders',
 
   // Payments
   PAYMENT_CONFIRM: '/payments/confirm',
