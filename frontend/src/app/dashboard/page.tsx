@@ -760,7 +760,7 @@ export default function DashboardPage() {
         {/* ============================================================ */}
         {/* PORTFOLIO ESG SCORE                                          */}
         {/* ============================================================ */}
-        {user && portfolioESG && portfolioESG.compositeScore !== null && (
+        {user && portfolioESG && portfolioESG.compositeScore != null && (
           <section className="rounded-2xl border border-emerald-800/40 bg-emerald-950/20 backdrop-blur-xl p-5">
             <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
               <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -794,14 +794,15 @@ export default function DashboardPage() {
                 { label: '사회 (S)', value: portfolioESG.social, icon: '🤝' },
                 { label: '지배구조 (G)', value: portfolioESG.governance, icon: '🏛️' },
               ].map((item) => {
-                const color = item.value >= 65 ? 'text-emerald-400' : item.value >= 45 ? 'text-yellow-400' : 'text-red-400';
-                const barW = Math.min(100, item.value);
+                const v = item.value ?? 0;
+                const color = v >= 65 ? 'text-emerald-400' : v >= 45 ? 'text-yellow-400' : 'text-red-400';
+                const barW = Math.max(0, Math.min(100, v));
                 return (
                   <div key={item.label} className="bg-gray-900/60 border border-gray-800/60 rounded-xl p-4">
                     <p className="text-xs text-gray-400 mb-1">{item.icon} {item.label}</p>
-                    <p className={`text-xl font-bold ${color}`}>{item.value.toFixed(1)}</p>
+                    <p className={`text-xl font-bold ${color}`}>{v.toFixed(1)}</p>
                     <div className="mt-2 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${item.value >= 65 ? 'bg-emerald-500' : item.value >= 45 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${barW}%` }} />
+                      <div className={`h-full rounded-full ${v >= 65 ? 'bg-emerald-500' : v >= 45 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${barW}%` }} />
                     </div>
                   </div>
                 );

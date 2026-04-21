@@ -986,9 +986,9 @@ export default function StockDetailPage() {
                 {stock.institutionalHolders.slice(0, 8).map((h, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs rounded-lg bg-gray-800/30 px-3 py-1.5">
                     <span className="text-zinc-300 flex-1 truncate">{h.holder}</span>
-                    <span className="text-zinc-400 w-24 text-right">{h.shares >= 1e6 ? `${(h.shares / 1e6).toFixed(1)}백만주` : `${(h.shares / 1e3).toFixed(0)}천주`}</span>
-                    <span className={`w-20 text-right font-mono ${h.change > 0 ? 'text-red-400' : h.change < 0 ? 'text-blue-400' : 'text-zinc-500'}`}>
-                      {h.change > 0 ? '+' : ''}{Math.abs(h.change) >= 1e6 ? `${(h.change / 1e6).toFixed(1)}백만` : Math.abs(h.change) >= 1e3 ? `${(h.change / 1e3).toFixed(0)}천` : h.change.toLocaleString()}
+                    <span className="text-zinc-400 w-24 text-right">{h.shares != null ? (h.shares >= 1e6 ? `${(h.shares / 1e6).toFixed(1)}백만주` : `${(h.shares / 1e3).toFixed(0)}천주`) : '-'}</span>
+                    <span className={`w-20 text-right font-mono ${(h.change ?? 0) > 0 ? 'text-red-400' : (h.change ?? 0) < 0 ? 'text-blue-400' : 'text-zinc-500'}`}>
+                      {h.change == null ? '-' : `${h.change > 0 ? '+' : ''}${Math.abs(h.change) >= 1e6 ? `${(h.change / 1e6).toFixed(1)}백만` : Math.abs(h.change) >= 1e3 ? `${(h.change / 1e3).toFixed(0)}천` : h.change.toLocaleString()}`}
                     </span>
                   </div>
                 ))}
