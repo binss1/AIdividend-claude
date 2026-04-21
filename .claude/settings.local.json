@@ -108,7 +108,26 @@
       "mcp__notion__API-get-block-children",
       "WebFetch(domain:www.notion.so)",
       "Bash(node -e \"console.log\\(require\\('@supabase/ssr/package.json'\\).version\\)\")",
-      "Bash(findstr supabase:*)"
+      "Bash(findstr supabase:*)",
+      "mcp__notion__API-post-search",
+      "mcp__notion__API-post-page",
+      "mcp__6b5b9a74-cda4-4f8f-8df1-8d5de35d78db__notion-fetch",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(awk '{print $NF}')",
+      "Bash(cmd /c \"cd D:\\\\Claude\\\\AIdividend\\\\backend && npm install node-cron @types/node-cron 2>&1\")",
+      "Bash(cmd /c \"cd /d D:\\\\Claude\\\\AIdividend\\\\backend && npm install node-cron --save && npm install @types/node-cron --save-dev\")",
+      "Bash(powershell -Command \"Set-Location 'D:\\\\Claude\\\\AIdividend\\\\backend'; npm install node-cron --save 2>&1; npm install @types/node-cron --save-dev 2>&1\")",
+      "Bash(powershell -Command \"Set-Location 'D:\\\\Claude\\\\AIdividend\\\\backend'; npx tsc --noEmit 2>&1\")",
+      "Bash(powershell -Command \"Set-Location 'D:\\\\Claude\\\\AIdividend\\\\frontend'; npx tsc --noEmit 2>&1\")",
+      "Bash(powershell -Command \"Set-Location 'D:\\\\Claude\\\\AIdividend\\\\frontend'; npx tsc --noEmit 2>&1 | head -50\")",
+      "Bash(powershell -Command \"New-Item -ItemType Directory -Force -Path 'D:\\\\Claude\\\\AIdividend\\\\frontend\\\\src\\\\app\\\\institutional' | Out-Null; Write-Host 'done'\")",
+      "Bash(powershell -Command \"Get-Content 'D:\\\\Claude\\\\AIdividend\\\\frontend\\\\src\\\\app\\\\stock\\\\[symbol]\\\\page.tsx' | Measure-Object -Line\")",
+      "Bash(powershell -Command \"\\(Get-Content -LiteralPath 'D:\\\\Claude\\\\AIdividend\\\\frontend\\\\src\\\\app\\\\stock\\\\[symbol]\\\\page.tsx'\\).Count\")",
+      "Bash(powershell -Command \"\\(Get-Content -LiteralPath 'D:\\\\Claude\\\\AIdividend\\\\frontend\\\\src\\\\app\\\\dashboard\\\\page.tsx'\\).Count\")",
+      "mcp__6b5b9a74-cda4-4f8f-8df1-8d5de35d78db__notion-search",
+      "mcp__filesystem__read_file"
     ]
   }
 }

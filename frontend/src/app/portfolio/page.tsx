@@ -49,7 +49,7 @@ interface Summary {
 // Helpers
 // ============================================================
 const fmt = (n: number | null | undefined, decimals = 2) =>
-  n == null ? '-' : n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  n == null || isNaN(n) ? '-' : n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
 const fmtPct = (n: number | null | undefined) =>
   n == null ? '-' : `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;

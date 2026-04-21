@@ -549,6 +549,14 @@ router.post('/', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'symbol, shares, avg_cost는 필수입니다.' });
       return;
     }
+    if (Number(shares) <= 0) {
+      res.status(400).json({ error: '보유 수량은 0보다 커야 합니다.' });
+      return;
+    }
+    if (Number(avg_cost) <= 0) {
+      res.status(400).json({ error: '평균 매입가는 0보다 커야 합니다.' });
+      return;
+    }
 
     const sb = getSupabaseAdmin()!;
 
@@ -601,6 +609,15 @@ router.put('/:id', async (req: Request, res: Response) => {
       memo?: string;
       company_name?: string;
     };
+
+    if (shares !== undefined && Number(shares) <= 0) {
+      res.status(400).json({ error: '보유 수량은 0보다 커야 합니다.' });
+      return;
+    }
+    if (avg_cost !== undefined && Number(avg_cost) <= 0) {
+      res.status(400).json({ error: '평균 매입가는 0보다 커야 합니다.' });
+      return;
+    }
 
     const sb = getSupabaseAdmin()!;
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };

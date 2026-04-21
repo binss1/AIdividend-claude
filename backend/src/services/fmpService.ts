@@ -619,7 +619,13 @@ export async function getInstitutionalHolders(symbol: string): Promise<Array<{
 }>> {
   try {
     const { data } = await fmpClient.get(`/v3/institutional-holder/${symbol}`);
-    return (data ?? []).slice(0, 15);
+    return (data ?? []).slice(0, 15).map((h: { holder: string; shares: number | null; dateReported: string; change: number | null; weightPercent: number | null }) => ({
+      holder: h.holder,
+      shares: h.shares ?? 0,
+      dateReported: h.dateReported,
+      change: h.change ?? 0,
+      weightPercent: h.weightPercent ?? 0,
+    }));
   } catch (err) {
     logger.error(`Failed to get institutional holders for ${symbol}`, (err as Error).message);
     return [];
@@ -633,7 +639,13 @@ export async function getInstitutionalHoldersDetail(symbol: string): Promise<Arr
 }>> {
   try {
     const { data } = await fmpClient.get(`/v3/institutional-holder/${symbol}`);
-    return data ?? [];
+    return (data ?? []).map((h: { holder: string; shares: number | null; dateReported: string; change: number | null; weightPercent: number | null }) => ({
+      holder: h.holder,
+      shares: h.shares ?? 0,
+      dateReported: h.dateReported,
+      change: h.change ?? 0,
+      weightPercent: h.weightPercent ?? 0,
+    }));
   } catch (err) {
     logger.error(`Failed to get institutional holders detail for ${symbol}`, (err as Error).message);
     return [];
