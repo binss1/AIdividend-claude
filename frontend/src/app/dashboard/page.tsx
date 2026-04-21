@@ -367,43 +367,53 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-950 pb-20">
       {/* Hero */}
-      <div className="bg-gradient-to-b from-gray-900/80 to-gray-950 border-b border-gray-800/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-900 to-gray-950 border-b border-gray-800/50">
+        {/* 배경 장식 */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_0%_0%,rgba(16,185,129,0.08),transparent)]" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
+        <div className="absolute top-8 right-0 w-72 h-72 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2">
-                AI Dividend <span className="text-emerald-400">대시보드</span>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Live
+                </span>
+              </div>
+              <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
+                AI Dividend <span className="text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.4)]">대시보드</span>
               </h1>
-              <p className="text-gray-400">
+              <p className="text-gray-400 text-sm">
                 {user ? `${user.user_metadata?.name || user.email?.split('@')[0] || '사용자'}님, 환영합니다.` : '미국 배당주 및 ETF 스크리닝 플랫폼에 오신 것을 환영합니다.'}
               </p>
             </div>
 
             {/* Credit & Plan Info Card */}
             {creditInfo && (
-              <div className="flex items-center gap-4 bg-gray-800/40 border border-gray-700/40 rounded-2xl px-5 py-3">
-                <div className="text-center">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">플랜</p>
+              <div className="flex items-center gap-0 bg-gray-900/80 border border-gray-700/50 rounded-2xl overflow-hidden backdrop-blur-sm shadow-lg shadow-black/20">
+                <div className="px-5 py-3 text-center border-r border-gray-700/50">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5">플랜</p>
                   <p className="text-sm font-bold text-emerald-400">{creditInfo.plan_name}</p>
                 </div>
-                <div className="w-px h-8 bg-gray-700/50" />
-                <div className="text-center">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">크레딧</p>
+                <div className="px-5 py-3 text-center border-r border-gray-700/50">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5">크레딧</p>
                   <p className="text-sm font-bold text-white">
-                    {creditInfo.monthly_credits === -1 ? '무제한' : creditInfo.balance.toLocaleString()}
+                    {creditInfo.monthly_credits === -1 ? '∞' : creditInfo.balance.toLocaleString()}
                   </p>
                 </div>
-                <div className="w-px h-8 bg-gray-700/50" />
-                <div className="text-center">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">사용량</p>
+                <div className="px-5 py-3 text-center">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5">사용량</p>
                   <p className="text-sm font-bold text-gray-300">{creditInfo.total_used.toLocaleString()}</p>
                 </div>
                 {creditInfo.plan_id === 'free' && (
                   <Link
                     href="/pricing"
-                    className="ml-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 transition-colors"
+                    className="px-4 py-3 text-xs font-semibold bg-gradient-to-r from-emerald-600/80 to-emerald-500/80 text-white hover:from-emerald-500 hover:to-emerald-400 transition-all duration-200 border-l border-emerald-500/30 whitespace-nowrap"
                   >
-                    업그레이드
+                    업그레이드 →
                   </Link>
                 )}
               </div>
@@ -416,25 +426,28 @@ export default function DashboardPage() {
         {/* ============================================================ */}
         {/* TOP CARDS ROW                                                */}
         {/* ============================================================ */}
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 gap-5">
           {/* Exchange Rate */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-gray-900/80 to-gray-900/40 border border-gray-800/60 rounded-2xl p-6 backdrop-blur-sm">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="relative overflow-hidden bg-gray-900/70 border border-gray-800/70 rounded-2xl p-6 backdrop-blur-sm">
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
+            <div className="absolute bottom-0 right-0 w-40 h-40 bg-emerald-500/5 rounded-full blur-2xl translate-x-1/3 translate-y-1/3 pointer-events-none" />
             <div className="relative">
-              <div className="flex items-center gap-2 mb-3">
-                <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                  <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
                 <h3 className="text-sm font-semibold text-gray-300">USD/KRW 환율</h3>
               </div>
               {rateLoading ? (
-                <div className="h-10 bg-gray-800 rounded-lg animate-pulse" />
+                <div className="h-10 bg-gray-800/80 rounded-lg animate-pulse" />
               ) : exchangeRate ? (
                 <>
-                  <p className="text-3xl font-bold text-white mb-1">
+                  <p className="text-3xl font-bold text-white mb-1 tracking-tight">
                     {exchangeRate.rate.toLocaleString('ko-KR', { maximumFractionDigits: 2 })}
-                    <span className="text-lg text-gray-400 ml-1">원</span>
+                    <span className="text-base font-normal text-gray-400 ml-1.5">원</span>
                   </p>
-                  <p className="text-xs text-gray-500">
-                    {exchangeRate.source} &middot; {timeAgo(exchangeRate.lastUpdated)}
+                  <p className="text-xs text-gray-600">
+                    {exchangeRate.source} · {timeAgo(exchangeRate.lastUpdated)}
                   </p>
                 </>
               ) : (
@@ -446,18 +459,19 @@ export default function DashboardPage() {
           {/* Quick Action: Stock Screening */}
           <button
             onClick={() => router.push('/screening')}
-            className="group relative overflow-hidden bg-gradient-to-br from-emerald-900/30 to-gray-900/40 border border-emerald-800/30 rounded-2xl p-6 text-left hover:border-emerald-600/50 transition-all duration-300"
+            className="group relative overflow-hidden bg-gradient-to-br from-emerald-950/60 via-gray-900/80 to-gray-900/60 border border-emerald-800/40 rounded-2xl p-6 text-left hover:border-emerald-600/60 hover:from-emerald-900/40 transition-all duration-300 shadow-lg shadow-black/10"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-emerald-500/10 transition-colors" />
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
+            <div className="absolute bottom-0 right-0 w-36 h-36 bg-emerald-500/8 rounded-full blur-2xl translate-x-1/4 translate-y-1/4 group-hover:bg-emerald-500/12 transition-colors pointer-events-none" />
             <div className="relative">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center mb-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center mb-4 group-hover:bg-emerald-500/25 group-hover:border-emerald-500/40 transition-colors">
                 <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
               </div>
-              <h3 className="text-lg font-bold text-white mb-1">배당주 스크리닝 시작</h3>
+              <h3 className="text-lg font-bold text-white mb-1 tracking-tight">배당주 스크리닝</h3>
               <p className="text-sm text-gray-400">AI 기반 미국 배당주 분석 및 스크리닝</p>
-              <div className="mt-3 inline-flex items-center gap-1 text-emerald-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
+              <div className="mt-4 inline-flex items-center gap-1.5 text-emerald-400 text-sm font-semibold group-hover:gap-2.5 transition-all">
                 시작하기
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
               </div>
             </div>
           </button>
@@ -465,18 +479,19 @@ export default function DashboardPage() {
           {/* Quick Action: ETF Screening */}
           <button
             onClick={() => router.push('/etf-screening')}
-            className="group relative overflow-hidden bg-gradient-to-br from-blue-900/30 to-gray-900/40 border border-blue-800/30 rounded-2xl p-6 text-left hover:border-blue-600/50 transition-all duration-300"
+            className="group relative overflow-hidden bg-gradient-to-br from-blue-950/60 via-gray-900/80 to-gray-900/60 border border-blue-800/40 rounded-2xl p-6 text-left hover:border-blue-600/60 hover:from-blue-900/40 transition-all duration-300 shadow-lg shadow-black/10"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-blue-500/10 transition-colors" />
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" />
+            <div className="absolute bottom-0 right-0 w-36 h-36 bg-blue-500/8 rounded-full blur-2xl translate-x-1/4 translate-y-1/4 group-hover:bg-blue-500/12 transition-colors pointer-events-none" />
             <div className="relative">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center mb-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center mb-4 group-hover:bg-blue-500/25 group-hover:border-blue-500/40 transition-colors">
                 <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
               </div>
-              <h3 className="text-lg font-bold text-white mb-1">ETF 스크리닝 시작</h3>
+              <h3 className="text-lg font-bold text-white mb-1 tracking-tight">ETF 스크리닝</h3>
               <p className="text-sm text-gray-400">배당 ETF 분석 및 비교</p>
-              <div className="mt-3 inline-flex items-center gap-1 text-blue-400 text-sm font-medium group-hover:translate-x-1 transition-transform">
+              <div className="mt-4 inline-flex items-center gap-1.5 text-blue-400 text-sm font-semibold group-hover:gap-2.5 transition-all">
                 시작하기
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
               </div>
             </div>
           </button>
@@ -486,29 +501,49 @@ export default function DashboardPage() {
         {/* QUICK STATS                                                  */}
         {/* ============================================================ */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-gray-900/60 border border-gray-800/60 rounded-xl p-5 text-center">
-            <p className="text-xs text-gray-400 mb-1">분석된 종목 수</p>
-            <p className="text-2xl font-bold text-white">{stockCache?.results.length ?? 0}</p>
+          {/* 분석된 종목 수 */}
+          <div className="relative overflow-hidden bg-gray-900/60 border border-gray-800/60 rounded-xl p-5">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-gray-600/60 to-transparent" />
+            <div className="flex items-center gap-2 mb-3">
+              <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+              <p className="text-xs text-gray-500">분석된 종목 수</p>
+            </div>
+            <p className="text-2xl font-bold text-white tracking-tight">{stockCache?.results.length ?? 0}<span className="text-sm font-normal text-gray-500 ml-1">개</span></p>
           </div>
-          <div className="bg-gray-900/60 border border-gray-800/60 rounded-xl p-5 text-center">
-            <p className="text-xs text-gray-400 mb-1">분석된 ETF 수</p>
-            <p className="text-2xl font-bold text-white">{etfCache?.results.length ?? 0}</p>
+          {/* 분석된 ETF 수 */}
+          <div className="relative overflow-hidden bg-gray-900/60 border border-gray-800/60 rounded-xl p-5">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" />
+            <div className="flex items-center gap-2 mb-3">
+              <svg className="w-4 h-4 text-blue-500/70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" /></svg>
+              <p className="text-xs text-gray-500">분석된 ETF 수</p>
+            </div>
+            <p className="text-2xl font-bold text-white tracking-tight">{etfCache?.results.length ?? 0}<span className="text-sm font-normal text-gray-500 ml-1">개</span></p>
           </div>
-          <div className="bg-gray-900/60 border border-gray-800/60 rounded-xl p-5 text-center">
-            <p className="text-xs text-gray-400 mb-1">평균 배당수익률</p>
-            <p className="text-2xl font-bold text-emerald-400">
-              {avgYield > 0 ? `${avgYield.toFixed(2)}%` : '-'}
+          {/* 평균 배당수익률 */}
+          <div className="relative overflow-hidden bg-gray-900/60 border border-gray-800/60 rounded-xl p-5">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
+            <div className="flex items-center gap-2 mb-3">
+              <svg className="w-4 h-4 text-emerald-500/70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+              <p className="text-xs text-gray-500">평균 배당수익률</p>
+            </div>
+            <p className="text-2xl font-bold text-emerald-400 tracking-tight">
+              {avgYield > 0 ? `${avgYield.toFixed(2)}%` : <span className="text-gray-600">-</span>}
             </p>
           </div>
-          <div className="bg-gray-900/60 border border-gray-800/60 rounded-xl p-5 text-center">
-            <p className="text-xs text-gray-400 mb-1">최고 등급 종목</p>
+          {/* 최고 등급 종목 */}
+          <div className="relative overflow-hidden bg-gray-900/60 border border-gray-800/60 rounded-xl p-5">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-yellow-500/40 to-transparent" />
+            <div className="flex items-center gap-2 mb-3">
+              <svg className="w-4 h-4 text-yellow-500/70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+              <p className="text-xs text-gray-500">최고 등급 종목</p>
+            </div>
             {bestGrade ? (
-              <div className="flex items-center justify-center gap-2">
-                <span className={`text-lg font-bold ${gradeColor(bestGrade.grade)}`}>{bestGrade.symbol}</span>
+              <div className="flex items-center gap-2">
+                <span className={`text-xl font-bold tracking-tight ${gradeColor(bestGrade.grade)}`}>{bestGrade.symbol}</span>
                 <GradeBadge grade={bestGrade.grade} size="sm" />
               </div>
             ) : (
-              <p className="text-2xl font-bold text-gray-500">-</p>
+              <p className="text-2xl font-bold text-gray-600">-</p>
             )}
           </div>
         </div>
@@ -571,16 +606,16 @@ export default function DashboardPage() {
                 )}
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {topStocks.map((stock, i) => (
                   <button
                     key={stock.symbol}
                     onClick={() => router.push(`/stock/${stock.symbol}`)}
-                    className="w-full flex items-center gap-4 p-3 bg-gray-800/40 hover:bg-gray-800/70 rounded-xl transition-colors text-left group"
+                    className="w-full flex items-center gap-3 p-3 bg-gray-800/30 hover:bg-gray-800/60 border border-gray-700/20 hover:border-gray-700/50 rounded-xl transition-all text-left group"
                   >
-                    <span className="text-xs text-gray-500 font-mono w-5">{i + 1}</span>
+                    <span className={`text-xs font-bold w-5 shrink-0 text-center ${i === 0 ? 'text-yellow-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-amber-600' : 'text-gray-600'}`}>{i + 1}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-sm font-bold text-white">{stock.symbol}</span>
                         <GradeBadge grade={stock.grade} size="sm" />
                         {exchangeRate && (
@@ -589,20 +624,23 @@ export default function DashboardPage() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <p className="text-xs text-gray-400 truncate">{stock.name}</p>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <p className="text-xs text-gray-500 truncate">{stock.name}</p>
                         {selectedSector === '전체' && stock.sector && (
-                          <span className="text-xs text-gray-500 bg-gray-700/40 px-1.5 py-0.5 rounded shrink-0">{stock.sector}</span>
+                          <span className="text-[10px] text-gray-500 bg-gray-700/40 px-1.5 py-0.5 rounded shrink-0">{stock.sector}</span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 mt-1.5">
-                        <span className="text-xs text-emerald-400 font-medium shrink-0">
-                          수익률 {stock.dividendYield.toFixed(2)}%
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-emerald-400 font-semibold shrink-0">
+                          {stock.dividendYield.toFixed(2)}%
                         </span>
-                        <span className="text-xs text-gray-400 font-mono shrink-0 ml-auto">{stock.overallScore.toFixed(0)}점</span>
+                        <div className="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-emerald-500/50 rounded-full" style={{ width: `${Math.min(100, stock.overallScore)}%` }} />
+                        </div>
+                        <span className="text-[11px] text-gray-500 font-mono shrink-0">{stock.overallScore.toFixed(0)}점</span>
                       </div>
                     </div>
-                    <svg className="w-4 h-4 text-gray-600 group-hover:text-gray-400 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    <svg className="w-3.5 h-3.5 text-gray-700 group-hover:text-gray-400 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                   </button>
                 ))}
               </div>
@@ -633,16 +671,16 @@ export default function DashboardPage() {
                 </button>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {topETFs.map((etf, i) => (
                   <button
                     key={etf.symbol}
                     onClick={() => router.push(`/etf/${etf.symbol}`)}
-                    className="w-full flex items-center gap-4 p-3 bg-gray-800/40 hover:bg-gray-800/70 rounded-xl transition-colors text-left group"
+                    className="w-full flex items-center gap-3 p-3 bg-gray-800/30 hover:bg-gray-800/60 border border-gray-700/20 hover:border-gray-700/50 rounded-xl transition-all text-left group"
                   >
-                    <span className="text-xs text-gray-500 font-mono w-5">{i + 1}</span>
+                    <span className={`text-xs font-bold w-5 shrink-0 text-center ${i === 0 ? 'text-yellow-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-amber-600' : 'text-gray-600'}`}>{i + 1}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-sm font-bold text-white">{etf.symbol}</span>
                         <GradeBadge grade={etf.totalScore >= 80 ? 'A+' : etf.totalScore >= 70 ? 'A' : etf.totalScore >= 60 ? 'B+' : etf.totalScore >= 50 ? 'B' : etf.totalScore >= 40 ? 'C' : 'D'} size="sm" />
                         {exchangeRate && (
@@ -651,18 +689,18 @@ export default function DashboardPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400 truncate">{etf.name}</p>
-                      <div className="flex items-center gap-3 mt-1.5">
-                        <span className="text-xs text-blue-400 font-medium">
-                          수익률 {(etf.dividendYield * 100).toFixed(2)}%
+                      <p className="text-xs text-gray-500 truncate mb-1.5">{etf.name}</p>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-blue-400 font-semibold shrink-0">
+                          {(etf.dividendYield * 100).toFixed(2)}%
                         </span>
-                        <span className="text-xs text-gray-500 shrink-0">
-                          보수 {(etf.expenseRatio * 100).toFixed(2)}%
-                        </span>
-                        <span className="text-xs text-gray-400 font-mono shrink-0 ml-auto">{etf.totalScore.toFixed(0)}점</span>
+                        <div className="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-500/50 rounded-full" style={{ width: `${Math.min(100, etf.totalScore)}%` }} />
+                        </div>
+                        <span className="text-[11px] text-gray-500 font-mono shrink-0">{etf.totalScore.toFixed(0)}점</span>
                       </div>
                     </div>
-                    <svg className="w-4 h-4 text-gray-600 group-hover:text-gray-400 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    <svg className="w-3.5 h-3.5 text-gray-700 group-hover:text-gray-400 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                   </button>
                 ))}
               </div>
@@ -848,20 +886,25 @@ export default function DashboardPage() {
         {/* ============================================================ */}
         {/* MARKET OVERVIEW (Placeholder)                                */}
         {/* ============================================================ */}
-        <section className="bg-gray-900/60 border border-gray-800/60 rounded-2xl p-6 backdrop-blur-sm">
-          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            시장 개요
-            <span className="text-[10px] text-zinc-600 font-normal ml-2">5분마다 자동 갱신</span>
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <section className="relative overflow-hidden bg-gray-900/60 border border-gray-800/60 rounded-2xl p-6 backdrop-blur-sm">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-700/60 to-transparent" />
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              시장 개요
+            </h2>
+            <span className="text-[10px] text-zinc-600 flex items-center gap-1">
+              <span className="w-1 h-1 rounded-full bg-emerald-500/60 animate-pulse" />
+              5분마다 자동 갱신
+            </span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {(() => {
-              const icons = ['📊', '📈', '💰', '⚡'];
               const defaults = [
-                { label: 'S&P 500', sub: '' },
-                { label: 'NASDAQ', sub: '' },
-                { label: '미국 10년물 금리', sub: '' },
-                { label: 'VIX', sub: '공포 지수' },
+                { label: 'S&P 500', icon: '📊', sub: '' },
+                { label: 'NASDAQ', icon: '📈', sub: '' },
+                { label: '10년물 금리', icon: '💰', sub: '' },
+                { label: 'VIX', icon: '⚡', sub: '공포 지수' },
               ];
               return defaults.map((d, i) => {
                 const m = marketIndices[i];
@@ -871,26 +914,32 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={i}
-                    className="bg-gray-800/40 border border-gray-700/40 rounded-xl p-4 text-center"
+                    className={`relative overflow-hidden rounded-xl p-4 border transition-colors ${
+                      change != null
+                        ? isUp
+                          ? 'bg-red-500/5 border-red-500/20 hover:bg-red-500/8'
+                          : 'bg-blue-500/5 border-blue-500/20 hover:bg-blue-500/8'
+                        : 'bg-gray-800/30 border-gray-700/40'
+                    }`}
                   >
-                    <p className="text-lg mb-1">{icons[i]}</p>
-                    <p className="text-xs text-gray-400 mb-1">{d.label}</p>
-                    <p className={`text-lg font-bold font-mono ${price != null ? 'text-white' : 'text-gray-500'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">{d.label}</p>
+                      <span className="text-sm">{d.icon}</span>
+                    </div>
+                    <p className={`text-xl font-bold font-mono tracking-tight ${price != null ? 'text-white' : 'text-gray-600'}`}>
                       {price != null
                         ? i === 2
                           ? `${price.toFixed(2)}%`
                           : price.toLocaleString('en-US', { maximumFractionDigits: 2 })
                         : '-'}
                     </p>
-                    <p className={`text-xs font-mono ${
-                      change != null
-                        ? isUp ? 'text-red-400' : 'text-blue-400'
-                        : 'text-gray-600'
-                    }`}>
-                      {change != null
-                        ? `${isUp ? '+' : ''}${change.toFixed(2)}%`
-                        : d.sub || '데이터 대기'}
-                    </p>
+                    {change != null ? (
+                      <p className={`text-xs font-semibold mt-1 flex items-center gap-0.5 ${isUp ? 'text-red-400' : 'text-blue-400'}`}>
+                        {isUp ? '▲' : '▼'} {Math.abs(change).toFixed(2)}%
+                      </p>
+                    ) : (
+                      <p className="text-xs text-gray-600 mt-1">{d.sub || '대기 중'}</p>
+                    )}
                   </div>
                 );
               });
@@ -909,20 +958,32 @@ export default function DashboardPage() {
               </svg>
               섹터별 퍼포먼스
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-              {sectorPerf.map((s) => {
-                const pct = parseFloat(s.changesPercentage);
-                const isUp = pct >= 0;
-                return (
-                  <div key={s.sector} className="rounded-lg bg-zinc-800/50 border border-zinc-700/30 p-3 hover:border-zinc-600/50 transition-colors">
-                    <p className="text-xs text-zinc-400 truncate">{s.sector}</p>
-                    <p className={`text-sm font-bold font-mono mt-1 ${isUp ? 'text-red-400' : 'text-blue-400'}`}>
-                      {isUp ? '+' : ''}{pct.toFixed(2)}%
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
+            {(() => {
+              const maxAbs = Math.max(...sectorPerf.map(s => Math.abs(parseFloat(s.changesPercentage))), 0.01);
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {sectorPerf.map((s) => {
+                    const pct = parseFloat(s.changesPercentage);
+                    const isUp = pct >= 0;
+                    const barW = Math.min(100, (Math.abs(pct) / maxAbs) * 100);
+                    return (
+                      <div key={s.sector} className={`rounded-xl p-3 border transition-colors ${isUp ? 'bg-red-500/5 border-red-500/15 hover:border-red-500/30' : 'bg-blue-500/5 border-blue-500/15 hover:border-blue-500/30'}`}>
+                        <p className="text-[11px] text-zinc-400 truncate mb-1.5">{s.sector}</p>
+                        <p className={`text-sm font-bold font-mono ${isUp ? 'text-red-400' : 'text-blue-400'}`}>
+                          {isUp ? '+' : ''}{pct.toFixed(2)}%
+                        </p>
+                        <div className="mt-2 h-0.5 bg-zinc-800 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${isUp ? 'bg-red-500/50' : 'bg-blue-500/50'}`}
+                            style={{ width: `${barW}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </section>
         )}
 
