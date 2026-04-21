@@ -57,6 +57,9 @@ router.post('/confirm', async (req: Request, res: Response) => {
     logger.info(`[Payment] 결제 승인 성공: orderId=${orderId}, amount=${amount}, status=${tossData.status}`);
 
     // 2. 결제 정보 DB 저장 + 크레딧/구독 처리
+    if (!userId || !planId) {
+      logger.error(`[Payment] 결제 승인 후 userId 또는 planId 누락 — DB 기록 불가! orderId=${orderId}, userId=${userId}, planId=${planId}`);
+    }
     if (userId && planId) {
       const isCreditProduct = planId.startsWith('credit-');
       const billingPeriod = detectBillingPeriod(Number(amount), planId);

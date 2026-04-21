@@ -461,8 +461,8 @@ router.get('/economic-calendar', async (req: Request, res: Response) => {
         const dateB = b.date || '';
         if (dateA !== dateB) return dateA.localeCompare(dateB);
         // Same date: non-CFTC first
-        const aCftc = a.event.includes('CFTC') ? 1 : 0;
-        const bCftc = b.event.includes('CFTC') ? 1 : 0;
+        const aCftc = (a.event?.includes('CFTC') ?? false) ? 1 : 0;
+        const bCftc = (b.event?.includes('CFTC') ?? false) ? 1 : 0;
         return aCftc - bCftc;
       })
       .slice(0, 40);
@@ -890,7 +890,7 @@ router.get('/dividend-calendar', optionalAuth, async (req: Request, res: Respons
         paymentDate: e.paymentDate || null,
         declarationDate: e.declarationDate || null,
         dividend: e.dividend,
-        dividendYield: quote ? (e.dividend * 4 / quote.price * 100) : null,
+        dividendYield: (quote && quote.price > 0) ? (e.dividend * 4 / quote.price * 100) : null,
         price: quote?.price || null,
         exchange: quote?.exchange || null,
       };
@@ -938,7 +938,7 @@ router.post('/portfolio-simulate', optionalAuth, requireCredits('portfolio_simul
     const symbols = stocks.map((s: any) => s.symbol);
     const quoteRes = await fmpClient.get('/v3/quote/' + symbols.join(','));
     const quotes: Record<string, any> = {};
-    for (const q of (quoteRes.data || [])) {
+    for (const q of (Array.isArray(quoteRes.data) ? quoteRes.data : [])) {
       quotes[q.symbol] = q;
     }
 
@@ -953,7 +953,8 @@ router.post('/portfolio-simulate', optionalAuth, requireCredits('portfolio_simul
         const oneYearAgo = new Date();
         oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
         const recentDivs = history.filter((d: any) => new Date(d.date) >= oneYearAgo);
-        const annualDiv = recentDivs.reduce((sum: number, d: any) => sum + (d.dividend || 0), 0);
+        // adjDividend(분할 조정 후 정확한 값) 우선, 없으면 dividend 폴백
+        const annualDiv = recentDivs.reduce((sum: number, d: any) => sum + ((d.adjDividend != null && d.adjDividend > 0 ? d.adjDividend : d.dividend) || 0), 0);
         const freq = recentDivs.length || 4; // default quarterly
 
         dividendData[s.symbol] = { annualDividend: annualDiv, frequency: freq };
@@ -984,7 +985,6 @@ router.post('/portfolio-simulate', optionalAuth, requireCredits('portfolio_simul
 
     // === SIMULATION ENGINE ===
     // Month-by-month simulation with compound growth
-    const monthlyDivGrowth = Math.pow(1 + dividendGrowthRate / 100, 1/12);
     const monthlyPriceGrowth = Math.pow(1 + priceGrowthRate / 100, 1/12);
     const totalMonths = years * 12;
 

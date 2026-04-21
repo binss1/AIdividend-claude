@@ -309,11 +309,11 @@ router.patch('/users/:id/subscription', async (req: Request, res: Response) => {
     }
 
     // 현재 active 구독 업데이트
+    // 가장 최근 구독을 대상으로 업데이트 (status 무관하게 최신 구독 수정)
     const { data, error } = await sb
       .from('subscriptions')
       .update(updates)
       .eq('user_id', id)
-      .eq('status', status === 'active' ? 'active' : 'active') // 현재 active 구독 찾기
       .order('created_at', { ascending: false })
       .limit(1)
       .select();

@@ -143,8 +143,8 @@ function buildDividendEvents(
             ex_dividend_date: nextExDate.toISOString().slice(0, 10),
             payment_date: nextPayDate.toISOString().slice(0, 10),
             payment_date_estimated: true,
-            dividend_per_share: (latestActual.adjDividend || latestActual.dividend) ?? 0,
-            total_dividend: ((latestActual.adjDividend || latestActual.dividend) ?? 0) * shares,
+            dividend_per_share: (latestActual.adjDividend != null && latestActual.adjDividend > 0 ? latestActual.adjDividend : latestActual.dividend) ?? 0,
+            total_dividend: ((latestActual.adjDividend != null && latestActual.adjDividend > 0 ? latestActual.adjDividend : latestActual.dividend) ?? 0) * shares,
           });
         }
       }
@@ -313,10 +313,11 @@ router.get('/dividend-alerts', async (req: Request, res: Response) => {
         const latest   = sorted[0];
         const previous = sorted[1];
 
-        const latestDiv   = latest.adjDividend   || latest.dividend   || 0;
-        const previousDiv = previous.adjDividend || previous.dividend || 0;
+        const latestDiv   = (latest.adjDividend   != null && latest.adjDividend   > 0 ? latest.adjDividend   : latest.dividend)   ?? 0;
+        const previousDiv = (previous.adjDividend != null && previous.adjDividend > 0 ? previous.adjDividend : previous.dividend) ?? 0;
 
-        if (previousDiv <= 0) continue;
+        // API가 데이터를 반환하지 않은 경우(둘 다 null/0) 오탐 방지
+        if (previousDiv <= 0 || latestDiv <= 0) continue;
 
         const changePct = ((latestDiv - previousDiv) / previousDiv) * 100;
 
@@ -470,7 +471,7 @@ router.get('/live', requireCredits('portfolio_refresh'), async (req: Request, re
       const gainLossPct = costBasis > 0 && gainLoss != null ? (gainLoss / costBasis) * 100 : null;
       const annualDivTotal = shares * d.annualDiv;
       const yieldOnCost = avgCost > 0 ? (d.annualDiv / avgCost) * 100 : 0;
-      const currentYield = currentPrice && currentPrice > 0 ? (d.annualDiv / currentPrice) * 100 : 0;
+      const currentYield = currentPrice != null && currentPrice > 0 ? (d.annualDiv / currentPrice) * 100 : 0;
 
       return {
         ...h,
@@ -603,6 +604,10 @@ router.put('/:id', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const id = parseInt(String(req.params.id));
+    if (isNaN(id)) {
+      res.status(400).json({ error: '유효하지 않은 ID입니다.' });
+      return;
+    }
     const { shares, avg_cost, memo, company_name } = req.body as {
       shares?: number;
       avg_cost?: number;
@@ -652,6 +657,10 @@ router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const id = parseInt(String(req.params.id));
+    if (isNaN(id)) {
+      res.status(400).json({ error: '유효하지 않은 ID입니다.' });
+      return;
+    }
 
     const sb = getSupabaseAdmin()!;
     const { error } = await sb
