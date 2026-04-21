@@ -504,9 +504,9 @@ export default function InstitutionalPage() {
               const toX = (i: number) => PL + i * xStep;
               const toY = (v: number) => PT + chartH - (v / maxVal) * chartH;
 
-              // 총 기관 수 + 총 보유량 추이 (bar)
-              const maxHolders = Math.max(...cd.quarterly.map(q => q.totalHolders));
-              const maxTotalShares = Math.max(...cd.quarterly.map(q => q.totalShares));
+              // 총 기관 수 + 총 보유량 추이 (bar) — 빈 배열 시 -Infinity 방지
+              const maxHolders = Math.max(...cd.quarterly.map(q => q.totalHolders), 0);
+              const maxTotalShares = Math.max(...cd.quarterly.map(q => q.totalShares), 0);
 
               return (
                 <div className="space-y-4">
@@ -514,55 +514,63 @@ export default function InstitutionalPage() {
                   <div className="rounded-xl bg-zinc-900/80 border border-zinc-800/60 p-5">
                     <h3 className="text-sm font-semibold text-white mb-1">상위 기관 보유량 추이 (분기별)</h3>
                     <p className="text-[10px] text-zinc-600 mb-4">최신 분기 기준 상위 5개 기관 · 최대 8분기</p>
-                    <div className="overflow-x-auto">
-                      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ minWidth: 320 }}>
-                        {/* 그리드 라인 */}
-                        {[0, 0.25, 0.5, 0.75, 1].map(r => {
-                          const y = PT + chartH * (1 - r);
-                          return (
-                            <g key={r}>
-                              <line x1={PL} y1={y} x2={W - PR} y2={y} stroke="#27272a" strokeWidth="1" />
-                              <text x={PL - 6} y={y + 4} fill="#71717a" fontSize="9" textAnchor="end">
-                                {fmtShares(maxVal * r)}
+                    {instData.length === 0 ? (
+                      <div className="flex items-center justify-center h-24 text-zinc-600 text-sm">
+                        기관별 분기 데이터가 없습니다.
+                      </div>
+                    ) : (
+                      <>
+                        <div className="overflow-x-auto">
+                          <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ minWidth: 320 }}>
+                            {/* 그리드 라인 */}
+                            {[0, 0.25, 0.5, 0.75, 1].map(r => {
+                              const y = PT + chartH * (1 - r);
+                              return (
+                                <g key={r}>
+                                  <line x1={PL} y1={y} x2={W - PR} y2={y} stroke="#27272a" strokeWidth="1" />
+                                  <text x={PL - 6} y={y + 4} fill="#71717a" fontSize="9" textAnchor="end">
+                                    {fmtShares(maxVal * r)}
+                                  </text>
+                                </g>
+                              );
+                            })}
+                            {/* X축 날짜 */}
+                            {cd.dates.map((d, i) => (
+                              <text key={d} x={toX(i)} y={H - 6} fill="#71717a" fontSize="9" textAnchor="middle">
+                                {fmtDate(d)}
                               </text>
-                            </g>
-                          );
-                        })}
-                        {/* X축 날짜 */}
-                        {cd.dates.map((d, i) => (
-                          <text key={d} x={toX(i)} y={H - 6} fill="#71717a" fontSize="9" textAnchor="middle">
-                            {fmtDate(d)}
-                          </text>
-                        ))}
-                        {/* 라인 + 포인트 */}
-                        {instData.map((inst, ci) => {
-                          const color = COLORS[ci % COLORS.length];
-                          const points: [number, number][] = [];
-                          inst.data.forEach((v, i) => {
-                            if (v != null) points.push([toX(i), toY(v)]);
-                          });
-                          if (points.length < 1) return null;
-                          const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
-                          return (
-                            <g key={inst.name}>
-                              <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                              {points.map((p, pi) => (
-                                <circle key={pi} cx={p[0]} cy={p[1]} r="3" fill={color} />
-                              ))}
-                            </g>
-                          );
-                        })}
-                      </svg>
-                    </div>
-                    {/* 범례 */}
-                    <div className="flex flex-wrap gap-3 mt-3">
-                      {instData.map((inst, ci) => (
-                        <div key={inst.name} className="flex items-center gap-1.5">
-                          <div className="w-3 h-0.5 rounded-full" style={{ backgroundColor: COLORS[ci % COLORS.length] }} />
-                          <span className="text-[10px] text-zinc-400 truncate max-w-[140px]">{inst.name}</span>
+                            ))}
+                            {/* 라인 + 포인트 */}
+                            {instData.map((inst, ci) => {
+                              const color = COLORS[ci % COLORS.length];
+                              const points: [number, number][] = [];
+                              inst.data.forEach((v, i) => {
+                                if (v != null) points.push([toX(i), toY(v)]);
+                              });
+                              if (points.length < 1) return null;
+                              const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+                              return (
+                                <g key={inst.name}>
+                                  <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                  {points.map((p, pi) => (
+                                    <circle key={pi} cx={p[0]} cy={p[1]} r="3" fill={color} />
+                                  ))}
+                                </g>
+                              );
+                            })}
+                          </svg>
                         </div>
-                      ))}
-                    </div>
+                        {/* 범례 */}
+                        <div className="flex flex-wrap gap-3 mt-3">
+                          {instData.map((inst, ci) => (
+                            <div key={inst.name} className="flex items-center gap-1.5">
+                              <div className="w-3 h-0.5 rounded-full" style={{ backgroundColor: COLORS[ci % COLORS.length] }} />
+                              <span className="text-[10px] text-zinc-400 truncate max-w-[140px]">{inst.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* 분기별 전체 기관 수 + 총 보유주식수 */}

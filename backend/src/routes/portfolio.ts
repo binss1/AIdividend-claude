@@ -143,8 +143,8 @@ function buildDividendEvents(
             ex_dividend_date: nextExDate.toISOString().slice(0, 10),
             payment_date: nextPayDate.toISOString().slice(0, 10),
             payment_date_estimated: true,
-            dividend_per_share: latestActual.adjDividend || latestActual.dividend,
-            total_dividend: (latestActual.adjDividend || latestActual.dividend) * shares,
+            dividend_per_share: (latestActual.adjDividend || latestActual.dividend) ?? 0,
+            total_dividend: ((latestActual.adjDividend || latestActual.dividend) ?? 0) * shares,
           });
         }
       }
@@ -665,17 +665,40 @@ router.get('/esg-score', async (req: Request, res: Response) => {
 
     const { data: holdings, error } = await sb
       .from('portfolio_holdings')
-      .select('symbol, company_name, shares, current_price')
+      .select('symbol, company_name, shares')
       .eq('user_id', userId);
 
-    if (error || !holdings || holdings.length === 0) {
+    if (error) {
+      logger.error('[Portfolio] ESG holdings 조회 실패:', error.message);
+      res.status(500).json({ error: 'ESG 점수 조회 실패' });
+      return;
+    }
+    if (!holdings || holdings.length === 0) {
       res.json({ compositeScore: null, breakdown: [], coverage: 0, message: '보유 종목 없음' });
       return;
     }
 
+    // FMP Quote로 현재 가격 일괄 조회 (portfolio_holdings에 current_price 컬럼 없음)
+    const symbols = holdings.map((h: { symbol: string }) => h.symbol);
+    const priceMap: Record<string, number> = {};
+    try {
+      const BATCH = 50;
+      for (let i = 0; i < symbols.length; i += BATCH) {
+        const batch = symbols.slice(i, i + BATCH);
+        const { data: qData } = await fmpClient.get<Array<{ symbol: string; price: number }>>(
+          `/v3/quote/${batch.join(',')}`
+        );
+        if (Array.isArray(qData)) {
+          qData.forEach((q) => { if (q.symbol && q.price != null) priceMap[q.symbol] = q.price; });
+        }
+      }
+    } catch (e) {
+      logger.warn('[Portfolio] ESG 가격 조회 실패:', (e as Error).message);
+    }
+
     // ESG 데이터 병렬 조회
     const esgResults = await Promise.allSettled(
-      holdings.map(async (h: { symbol: string; company_name: string; shares: number; current_price: number }) => {
+      holdings.map(async (h: { symbol: string; company_name: string; shares: number }) => {
         try {
           const { data } = await fmpClient.get<Array<{
             symbol: string;
@@ -691,7 +714,7 @@ router.get('/esg-score', async (req: Request, res: Response) => {
             symbol: h.symbol,
             name: h.company_name,
             shares: h.shares,
-            currentPrice: h.current_price,
+            currentPrice: priceMap[h.symbol] ?? null,
             environmental: latest.environmentalScore ?? null,
             social: latest.socialScore ?? null,
             governance: latest.governanceScore ?? null,
@@ -713,9 +736,9 @@ router.get('/esg-score', async (req: Request, res: Response) => {
       weight: number;
     }> = [];
 
-    // 시가총액(보유금액) 기준 가중평균
+    // 시가총액(보유금액) 기준 가중평균 (현재 가격 없는 종목은 0으로 처리)
     const totalValue = holdings.reduce(
-      (sum: number, h: { shares: number; current_price: number }) => sum + (h.shares * (h.current_price ?? 0)), 0
+      (sum: number, h: { symbol: string; shares: number }) => sum + (h.shares * (priceMap[h.symbol] ?? 0)), 0
     );
 
     let weightedScore = 0;
