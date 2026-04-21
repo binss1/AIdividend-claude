@@ -140,13 +140,24 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════
           HERO SECTION
           ═══════════════════════════════════════ */}
-      <section className="relative px-4 pt-24 pb-16 sm:pt-32 sm:pb-24">
+      <section className="relative px-4 pt-24 pb-16 sm:pt-32 sm:pb-24 overflow-hidden">
+        {/* Hero 전용 배경 강화 */}
+        <div className="pointer-events-none absolute inset-0">
+          {/* 강한 에메랄드 glow */}
+          <div className="absolute top-0 left-1/3 h-[500px] w-[700px] rounded-full bg-emerald-500/8 blur-[100px]" />
+          {/* 도트 그리드 패턴 */}
+          <div className="absolute inset-0 opacity-[0.03]"
+            style={{ backgroundImage: 'radial-gradient(circle, #6ee7b7 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+          {/* 상단 라인 */}
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
+        </div>
+
         <div className="mx-auto max-w-6xl">
           <div className="grid items-center gap-12 lg:grid-cols-2">
-            {/* Left: Text */}
+            {/* ── Left: Text ── */}
             <div>
               {/* Badge */}
-              <div className="animate-fade-in mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-1.5 text-sm text-emerald-400">
+              <div className="animate-fade-in mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-1.5 text-sm text-emerald-400 shadow-sm shadow-emerald-500/10">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
@@ -155,78 +166,129 @@ export default function HomePage() {
               </div>
 
               {/* Title */}
-              <h1 className="animate-fade-in stagger-1 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+              <h1 className="animate-fade-in stagger-1 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl leading-[1.15]">
                 <span className="text-white">당신의 월급 외</span>
                 <br />
-                <span className="text-gradient">두 번째 수입</span>
+                <span className="text-gradient drop-shadow-[0_0_20px_rgba(52,211,153,0.35)]">두 번째 수입</span>
                 <span className="text-white">을</span>
                 <br />
                 <span className="text-white">만들어 드립니다</span>
               </h1>
 
               {/* Subtitle */}
-              <p className="animate-fade-in stagger-2 mt-6 max-w-lg text-lg leading-relaxed text-gray-400">
-                500개 이상의 미국 배당주와 ETF를 AI가 <strong className="text-gray-300">5축 정밀 분석</strong>합니다.
-                매월, 매 분기 배당금이 꾸준히 계좌에 들어오는 경험, 데이터로 시작하세요.
+              <p className="animate-fade-in stagger-2 mt-5 max-w-lg text-lg leading-relaxed text-gray-400">
+                500개 이상의 미국 배당주와 ETF를 AI가 <strong className="text-gray-200 font-semibold">5축 정밀 분석</strong>합니다.
+                매월, 매 분기 배당금이 꾸준히 계좌에 들어오는 경험, 지금 시작하세요.
               </p>
 
-              {/* Mini yield indicator */}
-              <div className="animate-fade-in stagger-3 mt-6 inline-flex items-center gap-3 rounded-xl yield-highlight px-4 py-2.5">
-                <span className="text-2xl">💵</span>
-                <div>
-                  <div className="text-sm text-gray-400">미국 배당주 평균 수익률</div>
-                  <div className="text-xl font-bold text-emerald-400">3.5% ~ 7.0%</div>
+              {/* Trust chips */}
+              <div className="animate-fade-in stagger-2 mt-5 flex flex-wrap gap-2">
+                {[
+                  { icon: '📊', text: '500+ 종목 분석' },
+                  { icon: '⚡', text: '실시간 시세' },
+                  { icon: '🏆', text: 'A+~F 등급 시스템' },
+                  { icon: '🛡️', text: '안전 필터 적용' },
+                ].map(chip => (
+                  <span key={chip.text} className="inline-flex items-center gap-1.5 rounded-full bg-gray-800/60 border border-gray-700/50 px-3 py-1 text-xs text-gray-400">
+                    <span>{chip.icon}</span>{chip.text}
+                  </span>
+                ))}
+              </div>
+
+              {/* Yield comparison cards */}
+              <div className="animate-fade-in stagger-3 mt-6 grid grid-cols-2 gap-3 max-w-sm">
+                <div className="rounded-xl bg-emerald-950/50 border border-emerald-700/40 px-4 py-3 shadow-md shadow-emerald-900/20">
+                  <p className="text-[11px] text-emerald-500/80 font-medium uppercase tracking-wider mb-1">미국 배당주</p>
+                  <p className="text-2xl font-bold text-emerald-400 tracking-tight">3.5~7.0%</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">연 평균 수익률</p>
                 </div>
-                <div className="ml-3 h-8 w-px bg-gray-700" />
-                <div>
-                  <div className="text-sm text-gray-400">한국 정기예금</div>
-                  <div className="text-xl font-bold text-gray-500">2.5% ~ 3.5%</div>
+                <div className="rounded-xl bg-gray-800/40 border border-gray-700/40 px-4 py-3">
+                  <p className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1">한국 정기예금</p>
+                  <p className="text-2xl font-bold text-gray-500 tracking-tight">2.5~3.5%</p>
+                  <p className="text-[11px] text-gray-600 mt-0.5">연 평균 금리</p>
                 </div>
               </div>
 
               {/* CTA Buttons */}
               <div className="animate-fade-in stagger-4 mt-8 flex flex-col gap-3 sm:flex-row">
+                {/* Primary */}
                 <Link
                   href="/screening"
-                  className="group relative inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all duration-300 hover:shadow-emerald-500/40 hover:scale-[1.02] active:scale-[0.98]"
+                  className="group relative inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-emerald-500/30 transition-all duration-300 hover:shadow-emerald-500/50 hover:scale-[1.02] active:scale-[0.98]"
                 >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
                   배당주 스크리닝 시작
-                  <svg className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <svg className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                   </svg>
                 </Link>
+                {/* Secondary */}
                 <Link
                   href="/etf-screening"
-                  className="group relative inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all duration-300 hover:shadow-emerald-500/40 hover:scale-[1.02] active:scale-[0.98]"
+                  className="group relative inline-flex items-center justify-center gap-2 rounded-xl border border-gray-600/60 bg-gray-800/40 px-8 py-3.5 text-base font-semibold text-gray-200 backdrop-blur-sm transition-all duration-300 hover:border-teal-500/50 hover:bg-gray-800/70 hover:text-teal-300 active:scale-[0.98]"
                 >
-                  ETF 스크리닝 시작
-                  <svg className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
                   </svg>
+                  ETF 스크리닝
                 </Link>
               </div>
+
+              {/* Social proof */}
+              <p className="animate-fade-in stagger-4 mt-5 text-xs text-gray-600">
+                ✓ 무료로 시작 &nbsp;·&nbsp; ✓ 회원가입 불필요 &nbsp;·&nbsp; ✓ 실시간 FMP 데이터 기반
+              </p>
             </div>
 
-            {/* Right: Hero Image */}
+            {/* ── Right: Hero Image + floating chips ── */}
             <div className="animate-fade-in stagger-3 hidden lg:block">
-              <div className="relative rounded-2xl overflow-hidden animate-warm-glow shadow-2xl shadow-emerald-500/10">
-                <Image
-                  src="/images/hero-dividend.png"
-                  alt="배당 투자 - HIGH DIVIDEND YIELD 7.1%"
-                  width={640}
-                  height={360}
-                  className="w-full h-auto rounded-2xl"
-                  priority
-                />
-                {/* Overlay gradient for seamless blend with dark theme */}
-                <div className="absolute inset-0 rounded-2xl ring-1 ring-white/10" />
-                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-gray-950/80 to-transparent" />
-                {/* Caption */}
-                <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between">
-                  <span className="text-xs text-gray-300/80">매 분기 계좌에 쌓이는 배당금</span>
-                  <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-semibold text-emerald-400 backdrop-blur-sm">
-                    DIVIDEND INCOME
-                  </span>
+              <div className="relative">
+                {/* Floating stat chips */}
+                <div className="absolute -top-4 -left-4 z-10 flex items-center gap-2 rounded-xl bg-gray-900/95 border border-gray-700/60 px-3.5 py-2.5 shadow-xl backdrop-blur-sm">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20">
+                    <span className="text-xs">📈</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-500 leading-none mb-0.5">JNJ 배당 수익률</p>
+                    <p className="text-sm font-bold text-emerald-400 leading-none">3.24%</p>
+                  </div>
+                </div>
+                <div className="absolute -bottom-4 -right-4 z-10 flex items-center gap-2 rounded-xl bg-gray-900/95 border border-gray-700/60 px-3.5 py-2.5 shadow-xl backdrop-blur-sm">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-500/20">
+                    <span className="text-xs">💰</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-500 leading-none mb-0.5">월 예상 배당 수입</p>
+                    <p className="text-sm font-bold text-blue-400 leading-none">$342 / 월</p>
+                  </div>
+                </div>
+                <div className="absolute top-1/2 -right-6 z-10 -translate-y-1/2 flex items-center gap-2 rounded-xl bg-gray-900/95 border border-amber-500/30 px-3.5 py-2.5 shadow-xl backdrop-blur-sm">
+                  <span className="text-base">🏆</span>
+                  <div>
+                    <p className="text-[10px] text-gray-500 leading-none mb-0.5">등급</p>
+                    <p className="text-sm font-bold text-amber-400 leading-none">A+ 93점</p>
+                  </div>
+                </div>
+
+                {/* Main image */}
+                <div className="relative rounded-2xl overflow-hidden animate-warm-glow shadow-2xl shadow-emerald-500/15 ring-1 ring-white/10">
+                  <Image
+                    src="/images/hero-dividend.png"
+                    alt="배당 투자 - HIGH DIVIDEND YIELD 7.1%"
+                    width={640}
+                    height={360}
+                    className="w-full h-auto rounded-2xl"
+                    priority
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-gray-950/90 to-transparent" />
+                  <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between">
+                    <span className="text-xs text-gray-300/80">매 분기 계좌에 쌓이는 배당금</span>
+                    <span className="rounded-full bg-emerald-500/25 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-semibold text-emerald-400 backdrop-blur-sm">
+                      DIVIDEND INCOME
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -234,7 +296,7 @@ export default function HomePage() {
 
           {/* Mobile-only hero image */}
           <div className="mt-10 lg:hidden animate-fade-in stagger-4">
-            <div className="relative rounded-2xl overflow-hidden shadow-xl shadow-emerald-500/10">
+            <div className="relative rounded-2xl overflow-hidden shadow-xl shadow-emerald-500/10 ring-1 ring-white/10">
               <Image
                 src="/images/hero-dividend.png"
                 alt="배당 투자 - HIGH DIVIDEND YIELD 7.1%"
@@ -242,7 +304,6 @@ export default function HomePage() {
                 height={360}
                 className="w-full h-auto rounded-2xl"
               />
-              <div className="absolute inset-0 rounded-2xl ring-1 ring-white/10" />
               <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-950/80 to-transparent" />
               <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between">
                 <span className="text-xs text-gray-300/80">매 분기 계좌에 쌓이는 배당금</span>
