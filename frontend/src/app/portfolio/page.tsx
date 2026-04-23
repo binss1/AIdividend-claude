@@ -120,7 +120,7 @@ function HoldingModal({
             <input
               type="text"
               value={symbol}
-              onChange={e => setSymbol(e.target.value.toUpperCase())}
+              onChange={e => { setSymbol(e.target.value.toUpperCase()); setError(''); }}
               disabled={!!editing}
               placeholder="예: AAPL, JEPI, VYM"
               className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 text-sm disabled:opacity-50"
@@ -155,7 +155,7 @@ function HoldingModal({
               min="0"
               step="0.0001"
               value={shares}
-              onChange={e => setShares(e.target.value)}
+              onChange={e => { setShares(e.target.value); setError(''); }}
               placeholder="0"
               className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 text-sm"
             />
@@ -169,7 +169,7 @@ function HoldingModal({
               min="0"
               step="0.01"
               value={avgCost}
-              onChange={e => setAvgCost(e.target.value)}
+              onChange={e => { setAvgCost(e.target.value); setError(''); }}
               placeholder="0.00"
               className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 text-sm"
             />

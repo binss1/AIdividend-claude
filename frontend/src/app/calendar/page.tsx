@@ -409,7 +409,7 @@ function EarningsCalendarTab({ year, month }: { year: number; month: number }) {
     return map;
   }, [data]);
 
-  const applyFilters = (evs: EarningsEvent[]) => {
+  const applyFilters = useCallback((evs: EarningsEvent[]) => {
     let result = evs;
     if (filterSymbol.trim()) {
       const q = filterSymbol.toUpperCase().trim();
@@ -419,17 +419,15 @@ function EarningsCalendarTab({ year, month }: { year: number; month: number }) {
       result = result.filter(e => e.time === timeFilter);
     }
     return result;
-  };
+  }, [filterSymbol, timeFilter]);
 
   const selectedEvents = useMemo(() =>
     selectedDate ? applyFilters(eventsByDate[selectedDate] || []) : [],
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [selectedDate, eventsByDate, filterSymbol, timeFilter]);
+  [selectedDate, eventsByDate, applyFilters]);
 
   const allEvents = useMemo(() =>
     data ? applyFilters(data.events) : [],
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [data, filterSymbol, timeFilter]);
+  [data, applyFilters]);
 
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfWeek(year, month);

@@ -889,8 +889,11 @@ router.get('/dividend-calendar', optionalAuth, async (req: Request, res: Respons
         recordDate: e.recordDate || null,
         paymentDate: e.paymentDate || null,
         declarationDate: e.declarationDate || null,
-        dividend: e.dividend,
-        dividendYield: (quote && quote.price > 0) ? (e.dividend * 4 / quote.price * 100) : null,
+        dividend: e.adjDividend > 0 ? e.adjDividend : e.dividend,
+        // adjDividend: 주식분할 조정 배당금 사용. 분기 기준 ×4 (월배당주는 과대 추정될 수 있음)
+        dividendYield: (quote && quote.price > 0)
+          ? ((e.adjDividend > 0 ? e.adjDividend : e.dividend) * 4 / quote.price * 100)
+          : null,
         price: quote?.price || null,
         exchange: quote?.exchange || null,
       };

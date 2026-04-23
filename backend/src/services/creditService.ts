@@ -99,41 +99,52 @@ export async function deductCredits(
   cost: number;
   error?: string;
 }> {
-  const check = await canUseCredits(userId, feature);
-  if (!check.allowed) {
-    return { success: false, balance: check.balance, cost: check.cost, error: check.reason };
+  // 프로필을 한 번만 읽어 race condition 최소화 (이중 getUserProfile 호출 제거)
+  const profile = await getUserProfile(userId);
+  if (!profile) {
+    return { success: false, balance: 0, cost: 0, error: '사용자를 찾을 수 없습니다.' };
   }
 
+  const plan = await getPlan(profile.plan_id);
+  const cost = FEATURE_COSTS[feature] || 1;
+
   // 무제한 플랜은 트랜잭션만 기록하고 잔액 차감 안 함
-  if (check.isUnlimited) {
+  if (plan && plan.monthly_credits === -1) {
     await recordTransaction({
       user_id: userId,
       type: 'use',
       amount: 0, // 무제한은 0으로 기록
-      balance_after: check.balance,
+      balance_after: profile.credit_balance,
       feature,
       description: description || `${feature} (무제한 플랜)`,
     });
 
-    // total_credits_used는 카운트
     await updateUserProfile(userId, {
-      total_credits_used: (await getUserProfile(userId))!.total_credits_used + 1,
+      total_credits_used: profile.total_credits_used + 1,
     });
 
-    return { success: true, balance: check.balance, cost: 0 };
+    return { success: true, balance: profile.credit_balance, cost: 0 };
   }
 
-  const cost = check.cost;
-  const newBalance = check.balance - cost;
+  if (profile.credit_balance < cost) {
+    return {
+      success: false,
+      balance: profile.credit_balance,
+      cost,
+      error: `크레딧이 부족합니다. (잔액: ${profile.credit_balance}, 필요: ${cost})`,
+    };
+  }
 
-  // 잔액 업데이트
+  const newBalance = profile.credit_balance - cost;
+
+  // 잔액 업데이트 (스냅샷 기준으로 갱신 — DB 원자성은 Supabase RPC로 강화 가능)
   const updated = await updateUserProfile(userId, {
     credit_balance: newBalance,
-    total_credits_used: (await getUserProfile(userId))!.total_credits_used + cost,
+    total_credits_used: profile.total_credits_used + cost,
   });
 
   if (!updated) {
-    return { success: false, balance: check.balance, cost, error: '크레딧 차감 실패' };
+    return { success: false, balance: profile.credit_balance, cost, error: '크레딧 차감 실패' };
   }
 
   // 트랜잭션 기록

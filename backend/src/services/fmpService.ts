@@ -840,13 +840,17 @@ function calculateAnnualDividend(
 ): number {
   if (dividends.length === 0) return 0;
 
+  // adjDividend: 주식분할 조정 배당금 (더 정확) — 없으면 dividend 사용
+  const divVal = (d: FMPDividendHistorical) =>
+    d.adjDividend > 0 ? d.adjDividend : (d.dividend ?? 0);
+
   const sorted = [...dividends]
-    .filter(d => d.dividend > 0)
+    .filter(d => divVal(d) > 0)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   if (sorted.length === 0) return 0;
 
-  const latestDiv = sorted[0].dividend;
+  const latestDiv = divVal(sorted[0]);
 
   switch (cycle) {
     case 'monthly':
@@ -864,10 +868,10 @@ function calculateAnnualDividend(
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
       const last12 = sorted.filter(d => new Date(d.date) >= oneYearAgo);
       if (last12.length > 0) {
-        return last12.reduce((sum, d) => sum + d.dividend, 0);
+        return last12.reduce((sum, d) => sum + divVal(d), 0);
       }
       // Fallback: use last 4 dividends
-      return sorted.slice(0, 4).reduce((sum, d) => sum + d.dividend, 0);
+      return sorted.slice(0, 4).reduce((sum, d) => sum + divVal(d), 0);
     }
   }
 }
@@ -1662,11 +1666,14 @@ async function analyzeStock(
     roe = 0;
   }
 
-  const debtToEquity = latestRatios?.debtEquityRatioTTM ?? (
-    balanceSheets.length > 0 && balanceSheets[0].totalStockholdersEquity > 0
-      ? balanceSheets[0].totalDebt / balanceSheets[0].totalStockholdersEquity
-      : 0
-  );
+  const debtToEquity = latestRatios?.debtEquityRatioTTM ?? (() => {
+    const bs = balanceSheets[0];
+    // totalDebt가 undefined/null인 금융주(은행, 보험사)에서 NaN 방지
+    if (bs && typeof bs.totalDebt === 'number' && bs.totalStockholdersEquity > 0) {
+      return bs.totalDebt / bs.totalStockholdersEquity;
+    }
+    return 0;
+  })();
 
   const pe = latestRatios?.priceEarningsRatioTTM ?? quote.pe ?? 0;
   const pb = latestRatios?.priceToBookRatioTTM ?? undefined;
@@ -1899,11 +1906,14 @@ export async function getStockDetail(symbol: string): Promise<ScreenedStock | nu
     logger.warn(`${symbol} ROE is 0 - ratios TTM: ${latestRatios?.returnOnEquityTTM}, annual: ${latestRatios?.returnOnEquity}`);
   }
 
-  const debtToEquity = latestRatios?.debtEquityRatioTTM ?? latestRatios?.debtEquityRatio ?? (
-    balanceSheets.length > 0 && balanceSheets[0].totalStockholdersEquity > 0
-      ? balanceSheets[0].totalDebt / balanceSheets[0].totalStockholdersEquity
-      : 0
-  );
+  const debtToEquity = latestRatios?.debtEquityRatioTTM ?? latestRatios?.debtEquityRatio ?? (() => {
+    const bs = balanceSheets[0];
+    // totalDebt가 undefined/null인 금융주(은행, 보험사)에서 NaN 방지
+    if (bs && typeof bs.totalDebt === 'number' && bs.totalStockholdersEquity > 0) {
+      return bs.totalDebt / bs.totalStockholdersEquity;
+    }
+    return 0;
+  })();
   const pe = latestRatios?.priceEarningsRatioTTM ?? latestRatios?.priceEarningsRatio ?? quote.pe ?? 0;
   const pb = latestRatios?.priceToBookRatioTTM ?? latestRatios?.priceToBookRatio ?? undefined;
   const ps = latestRatios?.priceToSalesRatioTTM ?? latestRatios?.priceToSalesRatio ?? undefined;
