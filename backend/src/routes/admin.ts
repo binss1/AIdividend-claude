@@ -308,14 +308,25 @@ router.patch('/users/:id/subscription', async (req: Request, res: Response) => {
       return;
     }
 
-    // 현재 active 구독 업데이트
-    // 가장 최근 구독을 대상으로 업데이트 (status 무관하게 최신 구독 수정)
-    const { data, error } = await sb
+    // 가장 최근 구독 ID 조회 후 해당 레코드만 업데이트
+    // (.update().order().limit()은 Supabase PostgREST에서 미지원 → 전체 업데이트 위험)
+    const { data: latestSub, error: fetchError } = await sb
       .from('subscriptions')
-      .update(updates)
+      .select('id')
       .eq('user_id', id)
       .order('created_at', { ascending: false })
       .limit(1)
+      .single();
+
+    if (fetchError || !latestSub) {
+      res.status(404).json({ error: '구독 정보를 찾을 수 없습니다.' });
+      return;
+    }
+
+    const { data, error } = await sb
+      .from('subscriptions')
+      .update(updates)
+      .eq('id', latestSub.id)
       .select();
 
     if (error) throw new Error(error.message);

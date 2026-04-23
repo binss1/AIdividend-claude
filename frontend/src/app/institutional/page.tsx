@@ -209,8 +209,8 @@ export default function InstitutionalPage() {
     return a.rank - b.rank;
   }) : [];
 
-  // 바 차트용 최대값
-  const maxShares = data?.holders?.[0]?.shares ?? 1;
+  // 바 차트용 최대값 (정렬 상태와 무관하게 전체 보유자 중 최대값 사용)
+  const maxShares = Math.max(...(data?.holders?.map(h => h.shares) ?? []), 1);
 
   return (
     <div className="min-h-screen bg-gray-950 pt-20 pb-12">
@@ -485,8 +485,11 @@ export default function InstitutionalPage() {
 
               const COLORS = ['#818cf8','#34d399','#fb923c','#f472b6','#38bdf8'];
               const fmtDate = (d: string) => {
-                const [y, m] = d.split('-');
-                return `${y.slice(2)}Q${Math.ceil(parseInt(m) / 3)}`;
+                const parts = d?.split('-');
+                if (!parts || parts.length < 2) return d ?? '';
+                const [y, m] = parts;
+                const q = Math.ceil(parseInt(m, 10) / 3);
+                return isNaN(q) ? d : `${y.slice(2)}Q${q}`;
               };
 
               // 상위 기관 추이 차트 (SVG line chart)

@@ -52,7 +52,7 @@ const fmt = (n: number | null | undefined, decimals = 2) =>
   n == null || isNaN(n) ? '-' : n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
 const fmtPct = (n: number | null | undefined) =>
-  n == null ? '-' : `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
+  n == null || isNaN(n) ? '-' : `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
 
 const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
 

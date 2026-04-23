@@ -9,6 +9,7 @@ import {
   updateUserProfile,
 } from '../services/supabaseService';
 import { chargeCredits } from '../services/creditService';
+import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
@@ -152,9 +153,9 @@ function detectBillingPeriod(amount: number, planId: string): string {
 
 /**
  * GET /orders/:orderId
- * 주문 조회 (결제 상태 확인)
+ * 주문 조회 (결제 상태 확인) — 인증 필요
  */
-router.get('/orders/:orderId', async (req: Request, res: Response) => {
+router.get('/orders/:orderId', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { orderId } = req.params;
     const authHeader = 'Basic ' + Buffer.from(env.TOSS_SECRET_KEY + ':').toString('base64');

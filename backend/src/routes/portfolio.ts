@@ -550,12 +550,12 @@ router.post('/', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'symbol, shares, avg_cost는 필수입니다.' });
       return;
     }
-    if (Number(shares) <= 0) {
-      res.status(400).json({ error: '보유 수량은 0보다 커야 합니다.' });
+    if (isNaN(Number(shares)) || Number(shares) <= 0) {
+      res.status(400).json({ error: '보유 수량은 유효한 양수여야 합니다.' });
       return;
     }
-    if (Number(avg_cost) <= 0) {
-      res.status(400).json({ error: '평균 매입가는 0보다 커야 합니다.' });
+    if (isNaN(Number(avg_cost)) || Number(avg_cost) <= 0) {
+      res.status(400).json({ error: '평균 매입가는 유효한 양수여야 합니다.' });
       return;
     }
 
@@ -615,12 +615,12 @@ router.put('/:id', async (req: Request, res: Response) => {
       company_name?: string;
     };
 
-    if (shares !== undefined && Number(shares) <= 0) {
-      res.status(400).json({ error: '보유 수량은 0보다 커야 합니다.' });
+    if (shares !== undefined && (isNaN(Number(shares)) || Number(shares) <= 0)) {
+      res.status(400).json({ error: '보유 수량은 유효한 양수여야 합니다.' });
       return;
     }
-    if (avg_cost !== undefined && Number(avg_cost) <= 0) {
-      res.status(400).json({ error: '평균 매입가는 0보다 커야 합니다.' });
+    if (avg_cost !== undefined && (isNaN(Number(avg_cost)) || Number(avg_cost) <= 0)) {
+      res.status(400).json({ error: '평균 매입가는 유효한 양수여야 합니다.' });
       return;
     }
 
