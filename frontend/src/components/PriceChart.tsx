@@ -213,7 +213,7 @@ function CustomTooltip({ active, payload, activeIndicators }: CustomTooltipProps
       {showICH && d.spanA != null && d.spanB != null && (
         <div className="border-t border-gray-700 mt-2 pt-2 text-xs">
           {d.spanA > d.spanB
-            ? <span style={{ color: '#22c55e' }}>▲ 상승 구름 (스팬A &gt; 스팬B)</span>
+            ? <span style={{ color: '#3b82f6' }}>▲ 상승 구름 (스팬A &gt; 스팬B)</span>
             : <span style={{ color: '#ef4444' }}>▼ 하락 구름 (스팬B &gt; 스팬A)</span>}
         </div>
       )}
@@ -419,7 +419,7 @@ export default function PriceChart({ data }: PriceChartProps) {
                 x2={d.date}
                 y1={cloudBottom}
                 y2={cloudTop}
-                fill={bullish ? 'rgba(34,197,94,0.22)' : 'rgba(239,68,68,0.22)'}
+                fill={bullish ? 'rgba(59,130,246,0.28)' : 'rgba(239,68,68,0.22)'}
                 stroke="none"
                 ifOverflow="visible"
               />
