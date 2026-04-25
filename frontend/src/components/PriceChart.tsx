@@ -209,14 +209,12 @@ function CustomTooltip({ active, payload, activeIndicators }: CustomTooltipProps
         </div>
       )}
 
-      {/* Ichimoku */}
-      {showICH && (d.tenkan != null || d.kijun != null || d.spanA != null) && (
-        <div className="border-t border-gray-700 mt-2 pt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-          {d.tenkan != null && (<><span style={{ color: '#e11d48' }}>전환선</span><span className="font-mono text-right" style={{ color: '#e11d48' }}>${d.tenkan.toFixed(2)}</span></>)}
-          {d.kijun  != null && (<><span style={{ color: '#ea580c' }}>기준선</span><span className="font-mono text-right" style={{ color: '#ea580c' }}>${d.kijun.toFixed(2)}</span></>)}
-          {d.spanA  != null && (<><span style={{ color: '#22c55e' }}>선행A</span>  <span className="font-mono text-right" style={{ color: '#22c55e' }}>${d.spanA.toFixed(2)}</span></>)}
-          {d.spanB  != null && (<><span style={{ color: '#f43f5e' }}>선행B</span>  <span className="font-mono text-right" style={{ color: '#f43f5e' }}>${d.spanB.toFixed(2)}</span></>)}
-          {d.chikou != null && (<><span style={{ color: '#7c3aed' }}>후행스팬</span><span className="font-mono text-right" style={{ color: '#7c3aed' }}>${d.chikou.toFixed(2)}</span></>)}
+      {/* Ichimoku — 구름대 상태만 표시 */}
+      {showICH && d.spanA != null && d.spanB != null && (
+        <div className="border-t border-gray-700 mt-2 pt-2 text-xs">
+          {d.spanA > d.spanB
+            ? <span style={{ color: '#22c55e' }}>▲ 상승 구름 (스팬A &gt; 스팬B)</span>
+            : <span style={{ color: '#ef4444' }}>▼ 하락 구름 (스팬B &gt; 스팬A)</span>}
         </div>
       )}
     </div>
@@ -435,33 +433,6 @@ export default function PriceChart({ data }: PriceChartProps) {
           <Area yAxisId="price" type="monotone" dataKey="close"
             stroke="#10b981" strokeWidth={2} fill="url(#priceGradient)"
             animationDuration={800} dot={false} />
-
-          {/* ── 일목균형표 라인 ── */}
-          {activeIndicators.has('ICHIMOKU') && (
-            <Line yAxisId="price" type="monotone" dataKey="spanB"
-              stroke="#f43f5e" strokeWidth={1} dot={false} connectNulls={false}
-              animationDuration={300} name="선행스팬B" />
-          )}
-          {activeIndicators.has('ICHIMOKU') && (
-            <Line yAxisId="price" type="monotone" dataKey="spanA"
-              stroke="#22c55e" strokeWidth={1} dot={false} connectNulls={false}
-              animationDuration={300} name="선행스팬A" />
-          )}
-          {activeIndicators.has('ICHIMOKU') && (
-            <Line yAxisId="price" type="monotone" dataKey="chikou"
-              stroke="#7c3aed" strokeWidth={1.5} strokeDasharray="3 3"
-              dot={false} connectNulls={false} animationDuration={300} name="후행스팬" />
-          )}
-          {activeIndicators.has('ICHIMOKU') && (
-            <Line yAxisId="price" type="monotone" dataKey="kijun"
-              stroke="#ea580c" strokeWidth={2} dot={false} connectNulls={false}
-              animationDuration={300} name="기준선" />
-          )}
-          {activeIndicators.has('ICHIMOKU') && (
-            <Line yAxisId="price" type="monotone" dataKey="tenkan"
-              stroke="#e11d48" strokeWidth={1.5} dot={false} connectNulls={false}
-              animationDuration={300} name="전환선" />
-          )}
 
           {/* ── 볼린저 밴드 ── */}
           {activeIndicators.has('BB') && (
